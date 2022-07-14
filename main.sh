@@ -32,7 +32,7 @@ python3 src/global_processing.py
 python3 src/regional_processing.py
 
 # Run the BCSD script
-matlab -nodisplay -r "cd src; run_bcsd; exit"
+python3 src/run_bcsd.py
 
 # Do the re-chunking magic
 python3 src/lnchnks_to_mapchnks.py
