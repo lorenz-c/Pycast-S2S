@@ -1,0 +1,40 @@
+{
+    "version": "2.1",
+    "issue_date": {
+        "month": 66666,
+        "year": 7777
+    },
+    "directories": {
+        "glbldir": "/pd/data/regclim_data/gridded_data/seasonal_predictions/seas5/",
+        "regroot": "/pd/data/regclim_data/gridded_data/processed/"
+    },
+    "domains": [
+        {
+            "name": "Khuzestan",
+            "bbox": "45,53.5,29,36"
+        },
+        {
+            "name": "SF_Basin",
+            "bbox": "-49,-35,-22.5,-2.5"
+        },
+        {
+            "name": "TABN",
+            "bbox": "31,41,6,21"
+        },
+        {
+            "name": "Chira",
+            "bbox": "-82,-78,-7,-2"
+        }
+    ],
+    "bcsd_params": {
+        "frwrd_window": 15,
+        "bckwrd_window": 15
+    },
+    "process_params": {
+        "toregular": true,
+        "tosinglefiles": true,
+        "toglblmonthly": true,
+        "toregmonthly": true,
+        "toregtsmonthly": true
+    }
+}
