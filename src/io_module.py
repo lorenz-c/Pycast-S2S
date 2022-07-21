@@ -14,7 +14,7 @@ import dask.array as da
 import dask
 
 def io_module(obs, mdl, pred, month, fnme_out, window_obs, window_mdl):
-    create_new = True
+    create_new = False
 
     # Run set_metadata
     (dtainfo, vars, varlong, units, varprec, varfill, varscale, varoffset, varstandard) = set_metadata(window_obs,
@@ -127,13 +127,13 @@ def io_module(obs, mdl, pred, month, fnme_out, window_obs, window_mdl):
         # load data:
         # load data as dask objects
         # Obs (1981 - 2016 on daily basis)
-        ds_obs = xr.open_mfdataset(list(obs.values())[v])
+        ds_obs = xr.open_mfdataset(list(obs.values())[v], chunks={'time': 13149, 'lat': 1, 'lon': 1})
         ds_obs = ds_obs[vars[v]]
-        # Mdl (historical, 1981 - 2016 for one month and 215 days)
-        ds_mdl = xr.open_mfdataset(list(mdl.values())[v])
+        # Mdl (historical, 1981 - 2016 for one month and 215 days)  215, 36, 25, 1, 1 ;
+        ds_mdl = xr.open_mfdataset(list(mdl.values())[v], chunks={'time': 215, 'year': 36, 'ens': 25, 'lat': 1, 'lon': 1})
         ds_mdl = ds_mdl[vars[v]]
         # Pred (current year for one month and 215 days)
-        ds_pred = xr.open_mfdataset(list(pred.values())[v])
+        ds_pred = xr.open_mfdataset(list(pred.values())[v], chunks={'time': 215, 'ens': 51, 'lat': 1, 'lon': 1})
         ds_pred = ds_pred[vars[v]]
 
         ######## Combine years and days in one time variable ############
@@ -157,8 +157,8 @@ def io_module(obs, mdl, pred, month, fnme_out, window_obs, window_mdl):
         arr_var = arr_var.assign_coords(date=arr_date)
         arr_var = arr_var.rename(date="time")
         ds_mdl = arr_var
-        ds_mdl_persist = ds_mdl.persist()  # load data in memory, so that it can be computed much faster
-
+        #ds_mdl_persist = ds_mdl.persist()  # load data in memory, so that it can be computed much faster
+        ds_mdl_persist = ds_mdl
         # Find out which indices correspond to which time between obs and mdl
         time_obs = ds_obs.time.values
         time_mdl = ds_mdl_persist.time.values
@@ -191,7 +191,7 @@ def io_module(obs, mdl, pred, month, fnme_out, window_obs, window_mdl):
             # Stack "ens" and "time" dimension
             ds_mdl_sub = ds_mdl_sub.stack(ens_time=("ens", "time"))
             # Rechunk latitude and longitude
-            ds_mdl_sub = ds_mdl_sub.chunk({'lat': 'auto', 'lon': 'auto'})
+            # ds_mdl_sub = ds_mdl_sub.chunk({'lat': 'auto', 'lon': 'auto'})
 
             # Select pred
             ds_pred_sub = ds_pred.isel(time=k)
@@ -232,7 +232,7 @@ def io_module(obs, mdl, pred, month, fnme_out, window_obs, window_mdl):
             write_output(queue_out)
             print('## Update NetCDF4-File completed')
 
-        dask_allow = False
+        dask_allow = True
         dask_jobs = []
         for k in range(nts):
             print('# Time step ' + str(k+1) + ' / ' + str(nts))
