@@ -1,0 +1,16 @@
+name: forecast_bias_correction
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.10
+  - pandas
+  - dask
+  - xarray
+  - numpy
+  - netCDF4
+  - scipy
+  - pip
+  - pip:
+    - surpyval
+    - formulaic
