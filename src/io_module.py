@@ -14,7 +14,7 @@ import dask.array as da
 import dask
 
 def io_module(obs, mdl, pred, month, fnme_out, window_obs, window_mdl):
-    create_new = False
+    create_new = True
 
     # Run set_metadata
     (dtainfo, vars, varlong, units, varprec, varfill, varscale, varoffset, varstandard) = set_metadata(window_obs,
@@ -112,7 +112,7 @@ def io_module(obs, mdl, pred, month, fnme_out, window_obs, window_mdl):
                          '[]',
                          np.arange(0, nens),
                          nens,
-                         [nts, nens, 1, 1],
+                         [1, nens, len(lat), len(lon)],
                          True)
 
     start_time = dt.datetime.now()
