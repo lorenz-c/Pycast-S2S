@@ -33,16 +33,16 @@ i = 0
 if __name__ == '__main__':
 
     # Set all the metadata for the output file
-    dtainfo, vars, varlong, units, varprec, varfill, varscale, varoffset, varstandard = modules.set_metadata(15, 15)
+    global_attributes, variable_attributes = modules.set_metadata(15, 15)
 
     # Set all filenames for in- and output files
     obs_dict, mdl_dict, pred_dict, month, bc_out_lns = modules.set_filenames(month, year, domain_names[i], parameter["directories"]["regroot"], parameter["version"])
 
     # Read the dimensions for the output file
-    tme_frcst, tme_frcst_unit, lat, lon, ens = modules.get_dims_from_files(list(pred_dict.values())[0])
+    coords = modules.get_coords_from_files(list(pred_dict.values())[0])
 
     # Create an empty NetCDF in which we write the output
-    modules.create_4d_netcdf(bc_out_lns, dtainfo, vars, varstandard, varlong, units, varprec, varfill, varscale, varoffset, tme_frcst, lat, lon, tme_frcst_unit, 'ensemble', "", "", '[]', ens, len(ens), [1, len(ens), len(lat), len(lon)], True)
+    ds = modules.create_4d_netcdf(bc_out_lns, global_attributes, variable_attributes, coords)
 
     queue_out, dask_jobs = io_module(obs_dict, mdl_dict, pred_dict, month, bc_out_lns, 15, 15)
 

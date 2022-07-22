@@ -70,14 +70,16 @@ def slice_and_correct(dayofyear_obs, dayofyear_mdl, ds_obs, ds_mdl_persist, ds_p
     # pred_corr_test = xr.apply_ufunc(bc_module, ds_pred.load(), ds_obs_sub.load(), ds_mdl_sub.load(), extremes, low_extrapol, up_extrapol, precip, intermittency, dry_thresh, input_core_dims=[["ens"], ["time"], ['ens_time'], [], [], [], [], [], []], output_core_dims=[["ens"]], vectorize = True, output_dtypes=[np.float64]).compute() # , exclude_dims=set(("ens",)), output_sizes={'dim':0, 'size':51}) #,  exclude_dims=set(("quantile",)))
 
     # Fill NaN-Values with corresponding varfill, varscale and varoffset
-    if varoffset[v] != []:
-        pred_corr_test = pred_corr_test.fillna(varfill[v] * varscale[v] + varoffset[v])  # this is needed, because otherwise the conversion of np.NAN to int does not work properly
-    else:
-        pred_corr_test = pred_corr_test.fillna(varfill[v] * varscale[v])
-        queue_out['data'] = pred_corr_test.values
+    #if varoffset[v] != []:
+    #    pred_corr_test = pred_corr_test.fillna(varfill[v] * varscale[v] + varoffset[v])  # this is needed, because otherwise the conversion of np.NAN to int does not work properly
+   # else:
+    #   pred_corr_test = pred_corr_test.fillna(varfill[v] * varscale[v])
+    #    queue_out['data'] = pred_corr_test.values
 
     # Run write_output.ipynb
-    write_output(queue_out)
+    #write_output(queue_out)
+
+    return pred_corr_test
     print('## Update NetCDF4-File completed')
 
 
@@ -120,9 +122,9 @@ def io_module(obs, mdl, pred, month, fnme_out, window_obs, window_mdl, varfill, 
     yrs = np.unique(ds.time.dt.year.values)
 
     # ds = xr.open_dataset("test_files/raw_lnechnks/SEAS5_daily_202204_0.1_Khuzestan_lns.nc", decode_times=False) # further work has to be done
-    ds = xr.open_dataset(list(pred.values())[0], decode_times=False)
-    tme_frcst = ds['time'].values
-    tme_frcst_unit = ds['time'].units
+    #ds = xr.open_dataset(list(pred.values())[0], decode_times=False)
+    #tme_frcst = ds['time'].values
+    #tme_frcst_unit = ds['time'].units
     # ds = xr.open_dataset("test_files/raw_lnechnks/SEAS5_daily_202204_0.1_Khuzestan_lns.nc", decode_times=True)
     ds = xr.open_dataset(list(pred.values())[0], decode_times=True)
     tme_frcst_abs = ds['time']
@@ -210,8 +212,9 @@ def io_module(obs, mdl, pred, month, fnme_out, window_obs, window_mdl, varfill, 
         dayofyear_mdl = ds_mdl_persist['time.dayofyear']
 
 
-        dask_allow = False
+        dask_allow = True
         dask_jobs = []
+
         for k in range(nts):
             print('# Time step ' + str(k+1) + ' / ' + str(nts))
             if dask_allow == True:
@@ -220,6 +223,7 @@ def io_module(obs, mdl, pred, month, fnme_out, window_obs, window_mdl, varfill, 
                 dask_jobs.append(test_jobs)
             else:
                 slice_and_correct(dayofyear_obs, dayofyear_mdl, ds_obs, ds_mdl_persist, ds_pred, nens, queue_out, window_obs, k)
+
         print()
         # start_time = dt.datetime.now()
         # dask.compute(*dask_jobs)
