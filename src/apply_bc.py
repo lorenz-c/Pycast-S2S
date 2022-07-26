@@ -1,5 +1,5 @@
 import netCDF4
-from io_module import io_module
+from io_module import slice_and_correct
 
 def apply_bc(month=None,year=None,domain=None,regroot=None,version=None,*args,**kwargs):
 
@@ -7,7 +7,8 @@ def apply_bc(month=None,year=None,domain=None,regroot=None,version=None,*args,**
 
     mnth_str=str(month)
     mnth_str=mnth_str.zfill(2)
-    basedir=f"{regroot}{domain}/daily/"
+    # basedir=f"{regroot}{domain}/daily/"
+    basedir = f"{regroot}{domain}/daily/"
 
     raw_in=basedir+'seas5_h/SEAS5_daily_'+yr_str+mnth_str+'_0.1_'+domain+'.nc'
     raw_lnechnks=basedir+'linechunks/SEAS5_daily_'+yr_str+mnth_str+'_0.1_'+domain+'_lns.nc'
