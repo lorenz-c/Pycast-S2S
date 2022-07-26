@@ -5,6 +5,7 @@ import datetime as dt
 import numpy as np
 import netCDF4
 import xarray as xr
+import dask.array as da
 
 
 def set_metadata(window_obs, window_mdl):
@@ -131,4 +132,24 @@ def get_coords_from_files(filename):
         'ens': ds['ens'].values
     }
 
+
+def preprocess_mdl_hist(filename):
+    # Open data
+    ds = xr.open_mfdataset(filename)
+
+    # Define time range
+    year_start = ds.year.values[0].astype(int)
+    year_end = ds.year.values[-1].astype(int)
+    nday = len(ds.time.values)
+
+    # Create new time based on day and year
+    da_date = da.empty(shape=0, dtype=np.datetime64)
+    for yr in range(year_start, year_end + 1):
+        date = np.asarray(pd.date_range(str(yr) + "-4-1 00:00:00", freq="D", periods=nday))
+        da_date = da.append(da_date, date)
+
+    # Assign Datetime-Object to new Date coordinate and rename it to "time"
+    ds = ds.stack(date=('year', 'time')).assign_coords(date=da_date).rename(date="time")
+
+    return ds
 
