@@ -4,7 +4,7 @@ from scipy.interpolate import interp1d
 from scipy.stats import gumbel_l
 from scipy.stats import norm
 import surpyval as surv
-# test
+
 def bc_module(pred, obs, mdl, extremes, low_extrapol, up_extrapol, precip, intermittency, dry_thresh):
     # Create array with the same size as pred, containing NAN in order to handle empty cells
     ds_nan = pred.copy()
