@@ -7,14 +7,22 @@ import surpyval as surv
 
 def bc_module(pred, obs, mdl, extremes, low_extrapol, up_extrapol, precip, intermittency, dry_thresh):
     # Create array with the same size as pred, containing NAN in order to handle empty cells
+    
+    print(mdl)
+    
+    #mdl = mdl.stack(ens_time=("ens", "time"))
+    
+    
+    
     ds_nan = pred.copy()
     ds_nan[:] = np.nan
+    
 
     # only do the bc-calculation, if obs and mdl are not NAN
 
     if np.any(~np.isnan(obs)) & np.any(~np.isnan(mdl)):
         # nmdl = mdl.shape[0]
-        nmdl = 5000
+        nmdl = 2500
         p_min_mdl = 1 / (nmdl + 1)
         p_max_mdl = nmdl / (nmdl + 1)
         p_mdl = np.linspace(p_min_mdl, p_max_mdl, nmdl)
