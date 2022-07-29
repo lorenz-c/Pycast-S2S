@@ -11,10 +11,11 @@ from write_output import write_output
 import dask.array as da
 import dask
 
-def slice_and_correct(dayofyear_obs, dayofyear_mdl, ds_obs, ds_mdl, ds_pred, coordinates, queue_out, window_obs, dry_thresh, precip, low_extrapol, up_extrapol, extremes, intermittency, k):
-    queue_out["time_step"] = k
+#def slice_and_correct(dayofyear_obs, dayofyear_mdl, ds_obs, ds_mdl, ds_pred, coordinates, queue_out, window_obs, dry_thresh, precip, low_extrapol, up_extrapol, extremes, intermittency, k):
+def slice_and_correct(dayofyear_obs, dayofyear_mdl, ds_obs, ds_mdl, ds_pred, coordinates, window_obs, dry_thresh, precip, low_extrapol, up_extrapol, extremes, intermittency, k):
+    #queue_out["time_step"] = k
     # Fill in np.nan for the data
-    queue_out['data'] = np.full([len(coordinates['nens']), len(coordinates['lat']), len(coordinates['lon'])], np.nan)
+    #queue_out['data'] = np.full([len(coordinates['nens']), len(coordinates['lat']), len(coordinates['lon'])], np.nan)
 
     day = dayofyear_mdl[k]  # initial day for Month 04
 
@@ -35,9 +36,16 @@ def slice_and_correct(dayofyear_obs, dayofyear_mdl, ds_obs, ds_mdl, ds_pred, coo
     ds_mdl_sub = ds_mdl.loc[dict(time=intersection_day_mdl)]
     # Stack "ens" and "time" dimension
     ds_mdl_sub = ds_mdl_sub.stack(ens_time=("ens", "time"))
+    
+    print(ds_mdl_sub)
+    print(ds_obs_sub)
+    
+    print(type(ds_mdl_sub.ens_time.values[0]), type(ds_obs_sub.time.values[0]))
 
     # Select pred
     ds_pred_sub = ds_pred.isel(time=k)
+    
+    print(ds_pred_sub)
 
     # This is where the magic happens:
     ## apply_u_func apply the function bc_module over each Lat/Lon-Cell, processing the whole time period
