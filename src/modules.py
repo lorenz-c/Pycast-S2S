@@ -5,24 +5,49 @@ import datetime as dt
 import numpy as np
 import netCDF4
 import xarray as xr
+import pandas as pd
 import dask.array as da
 
+import dask
+from dask_jobqueue import SLURMCluster
+from dask.distributed import Client, LocalCluster
 
-def set_metadata(window_obs, window_mdl):
+
+
+from bc_module import bc_module
+from write_output import write_output
+
+
+
+def set_metadata(coords, bc_params):
     # Empty Dictionary
-    now = dt.datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+    now = dt.datetime.now().strftime("%Y-%m-%dT%H:%M:%S"),
 
     global_attributes = {
-        'title': 'Bias-corrected SEAS5-forecasts - version 2.1',
-        'Conventions': 'CF-1.8',
-        'references': 'TBA',
+        'title': 'Bias-corrected and spatially disaggregated SEAS5-forecasts - version 2.2',
+        'references': 'Lorenz, C. et al. (2021): Bias-corrected and spatially disaggregated seasonal forecasts: a long-term reference forecast product for the water sector in semi-arid regions, doi: https://doi.org/10.5194/essd-2020-177',
         'institution': 'Karlsruhe Institute of Technology - Institute of Meteorology and Climate Research',
-        'comment': '',
-        'history': f"{now}: BCSD applied to SEAS5 data",
+        'institution-ID': 'https://ror.org/04t3en479',
+        'PI': 'Christof Lorenz',
+        'originator': 'Christof Lorenz',
+        'contact': 'https://imk-ifu.kit.edu',
+        'contact_email': 'Christof.Lorenz@kit.edu',
+        'operator': 'Clemens Borkenhagen',
+        'contributor': 'Jan Weber, Tanja Portele, Harald Kunstmann',
+        'comment': f'BCSD-Parameter: {str(bc_params)}',
         'Contact_person': 'Christof Lorenz (Christof.Lorenz@kit.edu)',
         'Author': 'Christof Lorenz (Christof.Lorenz@kit.edu)',
-        'License': 'CC-BY 4.0',
-        'date_created': f"{now}"
+        'Conventions': 'CF-1.8',
+        'license': 'CC-BY 4.0',
+        'creation_date': f"{now}",
+        'source': 'ECMWF SEAS5, ECMWF ERA5-Land',
+        'crs': 'EPSG:4326',
+        'geospatial_lon_min': min(coords['lon']),
+        'geospatial_lon_max': max(coords['lon']),
+        'geospatial_lat_min': min(coords['lat']),
+        'geospatial_lat_max': max(coords['lat']),
+        'StartTime': pd.to_datetime(coords['time'][0]).strftime("%Y-%m-%dT%H:%M:%S"),
+        'StopTime': pd.to_datetime(coords['time'][-1]).strftime("%Y-%m-%dT%H:%M:%S")
     }
 
     variable_attributes = {
@@ -127,15 +152,15 @@ def get_coords_from_files(filename):
 
     return {
         'time': ds['time'].values,
-        'lat': ds['lat'].values,
-        'lon': ds['lon'].values,
+        'lat': ds['lat'].values.astype(np.float32),
+        'lon': ds['lon'].values.astype(np.float32),
         'ens': ds['ens'].values
     }
 
 
-def preprocess_mdl_hist(filename):
+def preprocess_mdl_hist(filename, month):
     # Open data
-    ds = xr.open_mfdataset(filename)
+    ds = xr.open_mfdataset(filename, chunks={'time': 215, 'year': 36, 'ens': 25, 'lat': 10, 'lon': 10}, parallel=True, engine='h5netcdf')
 
     # Define time range
     year_start = ds.year.values[0].astype(int)
@@ -145,7 +170,7 @@ def preprocess_mdl_hist(filename):
     # Create new time based on day and year
     da_date = da.empty(shape=0, dtype=np.datetime64)
     for yr in range(year_start, year_end + 1):
-        date = np.asarray(pd.date_range(str(yr) + "-4-1 00:00:00", freq="D", periods=nday))
+        date = np.asarray(pd.date_range(f'{yr}-{month}-01 00:00:00', freq="D", periods=nday))
         da_date = da.append(da_date, date)
 
     # Assign Datetime-Object to new Date coordinate and rename it to "time"
@@ -153,3 +178,128 @@ def preprocess_mdl_hist(filename):
 
     return ds
 
+
+
+def slice_and_correct(dayofyear_obs, dayofyear_mdl, ds_obs, ds_mdl, ds_pred, coordinates, window_obs, dry_thresh, precip, low_extrapol, up_extrapol, extremes, intermittency, k):
+    #queue_out["time_step"] = k
+    # Fill in np.nan for the data
+    #queue_out['data'] = np.full([len(coordinates['nens']), len(coordinates['lat']), len(coordinates['lon'])], np.nan)
+
+    day = dayofyear_mdl[k]  # initial day for Month 04
+
+    # create range +- pool
+    day_range = (np.arange(day - window_obs, day + window_obs + 1) + 365) % 365 + 1
+
+    # Find days in day_range in dayofyear from obs
+    intersection_day_obs = np.in1d(dayofyear_obs, day_range)
+    intersection_day_mdl = np.in1d(dayofyear_mdl, day_range)
+
+    # Cut out obs, which correspond to intersected days
+    ds_obs_sub = ds_obs.loc[dict(time=intersection_day_obs)]
+
+    # Silence warning of slicing dask array with chunk size
+    dask.config.set({"array.slicing.split_large_chunks": False})
+
+    # Cut out mdl, which correspond to intersected days
+    ds_mdl_sub = ds_mdl.loc[dict(time=intersection_day_mdl)]
+    # Stack "ens" and "time" dimension
+    ds_mdl_sub = ds_mdl_sub.stack(ens_time=("ens", "time"))
+    ds_mdl_sub = ds_mdl_sub.drop('time')
+
+    # Select pred
+    ds_pred_sub = ds_pred.isel(time=k)
+
+    # This is where the magic happens:
+    ## apply_u_func apply the function bc_module over each Lat/Lon-Cell, processing the whole time period
+    pred_corr_test = xr.apply_ufunc(bc_module, ds_pred_sub, ds_obs_sub, ds_mdl_sub, extremes, low_extrapol, up_extrapol, precip, intermittency, dry_thresh, input_core_dims=[["ens"], ["time"], ['ens_time'], [], [], [], [], [], []], output_core_dims=[["ens"]], vectorize=True, dask="parallelized", output_dtypes=[np.float64])  # , 
+    pred_corr_test = pred_corr_test.chunk(chunks={'ens': len(coordinates['nens']), 'lat': len(coordinates['lat']), 'lon':len(coordinates['lon'])})
+    
+    
+    #exclude_dims=set(("ens",)), output_sizes={'dim':0, 'size':51}) #,  exclude_dims=set(("quantile",)))
+    # pred_corr_test = xr.apply_ufunc(bc_module, ds_pred.load(), ds_obs_sub.load(), ds_mdl_sub.load(), extremes, low_extrapol, up_extrapol, precip, intermittency, dry_thresh, input_core_dims=[["ens"], ["time"], ['ens_time'], [], [], [], [], [], []], output_core_dims=[["ens"]], vectorize = True, output_dtypes=[np.float64]).compute() # , exclude_dims=set(("ens",)), output_sizes={'dim':0, 'size':51}) #,  exclude_dims=set(("quantile",)))
+
+    # Fill NaN-Values with corresponding varfill, varscale and varoffset
+    #if varoffset[v] != []:
+    #    pred_corr_test = pred_corr_test.fillna(varfill[v] * varscale[v] + varoffset[v])  # this is needed, because otherwise the conversion of np.NAN to int does not work properly
+   # else:
+    #   pred_corr_test = pred_corr_test.fillna(varfill[v] * varscale[v])
+    #    queue_out['data'] = pred_corr_test.values
+
+    # Run write_output.ipynb
+    #write_output(queue_out)
+
+    return pred_corr_test
+
+
+
+
+
+def slice_and_correct(dayofyear_obs, dayofyear_mdl, ds_obs, ds_mdl, ds_pred, coordinates, window_obs, dry_thresh, precip, low_extrapol, up_extrapol, extremes, intermittency, k):
+
+    day = dayofyear_mdl[k]  # initial day for Month 04
+
+    # create range +- pool
+    day_range = (np.arange(day - window_obs, day + window_obs + 1) + 365) % 365 + 1
+
+    # Find days in day_range in dayofyear from obs
+    intersection_day_obs = np.in1d(dayofyear_obs, day_range)
+    intersection_day_mdl = np.in1d(dayofyear_mdl, day_range)
+
+    # Cut out obs, which correspond to intersected days
+    ds_obs_sub = ds_obs.loc[dict(time=intersection_day_obs)]
+
+    # Silence warning of slicing dask array with chunk size
+    dask.config.set({"array.slicing.split_large_chunks": False})
+
+    # Cut out mdl, which correspond to intersected days
+    ds_mdl_sub = ds_mdl.loc[dict(time=intersection_day_mdl)]
+    # Stack "ens" and "time" dimension
+    ds_mdl_sub = ds_mdl_sub.stack(ens_time=("ens", "time"))
+    ds_mdl_sub = ds_mdl_sub.drop('time')
+
+    # Select pred
+    ds_pred_sub = ds_pred.isel(time=k)
+
+    # This is where the magic happens:
+    ## apply_u_func apply the function bc_module over each Lat/Lon-Cell, processing the whole time period
+    pred_corr = xr.apply_ufunc(bc_module, ds_pred_sub, ds_obs_sub, ds_mdl_sub, extremes, low_extrapol, up_extrapol, precip, intermittency, dry_thresh, input_core_dims=[["ens"], ["time"], ['ens_time'], [], [], [], [], [], []], output_core_dims=[["ens"]], vectorize=True, dask="parallelized", output_dtypes=[np.float64])  # , 
+    pred_corr = pred_corr.chunk(chunks={'ens': len(coordinates['nens']), 'lat': len(coordinates['lat']), 'lon':len(coordinates['lon'])})
+    
+   
+    return pred_corr_test
+
+
+def getCluster(queue, nodes, jobs_per_node):
+    
+    workers = nodes * jobs_per_node
+    
+    # cluster options
+    if queue == 'rome':
+        cores, memory, walltime = (62, '220GB', '0-15:00:00')
+    elif queue == 'ivyshort':
+        cores, memory, walltime = (40, '60GB', '08:00:00')
+    elif queue == 'ccgp' or queue == 'cclake':
+        cores, memory, walltime = (38, '170GB', '04:00:00')
+    elif queue == 'haswell':
+        cores, memory, walltime = (40, '120GB', '01:00:00')
+    elif queue == 'ivy':
+        cores, memory, walltime = (40, '60GB', '04:00:00')
+    elif queue == 'fat':
+        cores, memory, walltime = (96, '800GB', '48:00:00')
+    
+    # cluster if only single cluster is needed!
+    cluster = SLURMCluster(
+         cores = cores,             
+         memory = memory,       
+         processes = jobs_per_node,
+         local_directory = '/bg/data/NCZarr/temp',  
+         queue = queue,
+         project = 'dask_test',
+         walltime = walltime
+    )
+    
+    client = Client(cluster)
+    
+    cluster.scale(n=workers)
+
+    return client, cluster
