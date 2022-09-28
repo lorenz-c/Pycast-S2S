@@ -6,6 +6,8 @@ dependencies:
   - python=3.10
   - pandas
   - dask
+  - dask-jobqueue
+  - dask-core
   - xarray
   - numpy
   - netCDF4
