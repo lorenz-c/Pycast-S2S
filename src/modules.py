@@ -3,20 +3,33 @@ import os
 from os.path import exists
 import datetime as dt
 import numpy as np
-import netCDF4
 import xarray as xr
 import pandas as pd
 import dask.array as da
 
 import dask
 from dask_jobqueue import SLURMCluster
-from dask.distributed import Client, LocalCluster
+from dask.distributed import Client
+
+#from bc_module import bc_module
+#from write_output import write_output
 
 
+def update_global_attributes(global_config, bc_params, coords, domain):
+    # Update the global attributes with some run-specific parameters
+    now = dt.datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
 
-from bc_module import bc_module
-from write_output import write_output
+    global_config['comment'] = f'Domain: {domain}, BCSD-Parameter: {str(bc_params)}'
+    global_config['creation_date'] = f"{now}"
 
+    global_config['geospatial_lon_min'] = min(coords['lon'])
+    global_config['geospatial_lon_max'] = max(coords['lon'])
+    global_config['geospatial_lat_min'] = min(coords['lat'])
+    global_config['geospatial_lat_max'] = max(coords['lat'])
+    global_config['StartTime']          = pd.to_datetime(coords['time'][0]).strftime("%Y-%m-%dT%H:%M:%S")
+    global_config['StopTime']           = pd.to_datetime(coords['time'][-1]).strftime("%Y-%m-%dT%H:%M:%S")
+
+    return global_config
 
 
 def set_metadata(coords, bc_params):
@@ -60,48 +73,104 @@ def set_metadata(coords, bc_params):
     
     return global_attributes, variable_attributes
 
+def set_filenames(year, month, domain_config, variable_config):
 
-def set_filenames(month = None, year = None, domain = None, regroot = None, version = None, *args, **kwargs):
-
+    # Integrate check for every parameter...
     yr_str   = str(year)
     mnth_str = str(month)
     mnth_str = mnth_str.zfill(2)
-    basedir  = f"{regroot}{domain}/daily/"
+    basedir  = f"{domain_config['regroot']}/daily/"
 
-    raw_lnechnks = f"{basedir}linechunks/SEAS5_daily_{yr_str}{mnth_str}_0.1_{domain}_lns.nc"
-    bc_out_lns   = f"{basedir}linechunks/SEAS5_BCSD_v{version}_daily_{yr_str}{mnth_str}_0.1_{domain}_lns.nc"
+    raw_dict       = {}
+    bcsd_dict      = {}
+    ref_hist_dict  = {}
+    mdl_hist_dict  = {}
 
+    for variable in variable_config:
 
-    # Set the number of ensemble member
-    syr_calib=1981
-    eyr_calib=2016
+        if domain_config['raw_forecasts']['merged_variables'] == True:
+            raw_dict[variable]  = f"{basedir}linechunks/{domain_config['raw_forecasts']['prefix']}_daily_{yr_str}{mnth_str}_{domain_config['target_resolution']}_{domain_config['prefix']}_lns.nc"
+        else:
+            raw_dict[variable]  = f"{basedir}linechunks/{domain_config['raw_forecasts']['prefix']}_daily_{variable}_{yr_str}{mnth_str}_{domain_config['target_resolution']}_{domain_config['prefix']}_lns.nc"
 
-    obs_dict = {'tp': basedir+'linechunks/ERA5_Land_daily_tp_'+str(syr_calib)+'_'+str(eyr_calib)+'_'+domain+'_lns.nc',
-                  't2m': basedir+'linechunks/ERA5_Land_daily_t2m_'+str(syr_calib)+'_'+str(eyr_calib)+'_'+domain+'_lns.nc',
-                  't2plus': basedir+'linechunks/ERA5_Land_daily_t2plus_'+str(syr_calib)+'_'+str(eyr_calib)+'_'+domain+'_lns.nc',
-                  't2minus': basedir+'linechunks/ERA5_Land_daily_t2minus_'+str(syr_calib)+'_'+str(eyr_calib)+'_'+domain+'_lns.nc',
-                  'ssrd': basedir+'linechunks/ERA5_Land_daily_ssrd_'+str(syr_calib)+'_'+str(eyr_calib)+'_'+domain+'_lns.nc'}
+        if domain_config["bcsd_forecasts"]['merged_variables'] == True:
+            bcsd_dict[variable] = f"{basedir}linechunks/{domain_config['bcsd_forecasts']['prefix']}_v{domain_config['version']}_daily_{yr_str}{mnth_str}_{domain_config['target_resolution']}_{domain_config['prefix']}_lns.nc"
+        else:
+            bcsd_dict[variable] = f"{basedir}linechunks/{domain_config['bcsd_forecasts']['prefix']}_v{domain_config['version']}_daily_{variable}_{yr_str}{mnth_str}_{domain_config['target_resolution']}_{domain_config['prefix']}_lns.nc"
 
-    mdl_dict = {'tp': basedir+'linechunks/SEAS5_daily_1981_2016_'+mnth_str+'_0.1_'+domain+'_lns.nc',
-                  't2m': basedir+'linechunks/SEAS5_daily_1981_2016_'+mnth_str+'_0.1_'+domain+'_lns.nc',
-                  't2plus': basedir+'linechunks/SEAS5_daily_1981_2016_'+mnth_str+'_0.1_'+domain+'_lns.nc',
-                  't2minus': basedir+'linechunks/SEAS5_daily_1981_2016_'+mnth_str+'_0.1_'+domain+'_lns.nc',
-                  'ssrd': basedir+'linechunks/SEAS5_daily_1981_2016_'+mnth_str+'_0.1_'+domain+'_lns.nc'}
-
-    pred_dict = {'tp': raw_lnechnks,
-                   't2m': raw_lnechnks,
-                   't2plus': raw_lnechnks,
-                   't2minus': raw_lnechnks,
-                   'ssrd': raw_lnechnks}
-
-    return obs_dict, mdl_dict, pred_dict, month, bc_out_lns
+        if domain_config['reference_history']['merged_variables'] == True:
+            ref_hist_dict[variable]  = f"{basedir}linechunks/{domain_config['reference_history']['prefix']}_daily_{domain_config['syr_calib']}_{domain_config['eyr_calib']}_{domain_config['target_resolution']}_{domain_config['prefix']}_lns.nc"
+        else:
+            ref_hist_dict[variable]  = f"{basedir}linechunks/{domain_config['reference_history']['prefix']}_daily_{variable}_{domain_config['syr_calib']}_{domain_config['eyr_calib']}_{domain_config['target_resolution']}_{domain_config['prefix']}_lns.nc"
 
 
-def create_4d_netcdf(fnme, global_attributes, variable_attributes, coordinates):
+        if domain_config['model_history']['merged_variables'] == True:
+            mdl_hist_dict[variable]  = f"{basedir}linechunks/{domain_config['model_history']['prefix']}_daily_{domain_config['syr_calib']}_{domain_config['eyr_calib']}_{mnth_str}_{domain_config['target_resolution']}_{domain_config['prefix']}_lns.nc"
+        else:
+            mdl_hist_dict[variable]  = f"{basedir}linechunks/{domain_config['model_history']['prefix']}_daily_{variable}_{domain_config['syr_calib']}_{domain_config['eyr_calib']}__{mnth_str}{domain_config['target_resolution']}_{domain_config['prefix']}_lns.nc"
 
-    da_dict = {}
-    
-    for variable in variable_attributes:
+    return raw_dict, bcsd_dict, ref_hist_dict, mdl_hist_dict
+
+# def set_filenames(month = None, year = None, domain = None, regroot = None, version = None, *args, **kwargs):
+
+#     # Integrate check for every parameter...
+#     yr_str   = str(year)
+#     mnth_str = str(month)
+#     mnth_str = mnth_str.zfill(2)
+#     basedir  = f"{regroot}/daily/"
+
+#     raw_lnechnks = f"{basedir}linechunks/SEAS5_daily_{yr_str}{mnth_str}_0.1_{domain}_lns.nc"
+#     bc_out_lns   = f"{basedir}linechunks/SEAS5_BCSD_v{version}_daily_{yr_str}{mnth_str}_0.1_{domain}_lns.nc"
+
+
+#     # Set the number of ensemble member
+#     syr_calib=1981
+#     eyr_calib=2016
+
+#     obs_dict = {'tp': basedir+'linechunks/ERA5_Land_daily_tp_'+str(syr_calib)+'_'+str(eyr_calib)+'_'+domain+'_lns.nc',
+#                   't2m': basedir+'linechunks/ERA5_Land_daily_t2m_'+str(syr_calib)+'_'+str(eyr_calib)+'_'+domain+'_lns.nc',
+#                   't2plus': basedir+'linechunks/ERA5_Land_daily_t2plus_'+str(syr_calib)+'_'+str(eyr_calib)+'_'+domain+'_lns.nc',
+#                   't2minus': basedir+'linechunks/ERA5_Land_daily_t2minus_'+str(syr_calib)+'_'+str(eyr_calib)+'_'+domain+'_lns.nc',
+#                   'ssrd': basedir+'linechunks/ERA5_Land_daily_ssrd_'+str(syr_calib)+'_'+str(eyr_calib)+'_'+domain+'_lns.nc'}
+
+#     mdl_dict = {'tp': basedir+'linechunks/SEAS5_daily_1981_2016_'+mnth_str+'_0.1_'+domain+'_lns.nc',
+#                   't2m': basedir+'linechunks/SEAS5_daily_1981_2016_'+mnth_str+'_0.1_'+domain+'_lns.nc',
+#                   't2plus': basedir+'linechunks/SEAS5_daily_1981_2016_'+mnth_str+'_0.1_'+domain+'_lns.nc',
+#                   't2minus': basedir+'linechunks/SEAS5_daily_1981_2016_'+mnth_str+'_0.1_'+domain+'_lns.nc',
+#                   'ssrd': basedir+'linechunks/SEAS5_daily_1981_2016_'+mnth_str+'_0.1_'+domain+'_lns.nc'}
+
+#     pred_dict = {'tp': raw_lnechnks,
+#                    't2m': raw_lnechnks,
+#                    't2plus': raw_lnechnks,
+#                    't2minus': raw_lnechnks,
+#                    'ssrd': raw_lnechnks}
+
+#     return obs_dict, mdl_dict, pred_dict, month, bc_out_lns
+def set_encoding(variable_config, coordinates):
+    encoding = {}
+
+    for variable in variable_config:        
+        encoding[variable] =  {
+            'zlib': True,
+            'complevel': 4,
+            '_FillValue': variable_config[variable]['_FillValue'],
+            'scale_factor': variable_config[variable]['scale_factor'],
+            'add_offset': variable_config[variable]['scale_factor'],
+            'dtype':variable_config[variable]['dtype'],
+            'chunksizes': [1, len(coordinates['ens']), len(coordinates['lat']), len(coordinates['lon'])]
+        }
+        
+    return encoding
+
+def create_4d_netcdf(bcsd_dict, global_config, domain_config, variable_config, coordinates):
+
+    da_dict  = {}
+
+    encoding = set_encoding(variable_config, coordinates)
+ 
+
+    # This dataarray has all variables, that are included in variable_config
+    for variable in variable_config:
         da_dict[variable] = xr.DataArray(
             None, 
             dims = ['time', 'ens', 'lat', 'lon'], 
@@ -112,37 +181,43 @@ def create_4d_netcdf(fnme, global_attributes, variable_attributes, coordinates):
                 'lon': ('lon', coordinates['lon'], {'standard_name': 'longitude', 'long_name': 'longitude', 'units': 'degrees_north'})
             },
             attrs = {
-                'standard_name': variable_attributes[variable]['standard_name'],
-                'long_name': variable_attributes[variable]['long_name'],
-                'units': variable_attributes[variable]['units'],
-            } 
+                'standard_name': variable_config[variable]['standard_name'],
+                'long_name': variable_config[variable]['long_name'],
+                'units': variable_config[variable]['units'],
+            },
         )
 
-    ds = xr.Dataset(
-        data_vars = da_dict,
-        coords = {
-                'time': ('time', coordinates['time'], {'standard_name': 'time', 'long_name': 'time'}),
-                'ens': ('ens', coordinates['ens'], {'standard_name': 'realization', 'long_name': 'ensemble_member'}),
-                'lat': ('lat', coordinates['lat'], {'standard_name': 'latitude', 'long_name': 'latitude', 'units': 'degrees_east'}),
-                'lon': ('lon', coordinates['lon'], {'standard_name': 'longitude', 'long_name': 'longitude', 'units': 'degrees_north'})
-            },
-        attrs = global_attributes
-    )
 
-    encoding = {}
+    if domain_config["bcsd_forecasts"]['merged_variables'] == True:
 
-    for variable in variable_attributes:
-        encoding[variable] = {
-            'zlib': True,
-            'complevel': 4,
-            '_FillValue': variable_attributes[variable]['_FillValue'],
-            'scale_factor': variable_attributes[variable]['scale_factor'],
-            'add_offset': variable_attributes[variable]['scale_factor'],
-            'dtype': variable_attributes[variable]['dtype'],
-            'chunksizes': [1, len(coordinates['ens']), len(coordinates['lat']), len(coordinates['lon'])]
-        }
+        ds = xr.Dataset(
+            data_vars = da_dict,
+            coords = {
+                    'time': ('time', coordinates['time'], {'standard_name': 'time', 'long_name': 'time'}),
+                    'ens': ('ens', coordinates['ens'], {'standard_name': 'realization', 'long_name': 'ensemble_member'}),
+                    'lat': ('lat', coordinates['lat'], {'standard_name': 'latitude', 'long_name': 'latitude', 'units': 'degrees_east'}),
+                    'lon': ('lon', coordinates['lon'], {'standard_name': 'longitude', 'long_name': 'longitude', 'units': 'degrees_north'})
+                },
+            attrs = global_config
+        )
 
-    ds.to_netcdf(fnme, mode='w', format='NETCDF4_CLASSIC', encoding=encoding)
+        ds.to_netcdf(list(bcsd_dict.values())[0], mode='w', format='NETCDF4_CLASSIC', engine='netcdf4', encoding = encoding)
+
+    else:
+
+        for variable in variable_config:
+            ds = xr.Dataset(
+                data_vars = {variable: da_dict[variable]},
+                coords = {
+                    'time': ('time', coordinates['time'], {'standard_name': 'time', 'long_name': 'time'}),
+                    'ens': ('ens', coordinates['ens'], {'standard_name': 'realization', 'long_name': 'ensemble_member'}),
+                    'lat': ('lat', coordinates['lat'], {'standard_name': 'latitude', 'long_name': 'latitude', 'units': 'degrees_east'}),
+                    'lon': ('lon', coordinates['lon'], {'standard_name': 'longitude', 'long_name': 'longitude', 'units': 'degrees_north'})
+                },
+            attrs = global_config
+        )
+
+        ds.to_netcdf(bcsd_dict[variable], mode='w', format='NETCDF4_CLASSIC', engine='netcdf4', encoding = {variable: encoding[variable]})
 
     return ds
 
@@ -158,9 +233,11 @@ def get_coords_from_files(filename):
     }
 
 
-def preprocess_mdl_hist(filename, month):
+def preprocess_mdl_hist(filename, month, variable):
     # Open data
-    ds = xr.open_mfdataset(filename, chunks={'time': 215, 'year': 36, 'ens': 25, 'lat': 10, 'lon': 10}, parallel=True, engine='h5netcdf')
+    ds = xr.open_mfdataset(filename, chunks={'time': 215, 'year': 36, 'ens': 25, 'lat': 10, 'lon': 10}, parallel=True, engine='netcdf4')
+
+    ds = ds[variable]
 
     # Define time range
     year_start = ds.year.values[0].astype(int)

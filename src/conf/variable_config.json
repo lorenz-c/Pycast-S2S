@@ -1,0 +1,69 @@
+{
+    "tp": {
+        "long_name": "total_precipitation", 
+        "standard_name": "precipitation_flux",
+        "units": "mm/day", 
+        "dtype": "int32",
+        "_FillValue": -9999, 
+        "scale_factor": 0.01,
+        "add_offset": 0.0,
+        "isprecip": true
+    },
+    "t2m": {
+        "long_name": "2m_temperature", 
+        "standard_name": "air_temperature",
+        "units": "K", 
+        "dtype": "int16",
+        "_FillValue": -9999, 
+        "scale_factor": 0.01,
+        "add_offset": 237.15,
+        "isprecip": false
+    },
+    "t2min": {
+        "long_name": "minimum_temperature_at_2m", 
+        "standard_name": "air_temperature",
+        "units": "K", 
+        "dtype": "int16",
+        "_FillValue": -9999, 
+        "scale_factor": 0.01,
+        "add_offset": 237.15,
+        "isprecip": false
+    },
+    "t2max": {
+        "long_name": "maximum_temperature_at_2m", 
+        "standard_name": "air_temperature",
+        "units": "K", 
+        "dtype": "int16",
+        "_FillValue": -9999, 
+        "scale_factor": 0.01,
+        "add_offset": 237.15
+    },
+    "t2plus": {
+        "long_name": "t2max_minus_t2mean", 
+        "standard_name": "air_temperature",
+        "units": "K", 
+        "dtype": "int16",
+        "_FillValue": -9999, 
+        "scale_factor": 0.01,
+        "add_offset": 0
+    },
+    "t2minus": {
+        "long_name": "t2m_minus_t2min", 
+        "standard_name": "air_temperature",
+        "units": "K", 
+        "dtype": "int16",
+        "_FillValue": -9999, 
+        "scale_factor": 0.01,
+        "add_offset": 0
+    },   
+    "ssrd": {
+        "long_name": "surface_solar_radiation", 
+        "standard_name": "surface_solar_radiation",
+        "units": "W m-2", 
+        "dtype": "int32",
+        "_FillValue": -9999, 
+        "scale_factor": 0.01,
+        "add_offset": 0
+    }    
+}
+
