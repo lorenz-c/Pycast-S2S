@@ -28,7 +28,7 @@
 		"regroot": "/pd/data/regclim_data/gridded_data/processed/germany",
 		"syr_calib": 1981,
 		"eyr_calib": 2016,
-		"variables": ["tp", "t2m"],
+		"variables": ["tp", "t2m", "t2min", "t2max", "ssrd"],
 		"raw_forecasts": {"prefix": "SEAS5", "merged_variables": true},
 		"bcsd_forecasts": {"prefix": "SEAS5_BCSD", "merged_variables": true},
 		"reference_history": {"prefix": "ERA5_Land", "merged_variables": false},
