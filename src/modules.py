@@ -151,13 +151,14 @@ def set_encoding(variable_config, coordinates):
 
     for variable in variable_config:        
         encoding[variable] =  {
-            'zlib': True,
-            'complevel': 4,
+            #'zlib': True,
+            #'complevel': 4,
             '_FillValue': variable_config[variable]['_FillValue'],
             'scale_factor': variable_config[variable]['scale_factor'],
             'add_offset': variable_config[variable]['scale_factor'],
             'dtype':variable_config[variable]['dtype'],
-            'chunksizes': [1, len(coordinates['ens']), len(coordinates['lat']), len(coordinates['lon'])]
+            'chunksizes': [20, len(coordinates['ens']), len(coordinates['lat']), len(coordinates['lon'])]
+            #'chunks': [1, len(coordinates['ens']), len(coordinates['lat']), len(coordinates['lon'])]
         }
         
     return encoding
