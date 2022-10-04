@@ -142,6 +142,8 @@ def preprocess(ds):
     ds.coords['lon'] = (ds.coords['lon'] + 180) % 360 - 180
     ds               = ds.sortby(ds.lon)
     
+    ds['lon'].attrs  = {'standard_name': 'longitude', 'units': 'degrees_east'}
+    
     return ds
 
 
@@ -204,10 +206,11 @@ def prepare_forecast_dask(domain_config, variable_config, dir_dict, year, month_
 
     bbox = domain_config['bbox']
 
-    min_lon = bbox[0]
-    max_lon = bbox[1]
-    min_lat = bbox[2]
-    max_lat = bbox[3]
+    # Add one degree in each direction to avoid NaNs at the boarder after remapping.
+    min_lon = bbox[0] - 1
+    max_lon = bbox[1] + 1
+    min_lat = bbox[2] - 1
+    max_lat = bbox[3] + 1
     
     fle_string = f"{dir_dict['seas5_raw_dir']}/{year}/{month_str}/ECMWF_SEAS5_*_{year}{month_str}.nc"
     
@@ -221,13 +224,11 @@ def prepare_forecast_dask(domain_config, variable_config, dir_dict, year, month_
     
     encoding = modules.set_encoding(variable_config, coords)
     
-    log = logging.getLogger(__name__)
-    
     try:
         ds.to_netcdf(f"{dir_dict['raw_reg_dir']}/{domain_config['raw_forecasts']['prefix']}_daily_{year}{month_str}_O320_{domain_config['prefix']}.nc", encoding=encoding)
-        log.info(f"Slicing for month {month_str} and year {year} successful")             
+        logging.info(f"Slicing for month {month_str} and year {year} successful")             
     except:
-        log.error(f"Something went wrong during slicing for month {month_str} and year {year}")      
+        logging.error(f"Something went wrong during slicing for month {month_str} and year {year}")      
 
     #fle_list = []
     #        or ens in range(0, 25):
@@ -289,20 +290,35 @@ def prepare_forecast_dask(domain_config, variable_config, dir_dict, year, month_
         #    ds_reg.to_netcdf(f"{dir_dict['raw_reg_dir']}/{domain_config['raw_forecasts']['prefix']}_daily_{year_str}{month_str}_O320_{domain_config['prefix']}.nc", encoding=encoding)
 
 
+@dask.delayed
+def remap_forecasts(domain_config, dir_dict, year, month, grd_fle):
+    
+    coarse_file = f"{dir_dict['raw_reg_dir']}/{domain_config['raw_forecasts']['prefix']}_daily_{year}{month}_O320_{domain_config['prefix']}.nc"
+    hires_file  = f"{dir_dict['hr_reg_dir']}/{domain_config['raw_forecasts']['prefix']}_daily_{year}{month}_{domain_config['target_resolution']}_{domain_config['prefix']}.nc"
+    
+    print(coarse_file)
+    print(hires_file)
+    
+    try:
+        os.path.isfile(coarse_file) 
+    except:
+        logging.error(f"Remap_forecast: file {coarse_file} not available")
+        
+    cdo.remapbil(grd_fle, input=coarse_file, output=hires_file, options="-f nc4 -k grid -z zip_6 -P 10")
+    
+    
 
-def remap_forecasts(domain_config, grd_fle):
+ #   for year in range(syr_calibdomain_config["syr_calib"], domain_config["eyr_calib"]+1):##
 
-    for year in range(syr_calibdomain_config["syr_calib"], domain_config["eyr_calib"]+1):
+ #       year_str = str(year)
 
-        year_str = str(year)
+  #      for month in range (1, 3):
+#
+  #          month_str = str(month).zfill(2)
 
-        for month in range (1, 3):
-
-            month_str = str(month).zfill(2)
-
-            seas5_raw_flne  = f"{dir_dict['raw_reg_dir']}/{domain_config['raw_forecasts']['prefix']}_daily_{year_str}{month_str}_O320_{domain_config['prefix']}.nc"
-            seas5_high_flne = f"{dir_dict['hr_reg_dir']}/{domain_config['raw_forecasts']['prefix']}_daily_{year_str}{month_str}_{domain_config['target_resolution']}_{domain_config['prefix']}.nc"
-            cdo.remapbil(grd_flne, input=seas5_raw_flne, output=seas5_high_flne, options="-f nc4 -k grid -z zip_6 -P 10")
+  #         seas5_raw_flne  = f"{dir_dict['raw_reg_dir']}/{domain_config['raw_forecasts']['prefix']}_daily_{year_str}{month_str}_O320_{domain_config['prefix']}.nc"
+   ##         seas5_high_flne = f"{dir_dict['hr_reg_dir']}/{domain_config['raw_forecasts']['prefix']}_daily_{year_str}{month_str}_{domain_config['target_resolution']}_{domain_config['prefix']}.nc"
+    #        cdo.remapbil(grd_flne, input=seas5_raw_flne, output=seas5_high_flne, options="-f nc4 -k grid -z zip_6 -P 10")
 
 ## Domain Name
 #domain = 'Germany'
