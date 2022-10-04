@@ -35,7 +35,7 @@ if __name__ == "__main__":
     client.amm.start() 
     
     # Write some info about the cluster
-    print(client.scheduler_info)
+    print(client.dashboard_link)
 
 
     # Read the domain configuration from the respective JSON
