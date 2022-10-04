@@ -28,7 +28,7 @@ import logging
 # 3. Remap to local grid
 # 4. Store as high resolution dataset for the specific domain
 
-
+global bbox
 
 def set_and_make_dirs(domain_config):
 
@@ -137,18 +137,17 @@ def create_grd_file(domain_config, dir_dict):
     #number_ens = 2
 
 def preprocess(ds):
-    # ADD SOME CHECKS HERE THAT THIS STUFF IS ONLY APPLIED WHEN LATITUDES ARE REVERSED AND LONGITUDES GO FROM 0 TO 360
-
+    # ADD SOME CHECKS HERE THAT THIS STUFF IS ONLY APPLIED WHEN LATITUDES ARE REVERSED AND LONGITUDES GO FROM 0 TO 360   
     ds               = ds.sortby(ds.lat)
     ds.coords['lon'] = (ds.coords['lon'] + 180) % 360 - 180
     ds               = ds.sortby(ds.lon)
-
+    
     return ds
 
 
 def prepare_forecasts(domain_config, variable_config, dir_dict):
 
-
+    
     bbox = domain_config['bbox']
 
     min_lon = bbox[0]
@@ -178,7 +177,7 @@ def prepare_forecasts(domain_config, variable_config, dir_dict):
 
             ds = ds[domain_config['variables']]
 
-            ds = ds.sel(lat=slice(min_lat, max_lat), lon=slice(min_lon, max_lon)).persist()
+            #ds = ds.sel(lat=slice(min_lat, max_lat), lon=slice(min_lon, max_lon)).persist()
 
             coords = {
                 'time': ds['time'].values,
@@ -212,7 +211,7 @@ def prepare_forecast_dask(domain_config, variable_config, dir_dict, year, month_
     
     fle_string = f"{dir_dict['seas5_raw_dir']}/{year}/{month_str}/ECMWF_SEAS5_*_{year}{month_str}.nc"
     
-    ds = xr.open_mfdataset(fle_string, concat_dim = 'ens', combine = 'nested', parallel = True, chunks = {'time': 50}, engine='netcdf4', preprocess=preprocess)
+    ds = xr.open_mfdataset(fle_string, concat_dim = 'ens', combine = 'nested', parallel = True, chunks = {'time': 50}, engine='netcdf4', preprocess=preprocess, autoclose=True)
     
     ds = ds.sel(lat=slice(min_lat, max_lat), lon=slice(min_lon, max_lon))
     
@@ -222,11 +221,13 @@ def prepare_forecast_dask(domain_config, variable_config, dir_dict, year, month_
     
     encoding = modules.set_encoding(variable_config, coords)
     
+    log = logging.getLogger(__name__)
+    
     try:
         ds.to_netcdf(f"{dir_dict['raw_reg_dir']}/{domain_config['raw_forecasts']['prefix']}_daily_{year}{month_str}_O320_{domain_config['prefix']}.nc", encoding=encoding)
-        logging.info(f"Slicing for month {month_str} and year {year} successful")             
+        log.info(f"Slicing for month {month_str} and year {year} successful")             
     except:
-        logging.error(f"Something went wrong during slicing for month {month_str} and year {year}")      
+        log.error(f"Something went wrong during slicing for month {month_str} and year {year}")      
 
     #fle_list = []
     #        or ens in range(0, 25):
