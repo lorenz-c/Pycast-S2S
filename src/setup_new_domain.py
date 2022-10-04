@@ -62,13 +62,13 @@ if __name__ == "__main__":
     syr_calib = domain_config["syr_calib"]
     eyr_calib = domain_config["eyr_calib"]
     
-    for month in [10, 11, 12]:
+    for month in range(1,13):
     
         results = []
     
         month_str = str(month).zfill(2)
 
-        for year in range(1988, eyr_calib + 1):
+        for year in range(syr_calib, eyr_calib + 1):
         
             results.append(setup_domain_func.prepare_forecast_dask(domain_config, variable_config, dir_dict, year, month_str))
     
