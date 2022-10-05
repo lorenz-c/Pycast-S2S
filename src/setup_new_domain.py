@@ -32,7 +32,7 @@ if __name__ == "__main__":
     setup_logger(args.domain)
     
     # Get some ressourcers
-    client, cluster = modules.getCluster('fat', 1, 25)
+    client, cluster = modules.getCluster('haswell', 1, 35)
     
     # Do the memory magic...
     client.amm.start() 
@@ -65,49 +65,47 @@ if __name__ == "__main__":
     syr_calib = domain_config["syr_calib"]
     eyr_calib = domain_config["eyr_calib"]
     
+    syr_calib = 1981
+    eyr_calib = 1982
+    
     if args.mode == 'trunc_frcst':
     
-        for month in range(1, 13):
-    
+        for year in range(syr_calib, eyr_calib + 1):
+            
             results = []
-    
-            month_str = str(month).zfill(2)
-
-            for year in range(syr_calib, eyr_calib + 1):
+            
+            for month in range(1, 13):
+                
+                month_str = str(month).zfill(2)
                 
                 results.append(setup_domain_func.prepare_forecast_dask(domain_config, variable_config, dir_dict, year, month_str))
     
             try:
                 dask.compute(results)
-                logging.info(f"trunc_frcst: Slicing for month {month_str} for all years from {syr_calib} to {eyr_calib} successful")
-                results = []
+                logging.info(f"Truncate forecasts: Truncation for year {year} successful")
             except:
-                logging.warning(f"trunc_frcst: Something went wrong during slicing for {month_str}")
-
-            results = []
-            
-            
-            
+                logging.warning(f"Truncate forecasts: Something went wrong during truncation for year {year}")
+              
     elif args.mode == 'remap_frcst':
         
-        print(grd_fle)
-        
-        #for month in range(1,13):
-        #    
-        #    results = []
+        for year in range(syr_calib, eyr_calib + 1):
             
-        #    month_str = str(month).zfill(2)
+            results = []
             
-        #    for year in range(syr_calib, eyr_calib + 1):
+            for month in range(1, 13):
                 
-        #        results.append(setup_domain_func.remap_forecasts(domain_config, dir_dict, year, month_str, grd_fle))
-
+                month_str = str(month).zfill(2)
+                
+                #setup_domain_func.remap_forecasts(domain_config, dir_dict, year, month_str, grd_fle)
+                
+                results.append(setup_domain_func.remap_forecasts(domain_config, dir_dict, year, month_str, grd_fle))
+                
             #try:
-            #    dask.compute(results)
-            #    logging.info(f"remap_frcst: Remapping for month {month_str} for all years from {syr_calib} to {eyr_calib} successful")
-            #    results = []
+            dask.persist(results)
+            logging.info(f"Remap forecasts: Remapping for year {year} successful")
             #except:
-            #    logging.warning(f"remap_frcst: Something went wrong during remapping for {month_str}")
+            #    logging.warning(f"Remap forecasts: Something went wrong during remapping for year {year}")
+        
                 
             
                 

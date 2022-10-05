@@ -3,13 +3,17 @@
 # Packages
 import chunk
 import os
-from cdo import *
-cdo = Cdo()
+#from cdo import *
+#cdo = Cdo()
 import xarray as xr
 import numpy as np
 import modules
 import zarr
 import dask
+import sys
+
+from subprocess import run, PIPE
+from pathlib import Path
 
 import logging
 
@@ -216,7 +220,7 @@ def prepare_forecast_dask(domain_config, variable_config, dir_dict, year, month_
     
     ds = xr.open_mfdataset(fle_string, concat_dim = 'ens', combine = 'nested', parallel = True, chunks = {'time': 50}, engine='netcdf4', preprocess=preprocess, autoclose=True)
     
-    ds = ds.sel(lat=slice(min_lat, max_lat), lon=slice(min_lon, max_lon))
+    ds = ds.sel(lat=slice(min_lat, max_lat), lon=slice(min_lon, max_lon)).persist()
     
     coords = {'time': ds['time'].values, 'lat': ds['lat'].values.astype(np.float32), 'lon': ds['lon'].values.astype(np.float32), 'ens': ds['ens'].values}
     
@@ -230,68 +234,12 @@ def prepare_forecast_dask(domain_config, variable_config, dir_dict, year, month_
     except:
         logging.error(f"Something went wrong during slicing for month {month_str} and year {year}")      
 
-    #fle_list = []
-    #        or ens in range(0, 25):
-    #            ens_str = str(ens).zfill(2)
-     #           fle_list.append(f"{dir_dict['seas5_raw_dir']}/{year}/{month_str}/ECMWF_SEAS5_{ens_str}_{year}{month_str}.nc")
-
-
-     
-
-     # loop over all years
-    #for month in range (1, 3):
-
-    #    month_str = str(month).zfill(2)
-
-    #    ens_list = []
-
-    #    for year in range(syr_calib, eyr_calib+1):
-
-    #        tmp = xr.open_mfdataset(f"{dir_dict['seas5_raw_dir']}/{year}/{month_str}/ECMWF_SEAS5_*_{year}{month_str}.nc", concat_dim = 'ens', combine = 'nested', chunks = {'time': 1}, parallel = True, preprocess=preprocess)
-    #        tmp = tmp[domain_config['variables']]
-
-    #        ens_list.append(tmp)
-
-
-   #    ds = xr.concat(ens_list, dim='time')
-
-    #    ds_reg = ds.sel(lat=slice(min_lat, max_lat), lon=slice(min_lon, max_lon)
-
-
-    #f#or year in range(syr_calib, eyr_calib+1):
-     #   year_str = str(year)
-     #   # loop over all months
-       # for month in range (1, 3):
-            
-     #       print(f"{year_str}, {month_str}")
-            # Open raw SEAS5-data and merge all ensemble member in one file
-
-          #  ds = xr.open_mfdataset(f"{dir_dict['seas5_raw_dir']}/{year_str}/{month_str}/*.nc", concat_dim = "ens", combine = "nested", chunks={'time': 20}, parallel = True, preprocess=preprocess)
-
-           # ds = ds[domain_config['variables']].persist()
-
-        
-            
-            # Cut out domain
-       #     ds_reg = ds.sel(lat=slice(min_lat, max_lat), lon=slice(min_lon, max_lon))
-
-
-        #    coords = {
-        #        'time': ds_reg['time'].values,
-        #        'lat': ds_reg['lat'].values.astype(np.float32),
-        #        'lon': ds_reg['lon'].values.astype(np.float32),
-        #        'ens': ds_reg['ens'].values
-        #    }
-
-         #   ds_reg = ds_reg.transpose("time", "ens", "lat", "lon")
-
-        #    encoding = modules.set_encoding(variable_config, coords)
-
-        #    ds_reg.to_netcdf(f"{dir_dict['raw_reg_dir']}/{domain_config['raw_forecasts']['prefix']}_daily_{year_str}{month_str}_O320_{domain_config['prefix']}.nc", encoding=encoding)
 
 
 @dask.delayed
 def remap_forecasts(domain_config, dir_dict, year, month, grd_fle):
+    
+    import logging
     
     coarse_file = f"{dir_dict['raw_reg_dir']}/{domain_config['raw_forecasts']['prefix']}_daily_{year}{month}_O320_{domain_config['prefix']}.nc"
     hires_file  = f"{dir_dict['hr_reg_dir']}/{domain_config['raw_forecasts']['prefix']}_daily_{year}{month}_{domain_config['target_resolution']}_{domain_config['prefix']}.nc"
@@ -304,9 +252,28 @@ def remap_forecasts(domain_config, dir_dict, year, month, grd_fle):
     except:
         logging.error(f"Remap_forecast: file {coarse_file} not available")
         
-    cdo.remapbil(grd_fle, input=coarse_file, output=hires_file, options="-f nc4 -k grid -z zip_6 -P 10")
+        
+    try:
+        #cdo.remapbil(grd_fle, input=coarse_file, output=hires_file, options="-f nc4 -k grid -z zip_6")
+        cmd = ('cdo', '-O', '-f', 'nc4c', '-z', 'zip_6', f'remapbil,{grd_fle}', str(coarse_file), str(hires_file))
+        run_cmd(cmd)
+        logging.info(f"Remap_forecast: Remapping for year {year} and month {month} successful")
+    except: 
+        logging.error(f"Something went wrong during remapping for month {month} and year {year}")      
     
+      
+def run_cmd(cmd, path_extra=Path(sys.exec_prefix)/'bin'):
     
+    #'''Run a bash command.'''
+    env_extra = os.environ.copy()
+    env_extra['PATH'] = str(path_extra) + ':' + env_extra['PATH']
+    status = run(cmd, check=False, stderr=PIPE, stdout=PIPE, env=env_extra)
+    if status.returncode != 0:
+        error = f'''{' '.join(cmd)}: {status.stderr.decode('utf-8')}'''
+        raise RuntimeError(f'{error}')
+    return status.stdout.decode('utf-8')
+
+
 
  #   for year in range(syr_calibdomain_config["syr_calib"], domain_config["eyr_calib"]+1):##
 
