@@ -43,7 +43,9 @@ def set_and_make_dirs(domain_config):
     # Directory of raw SEAS5-Data
     dir_dict = {
         "seas5_raw_dir":  "/pd/data/regclim_data/gridded_data/seasonal_predictions/seas5/daily",
+        "ref_dir":        "/pd/data/regclim_data/gridded_data/reanalyses/era5_land/daily",
         "raw_reg_dir":    f"{domain_config['regroot']}/daily/{domain_config['raw_forecasts']['prefix']}",
+        "ref_reg_dir":    f"{domain_config['regroot']}/daily/{domain_config['reference_history']['prefix']}",
         "grd_dir":        f"{domain_config['regroot']}/static",
         "hr_reg_dir":     f"{domain_config['regroot']}/daily/{domain_config['raw_forecasts']['prefix']}_h",
         "lnch_dir":       f"{domain_config['regroot']}/daily/linechunks"
@@ -71,6 +73,8 @@ def set_and_make_dirs(domain_config):
 
     if not os.path.isdir(dir_dict["raw_reg_dir"]):
         os.makedirs(dir_dict["raw_reg_dir"])
+    if not os.path.isdir(dir_dict["ref_reg_dir"]):
+        os.makedirs(dir_dict["ref_reg_dir"])
     if not os.path.isdir(dir_dict["hr_reg_dir"]):
         os.makedirs(dir_dict["hr_reg_dir"])
     if not os.path.isdir(dir_dict["grd_dir"]):
@@ -129,84 +133,28 @@ def create_grd_file(domain_config, dir_dict):
     return grd_flne
 
 
-#def setup_domain(domain_config, global_config, variable_config, ref_hist_dict, mdl_hist_dict):
-
-
-
-
-    #smonth_calib = 1
-    #emonth_claib = 2
-
-    # Set number of ensembles
-    #number_ens = 2
-
 def preprocess(ds):
     # ADD SOME CHECKS HERE THAT THIS STUFF IS ONLY APPLIED WHEN LATITUDES ARE REVERSED AND LONGITUDES GO FROM 0 TO 360   
+    if 'longitude' in ds.variables:
+        ds = ds.rename({'longitude': 'lon'})
+    
+    if 'latitude' in ds.variables:
+        ds = ds.rename({'latitude': 'lat'})
+        
     ds               = ds.sortby(ds.lat)
     ds.coords['lon'] = (ds.coords['lon'] + 180) % 360 - 180
     ds               = ds.sortby(ds.lon)
     
     ds['lon'].attrs  = {'standard_name': 'longitude', 'units': 'degrees_east'}
+    ds['lat'].attrs  = {'standard_name': 'latitude', 'units': 'degrees_north'}
     
     return ds
 
 
-def prepare_forecasts(domain_config, variable_config, dir_dict):
-
-    
-    bbox = domain_config['bbox']
-
-    min_lon = bbox[0]
-    max_lon = bbox[1]
-    min_lat = bbox[2]
-    max_lat = bbox[3]
-
-
-    # Set calibration time (year, month)
-    syr_calib = domain_config["syr_calib"]
-    eyr_calib = domain_config["eyr_calib"]
-
-    for year in range(syr_calib, eyr_calib + 1):
-
-        for month in range(1, 13):
-            month_str = str(month).zfill(2)
-
-            print(f"{year}{month_str}")
-            fle_list = []
-            for ens in range(0, 25):
-                ens_str = str(ens).zfill(2)
-                fle_list.append(f"{dir_dict['seas5_raw_dir']}/{year}/{month_str}/ECMWF_SEAS5_{ens_str}_{year}{month_str}.nc")
-
-
-
-            ds = xr.open_mfdataset(fle_list, concat_dim = 'ens', combine = 'nested', chunks = {'time': 10}, parallel = True, engine='netcdf4', preprocess=preprocess)
-
-            ds = ds[domain_config['variables']]
-
-            #ds = ds.sel(lat=slice(min_lat, max_lat), lon=slice(min_lon, max_lon)).persist()
-
-            coords = {
-                'time': ds['time'].values,
-                'lat': ds['lat'].values.astype(np.float32),
-                'lon': ds['lon'].values.astype(np.float32),
-                'ens': ds['ens'].values
-            }
-
-            ds = ds.transpose("time", "ens", "lat", "lon")
-
-            encoding = modules.set_encoding(variable_config, coords)
-
-            #for var in encoding:
-            #    encoding[var]['compressor'] = zarr.Blosc(cname="zstd", clevel=5, shuffle=2)
-#            try:
-#                ds.to_netcdf(f"{dir_dict['raw_reg_dir']}/{domain_config['raw_forecasts']['prefix']}_daily_{year}{month_str}_O320_{domain_config['prefix']}.nc", encoding=encoding)
-#            except:
-#                print(f"Writing of file for {year}{month})
-
 
             
 @dask.delayed
-def prepare_forecast_dask(domain_config, variable_config, dir_dict, year, month_str):
+def truncate_forecasts(domain_config, variable_config, dir_dict, year, month_str):
 
     bbox = domain_config['bbox']
 
@@ -236,6 +184,69 @@ def prepare_forecast_dask(domain_config, variable_config, dir_dict, year, month_
 
 
 
+def truncate_reference(domain_config, variable_config, dir_dict, syr_calib, eyr_calib):
+
+    bbox = domain_config['bbox']
+
+    # Add one degree in each direction to avoid NaNs at the boarder after remapping.
+    min_lon = bbox[0] - 1
+    max_lon = bbox[1] + 1
+    min_lat = bbox[2] - 1
+    max_lat = bbox[3] + 1
+    
+    for variable in variable_config:
+            
+        fle_list = []
+            
+        for year in range(syr_calib, eyr_calib + 1):
+        
+            fle_list.append(f"{dir_dict['ref_dir']}/ERA5_Land_daily_{variable}_{year}.nc")
+           
+        ds = xr.open_mfdataset(fle_list, parallel = True, chunks = {'time': 50}, engine='netcdf4', preprocess=preprocess, autoclose=True)
+            
+        ds = ds.sel(lat=slice(min_lat, max_lat), lon=slice(min_lon, max_lon))
+            
+        coords = {'time': ds['time'].values, 'lat': ds['lat'].values.astype(np.float32), 'lon': ds['lon'].values.astype(np.float32)}
+        
+        encoding = modules.set_encoding(variable_config, coords)
+            
+        try:
+            ds.to_netcdf(f"{dir_dict['ref_reg_dir']}/{domain_config['reference_history']['prefix']}_daily_{variable}_{syr_calib}_{eyr_calib}_{domain_config['target_resolution']}_{domain_config['prefix']}_temp.nc", encoding= {variable: encoding[variable]})
+        #    ogging.info(f"Truncate reference: Slicing for variable {variable} successful")             
+        except:
+            logging.error(f"Truncate reference: Something went wrong during truncation for variable {variable}!")    
+        
+            
+def remap_reference(domain_config, variable_config, dir_dict, syr_calib, eyr_calib, grd_fle):  
+ #    
+    for variable in variable_config:
+         
+        input_file = f"{dir_dict['ref_reg_dir']}/{domain_config['reference_history']['prefix']}_daily_{variable}_{syr_calib}_{eyr_calib}_{domain_config['target_resolution']}_{domain_config['prefix']}_temp.nc"
+        final_file = f"{dir_dict['ref_reg_dir']}/{domain_config['reference_history']['prefix']}_daily_{variable}_{syr_calib}_{eyr_calib}_{domain_config['target_resolution']}_{domain_config['prefix']}.nc"
+         
+        cmd = ('cdo', '-O', '-f', 'nc4c', '-z', 'zip_6', f'remapbil,{grd_fle}', str(input_file), str(final_file))
+        
+        run_cmd(cmd)
+
+def rechunk_reference(domain_config, variable_config, dir_dict, syr_calib, eyr_calib):  
+ #    
+    for variable in variable_config:
+         
+        input_file = f"{dir_dict['ref_reg_dir']}/{domain_config['reference_history']['prefix']}_daily_{variable}_{syr_calib}_{eyr_calib}_{domain_config['target_resolution']}_{domain_config['prefix']}.nc"
+        final_file = f"{dir_dict['lnch_dir']}/{domain_config['reference_history']['prefix']}_daily_{variable}_{syr_calib}_{eyr_calib}_{domain_config['target_resolution']}_{domain_config['prefix']}_lns.nc"
+        
+        ds = xr.open_mfdataset(input_file, parallel = True, chunks = {'time': 100})
+        
+        coords = {'time': ds['time'].values, 'lat': ds['lat'].values.astype(np.float32), 'lon': ds['lon'].values.astype(np.float32)}
+        
+        encoding = modules.set_encoding(variable_config, coords, 'lines')
+        
+        try:
+            ds.to_netcdf(final_file, encoding = {variable: encoding[variable]})
+        except:
+            logging.error(f"Rechunk reference: Rechunking of reference data failed for variable {variable}!")    
+             
+        
 @dask.delayed
 def remap_forecasts(domain_config, dir_dict, year, month, grd_fle):
     
@@ -253,13 +264,16 @@ def remap_forecasts(domain_config, dir_dict, year, month, grd_fle):
         logging.error(f"Remap_forecast: file {coarse_file} not available")
         
         
-    try:
+    #try:
         #cdo.remapbil(grd_fle, input=coarse_file, output=hires_file, options="-f nc4 -k grid -z zip_6")
-        cmd = ('cdo', '-O', '-f', 'nc4c', '-z', 'zip_6', f'remapbil,{grd_fle}', str(coarse_file), str(hires_file))
-        run_cmd(cmd)
-        logging.info(f"Remap_forecast: Remapping for year {year} and month {month} successful")
-    except: 
-        logging.error(f"Something went wrong during remapping for month {month} and year {year}")      
+    cmd = ('cdo', '-O', '-f', 'nc4c', '-z', 'zip_6', f'remapbil,{grd_fle}', str(coarse_file), str(hires_file))
+    run_cmd(cmd)
+    #    logging.info(f"Remap_forecast: Remapping for year {year} and month {month} successful")
+    #except: 
+    #    logging.error(f"Remap_forecast: Something went wrong during remapping for month {month} and year {year}")      
+        
+        
+#def rechunk_forecasts(domain_config, dir_dict, )
     
       
 def run_cmd(cmd, path_extra=Path(sys.exec_prefix)/'bin'):
