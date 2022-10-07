@@ -1,4 +1,5 @@
 # import packages
+from genericpath import exists
 import json
 import dask
 import argparse
@@ -10,6 +11,8 @@ import logging
 
 import os
 
+import sys
+
 
 def get_clas():
     
@@ -17,6 +20,7 @@ def get_clas():
 
     parser.add_argument("-d", "--domain", action="store", type=str, help="Domain", required=True)
     parser.add_argument("-m", "--mode", action="store", type=str, help="Selected mode for setup", required=True)
+    parser.add_argument("-p", "--period", action="store", type=str, help="Period for which the pre-processing should be executed", required=False)
     
     return parser.parse_args()
 
@@ -25,21 +29,11 @@ def setup_logger(domain_name):
 
 if __name__ == "__main__":
     
+    # Read the command line arguments
     args = get_clas()
     
-    print(args.mode)
-    
+    # Create a new logger file (or append to an existing file)
     setup_logger(args.domain)
-    
-    # Get some ressourcers
-    client, cluster = modules.getCluster('haswell', 1, 35)
-    
-    # Do the memory magic...
-    client.amm.start() 
-    
-    # Write some info about the cluster
-    print(client.dashboard_link)
-
 
     # Read the domain configuration from the respective JSON
     with open('conf/domain_config.json', 'r') as j:
@@ -53,32 +47,64 @@ if __name__ == "__main__":
     with open('conf/variable_config.json', 'r') as j:
         variable_config = json.loads(j.read())
     
-    
-    domain_config = domain_config[args.domain]
+    try:
+        domain_config = domain_config[args.domain]
+    except:
+        logging.error(f"Init: no configuration for domain {args.domain}")
+        sys.exit()
+        
 
     variable_config = { key:value for key,value in variable_config.items() if key in domain_config['variables']}
 
     dir_dict = setup_domain_func.set_and_make_dirs(domain_config)
 
     grd_fle = setup_domain_func.create_grd_file(domain_config, dir_dict)
-
-    syr_calib = domain_config["syr_calib"]
-    eyr_calib = domain_config["eyr_calib"]
     
-    syr_calib = 1981
-    eyr_calib = 1982
+    if args.period is not None:
+        # Period can be in the format "year, year" or "year, month"
+        period_list = [int(item) for item in args.period.split(',')]
+        
+        if period_list[0] > 1000 and (period_list[1] >= 1 and period_list[1] <= 12):
+            # [year, month]
+            syr = period_list[0]
+            eyr = period_list[0] + 1
+            smnth = period_list[1]
+            emnth = period_list[1] + 1
+        elif period_list[0] > 1000 and period_list[1] > 1000:
+            syr = period_list[0]
+            eyr = period_list[1] + 1
+            smnth = 1
+            emnth = 13
+        else:
+            logging.error("Period not defined properly")
+    else:
+        syr = domain_config["syr_calib"]
+        eyr = domain_config["eyr_calib"]
+        smnth = 1
+        emnth = 13
+        
+    # Get some ressourcers
+    client, cluster = modules.getCluster('rome', 1, 35)
+    
+    # Do the memory magic...
+    client.amm.start() 
+    
+    # Write some info about the cluster
+    print(f"Dask dashboard available at {client.dashboard_link}")
+    
+    
     
     if args.mode == 'trunc_frcst':
     
-        for year in range(syr_calib, eyr_calib + 1):
+        for year in range(syr, eyr + 1):
             
             results = []
             
-            for month in range(1, 13):
+            for month in range(smnth, emnth):
                 
                 month_str = str(month).zfill(2)
                 
-                results.append(setup_domain_func.prepare_forecast_dask(domain_config, variable_config, dir_dict, year, month_str))
+                results.append(setup_domain_func.truncate_forecasts(domain_config, variable_config, dir_dict, year, month_str))
     
             try:
                 dask.compute(results)
@@ -88,23 +114,37 @@ if __name__ == "__main__":
               
     elif args.mode == 'remap_frcst':
         
-        for year in range(syr_calib, eyr_calib + 1):
+        for year in range(syr, eyr + 1):
             
             results = []
             
-            for month in range(1, 13):
+            for month in range(smnth, emnth):
                 
                 month_str = str(month).zfill(2)
                 
-                #setup_domain_func.remap_forecasts(domain_config, dir_dict, year, month_str, grd_fle)
-                
                 results.append(setup_domain_func.remap_forecasts(domain_config, dir_dict, year, month_str, grd_fle))
                 
-            #try:
-            dask.persist(results)
-            logging.info(f"Remap forecasts: Remapping for year {year} successful")
-            #except:
-            #    logging.warning(f"Remap forecasts: Something went wrong during remapping for year {year}")
+            try:
+                dask.persist(results)
+                logging.info(f"Remap forecasts: Remapping for year {year} successful")
+            except:
+                logging.warning(f"Remap forecasts: Something went wrong during remapping for year {year}")
+                
+    elif args.mode == 'trunc_ref':
+        
+        setup_domain_func.truncate_reference(domain_config, variable_config, dir_dict, syr, eyr)
+        
+    elif args.mode == 'remap_ref':
+        
+        setup_domain_func.remap_reference(domain_config, variable_config, dir_dict, syr, eyr, grd_fle)
+        
+    elif args.mode == 'rechunk_ref':
+        
+        setup_domain_func.rechunk_reference(domain_config, variable_config, dir_dict, syr, eyr)
+        
+
+        
+        
         
                 
             
