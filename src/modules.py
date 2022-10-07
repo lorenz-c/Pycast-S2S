@@ -146,8 +146,21 @@ def set_filenames(year, month, domain_config, variable_config):
 #                    'ssrd': raw_lnechnks}
 
 #     return obs_dict, mdl_dict, pred_dict, month, bc_out_lns
-def set_encoding(variable_config, coordinates):
+def set_encoding(variable_config, coordinates, type='maps'):
     encoding = {}
+    
+    if type == 'maps':
+        if 'ens' in coordinates:
+            chunksizes = [20, len(coordinates['ens']), len(coordinates['lat']), len(coordinates['lon'])]
+        else:
+            chunksizes =  [20, len(coordinates['lat']), len(coordinates['lon'])]
+    elif type == 'lines':
+        if 'ens' in coordinates:
+            chunksizes = [len(coordinates['time']), len(coordinates['ens']), 1, 1]
+        else:
+            chunksizes = [len(coordinates['time']), 1, 1]
+            
+            
 
     for variable in variable_config:        
         encoding[variable] =  {
@@ -157,8 +170,7 @@ def set_encoding(variable_config, coordinates):
             'scale_factor': variable_config[variable]['scale_factor'],
             'add_offset': variable_config[variable]['scale_factor'],
             'dtype':variable_config[variable]['dtype'],
-            'chunksizes': [20, len(coordinates['ens']), len(coordinates['lat']), len(coordinates['lon'])]
-            #'chunks': [1, len(coordinates['ens']), len(coordinates['lat']), len(coordinates['lon'])]
+            'chunksizes': chunksizes            
         }
         
     return encoding
@@ -359,7 +371,7 @@ def getCluster(queue, nodes, jobs_per_node):
     elif queue == 'ccgp' or queue == 'cclake':
         cores, memory, walltime = (38, '170GB', '04:00:00')
     elif queue == 'haswell':
-        cores, memory, walltime = (40, '120GB', '01:00:00')
+        cores, memory, walltime = (40, '120GB', '08:00:00')
     elif queue == 'ivy':
         cores, memory, walltime = (40, '60GB', '04:00:00')
     elif queue == 'fat':
