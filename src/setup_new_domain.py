@@ -141,6 +141,11 @@ if __name__ == "__main__":
     elif args.mode == 'rechunk_ref':
         
         setup_domain_func.rechunk_reference(domain_config, variable_config, dir_dict, syr, eyr)
+
+    elif args.mode == "climatology":
+
+        setup_domain_func.create_climatology(domain_config, variable_config, dir_dict, syr, eyr)
+
         
 
         
