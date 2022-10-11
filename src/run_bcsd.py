@@ -17,7 +17,10 @@ def get_clas():
     parser.add_argument("-d", "--domain", action="store", type=str, help="Domain", required=True)
     parser.add_argument("-y", "--year", action="store", type=int, help="Year of the actual forecast")
     parser.add_argument("-m", "--month", action="store", type=int, help="Month of the actual forecast")
+    parser.add_argument("-s", "--forecast_structure", action="store", type=str, help="Structure of the line-chunked forecasts (can be 5D or 4D)")
     
+    
+
     return parser.parse_args()
     
     
@@ -103,8 +106,15 @@ if __name__ == '__main__':
         # Mdl (historical, 1981 - 2016 for one month and 215 days)  215, 36, 25, 1, 1 ;
         # Preprocess historical mdl-data, create a new time coord, which contain year and day at once and not separate
         print(f"Opening {mdl_hist_dict[variable]}")
-        ds_mdl = modules.preprocess_mdl_hist(mdl_hist_dict[variable], args.month, variable) # chunks={'time': 215, 'year': 36, 'ens': 25, 'lat': 1, 'lon': 1})
-        da_mdl = ds_mdl.persist()
+        if args.forecast_structure == '5D':
+            ds_mdl = modules.preprocess_mdl_hist(mdl_hist_dict[variable], args.month, variable) # chunks={'time': 215, 'year': 36, 'ens': 25, 'lat': 1, 'lon': 1})
+            da_mdl = ds_mdl.persist()
+        elif args.forecast_structure == '4D':
+            ds_mdl = xr.open_mfdataset(mdl_hist_dict[variable])
+            ds_mdl = xr.open_mfdataset(mdl_hist_dict[variable], chunks={'time': len(ds_mdl.time), 'ens': len(ds_mdl.ens), 'lat': 5, 'lon': 5}, parallel=True, engine='netcdf4')
+            da_mdl = ds_mdl[variable].persist()
+        # IMPLEMENT ELSE-Statement for logging
+       
         
         # Pred (current year for one month and 215 days)
         ds_pred = xr.open_dataset(raw_dict[variable])

@@ -21,6 +21,7 @@ def get_clas():
     parser.add_argument("-d", "--domain", action="store", type=str, help="Domain", required=True)
     parser.add_argument("-m", "--mode", action="store", type=str, help="Selected mode for setup", required=True)
     parser.add_argument("-p", "--period", action="store", type=str, help="Period for which the pre-processing should be executed", required=False)
+    parser.add_argument("-n", "--node", action="store", type=str, help="Node for running the code", required=False)
     
     return parser.parse_args()
 
@@ -83,8 +84,12 @@ if __name__ == "__main__":
         smnth = 1
         emnth = 13
         
+
+        
     # Get some ressourcers
-    client, cluster = modules.getCluster('rome', 1, 35)
+    client, cluster = modules.getCluster(args.node, 1, 35)
+    
+    client.get_versions(check=True)
     
     # Do the memory magic...
     client.amm.start() 
@@ -124,11 +129,20 @@ if __name__ == "__main__":
                 
                 results.append(setup_domain_func.remap_forecasts(domain_config, dir_dict, year, month_str, grd_fle))
                 
-            try:
-                dask.persist(results)
-                logging.info(f"Remap forecasts: Remapping for year {year} successful")
-            except:
-                logging.warning(f"Remap forecasts: Something went wrong during remapping for year {year}")
+            #try:
+            dask.compute(results)
+            logging.info(f"Remap forecasts: Remapping for year {year} successful")
+                
+            #except:
+            #    logging.warning(f"Remap forecasts: Something went wrong during remapping for year {year}")
+    
+    elif args.mode == 'rechunk_frcst':
+        
+        for month in range(smnth, emnth):
+            
+            month_str = str(month).zfill(2)
+            
+            setup_domain_func.rechunk_forecasts(domain_config, variable_config, dir_dict, syr, eyr, month_str)
                 
     elif args.mode == 'trunc_ref':
         

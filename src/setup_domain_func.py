@@ -12,6 +12,7 @@ import zarr
 import dask
 import sys
 
+
 from subprocess import run, PIPE
 from pathlib import Path
 
@@ -183,6 +184,32 @@ def truncate_forecasts(domain_config, variable_config, dir_dict, year, month_str
         logging.error(f"Something went wrong during slicing for month {month_str} and year {year}")      
 
 
+#@dask.delayed
+def rechunk_forecasts(domain_config, variable_config, dir_dict, syr_calib, eyr_calib, month):
+    
+    file_list = []
+    
+    for year in range(syr_calib, eyr_calib + 1):
+        
+        file_list.append(f"{dir_dict['hr_reg_dir']}/{domain_config['raw_forecasts']['prefix']}_daily_{year}{month}_{domain_config['target_resolution']}_{domain_config['prefix']}.nc")
+        
+        
+    ds = xr.open_mfdataset(file_list, parallel = True, engine='netcdf4', autoclose=True, chunks = {'time': 50})
+    
+    coords = {'time': ds['time'].values, 'ens': ds['ens'].values, 'lat': ds['lat'].values.astype(np.float32), 'lon': ds['lon'].values.astype(np.float32)}
+    
+    encoding = modules.set_encoding(variable_config, coords, 'lines')
+    
+    final_file = f"{dir_dict['lnch_dir']}/{domain_config['raw_forecasts']['prefix']}_daily__{syr_calib}_{eyr_calib}_{month}_{domain_config['target_resolution']}_{domain_config['prefix']}_lns.nc"
+    
+    
+    try:
+        ds.to_netcdf(final_file, encoding = encoding)
+    except:
+        logging.error(f"Something went wrong during writing of forecast linechunks")   
+    
+    
+        
 
 def truncate_reference(domain_config, variable_config, dir_dict, syr_calib, eyr_calib):
 
@@ -265,7 +292,7 @@ def remap_forecasts(domain_config, dir_dict, year, month, grd_fle):
         
         
     #try:
-        #cdo.remapbil(grd_fle, input=coarse_file, output=hires_file, options="-f nc4 -k grid -z zip_6")
+    #cdo.remapbil(grd_fle, input=coarse_file, output=hires_file, options="-f nc4 -k grid -z zip_6")
     cmd = ('cdo', '-O', '-f', 'nc4c', '-z', 'zip_6', f'remapbil,{grd_fle}', str(coarse_file), str(hires_file))
     run_cmd(cmd)
     #    logging.info(f"Remap_forecast: Remapping for year {year} and month {month} successful")
