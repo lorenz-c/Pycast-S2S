@@ -73,7 +73,7 @@ def set_metadata(coords, bc_params):
     
     return global_attributes, variable_attributes
 
-def set_filenames(year, month, domain_config, variable_config):
+def set_filenames(year, month, domain_config, variable_config, forecast_linechunks):
 
     # Integrate check for every parameter...
     yr_str   = str(year)
@@ -89,14 +89,28 @@ def set_filenames(year, month, domain_config, variable_config):
     for variable in variable_config:
 
         if domain_config['raw_forecasts']['merged_variables'] == True:
-            raw_dict[variable]  = f"{basedir}linechunks/{domain_config['raw_forecasts']['prefix']}_daily_{yr_str}{mnth_str}_{domain_config['target_resolution']}_{domain_config['prefix']}_lns.nc"
+            if forecast_linechunks == True:
+                raw_dict[variable]  = f"{basedir}linechunks/{domain_config['raw_forecasts']['prefix']}_daily_{yr_str}{mnth_str}_{domain_config['target_resolution']}_{domain_config['prefix']}_lns.nc"
+            else:
+                raw_dict[variable]  = f"{basedir}input_target_res/{domain_config['raw_forecasts']['prefix']}_daily_{yr_str}{mnth_str}_{domain_config['target_resolution']}_{domain_config['prefix']}.nc"
         else:
-            raw_dict[variable]  = f"{basedir}linechunks/{domain_config['raw_forecasts']['prefix']}_daily_{variable}_{yr_str}{mnth_str}_{domain_config['target_resolution']}_{domain_config['prefix']}_lns.nc"
-
+            if forecast_linechunks == True:
+                raw_dict[variable]  = f"{basedir}linechunks/{domain_config['raw_forecasts']['prefix']}_daily_{variable}_{yr_str}{mnth_str}_{domain_config['target_resolution']}_{domain_config['prefix']}_lns.nc"
+            else:
+                raw_dict[variable]  = f"{basedir}input_target_res/{domain_config['raw_forecasts']['prefix']}_daily_{variable}_{yr_str}{mnth_str}_{domain_config['target_resolution']}_{domain_config['prefix']}.nc"
+                
+                
         if domain_config["bcsd_forecasts"]['merged_variables'] == True:
-            bcsd_dict[variable] = f"{basedir}linechunks/{domain_config['bcsd_forecasts']['prefix']}_v{domain_config['version']}_daily_{yr_str}{mnth_str}_{domain_config['target_resolution']}_{domain_config['prefix']}_lns.nc"
+            if forecast_linechunks == True:
+                bcsd_dict[variable] = f"{basedir}linechunks/{domain_config['bcsd_forecasts']['prefix']}_v{domain_config['version']}_daily_{yr_str}{mnth_str}_{domain_config['target_resolution']}_{domain_config['prefix']}_lns.nc"
+            else:
+                bcsd_dict[variable] = f"{basedir}output_target_res/{domain_config['bcsd_forecasts']['prefix']}_v{domain_config['version']}_daily_{yr_str}{mnth_str}_{domain_config['target_resolution']}_{domain_config['prefix']}.nc"
+                
         else:
-            bcsd_dict[variable] = f"{basedir}linechunks/{domain_config['bcsd_forecasts']['prefix']}_v{domain_config['version']}_daily_{variable}_{yr_str}{mnth_str}_{domain_config['target_resolution']}_{domain_config['prefix']}_lns.nc"
+            if forecast_linechunks == True:
+                bcsd_dict[variable] = f"{basedir}linechunks/{domain_config['bcsd_forecasts']['prefix']}_v{domain_config['version']}_daily_{variable}_{yr_str}{mnth_str}_{domain_config['target_resolution']}_{domain_config['prefix']}_lns.nc"
+            else:
+                bcsd_dict[variable] = f"{basedir}output_target_res/{domain_config['bcsd_forecasts']['prefix']}_v{domain_config['version']}_daily_{variable}_{yr_str}{mnth_str}_{domain_config['target_resolution']}_{domain_config['prefix']}.nc"
 
         if domain_config['reference_history']['merged_variables'] == True:
             ref_hist_dict[variable]  = f"{basedir}linechunks/{domain_config['reference_history']['prefix']}_daily_{domain_config['syr_calib']}_{domain_config['eyr_calib']}_{domain_config['target_resolution']}_{domain_config['prefix']}_lns.nc"
@@ -238,10 +252,17 @@ def create_4d_netcdf(bcsd_dict, global_config, domain_config, variable_config, c
 def get_coords_from_files(filename):
     ds = xr.open_dataset(filename)
 
+    #return {
+    #    'time': ds['time'].values,
+    #    'lat': ds['lat'].values.astype(np.float32),
+    #    'lon': ds['lon'].values.astype(np.float32),
+    #    'ens': ds['ens'].values
+    #}
+    
     return {
         'time': ds['time'].values,
-        'lat': ds['lat'].values.astype(np.float32),
-        'lon': ds['lon'].values.astype(np.float32),
+        'lat': ds['lat'].values,
+        'lon': ds['lon'].values,
         'ens': ds['ens'].values
     }
 
