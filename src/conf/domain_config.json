@@ -1,0 +1,96 @@
+{
+	"khuzestan": {
+		"prefix": "Khuzestan",
+		"bbox": [45, 53.5, 29, 36],
+		"regroot": "/pd/data/regclim_data/gridded_data/processed/Khuzestan",
+		"syr_calib": 1981,
+		"eyr_calib": 2016,
+		"variables": ["tp", "t2m"],
+		"raw_forecasts": {"prefix": "SEAS5", "merged_variables": true},
+		"bcsd_forecasts": {"prefix": "SEAS5_BCSD", "merged_variables": true},
+		"reference_history": {"prefix": "ERA5_Land", "merged_variables": false},
+		"model_history": {"prefix": "SEAS5", "merged_variables": true},
+		"target_resolution": 0.1,
+		"version": "3.0",
+		"bc_params": {
+			"dry_thresh": 0.01,
+			"low_extrapol": "delta_additive",
+			"up_extrapol": "delta_additive",
+			"extremes": "weibull",
+			"intermittency": true,
+			"nquants": 2500,
+			"window": 15
+		}
+	},
+	"germany": {
+		"prefix": "germany",
+		"bbox": [5.25, 15.15, 45.55, 55.45],
+		"regroot": "/pd/data/regclim_data/gridded_data/processed/germany",
+		"syr_calib": 1981,
+		"eyr_calib": 2016,
+		"variables": ["tp", "t2m", "t2min", "t2max", "ssrd"],
+		"raw_forecasts": {"prefix": "SEAS5", "merged_variables": true},
+		"bcsd_forecasts": {"prefix": "SEAS5_BCSD", "merged_variables": true},
+		"reference_history": {"prefix": "ERA5_Land", "merged_variables": false},
+		"model_history": {"prefix": "SEAS5", "merged_variables": true},
+		"target_resolution": 0.1,
+		"version": "3.0",
+		"bc_params": {
+			"dry_thresh": 0.01,
+			"low_extrapol": "delta_additive",
+			"up_extrapol": "delta_additive",
+			"extremes": "weibull",
+			"intermittency": true,
+			"nquants": 2500,
+			"window": 15
+		}
+	},
+		"west_africa": {
+		"prefix": "west_africa",
+		"bbox": [-12.9, 16.9, 3.2, 24.9],
+		"regroot": "/pd/data/regclim_data/gridded_data/processed/west_africa",
+		"syr_calib": 1981,
+		"eyr_calib": 2016,
+		"variables": ["tp", "t2m", "t2min", "t2max"],
+		"raw_forecasts": {"prefix": "SEAS5", "merged_variables": true},
+		"bcsd_forecasts": {"prefix": "SEAS5_BCSD", "merged_variables": true},
+		"reference_history": {"prefix": "ERA5_Land", "merged_variables": false},
+		"model_history": {"prefix": "SEAS5", "merged_variables": true},
+		"target_resolution": 0.1,
+		"version": "3.0",
+		"bc_params": {
+			"dry_thresh": 0.01,
+			"low_extrapol": "delta_additive",
+			"up_extrapol": "delta_additive",
+			"extremes": "weibull",
+			"intermittency": true,
+			"nquants": 2500,
+			"window": 15
+		}
+	},
+	"sf_basin": {
+		"name": "SF_Basin",
+		"bbox": "-49,-35,-22.5,-2.5",
+		"regroot": "/pd/data/regclim_data/gridded_data/processed/Khuzestan",
+		"syr_calib": 1981,
+		"eyr_calib": 2016,
+		"variables": "tp, t2m, t2max, t2min, ssrd",
+		"refdata": "era5_land"
+	},
+	"tabn": {
+		"name": "TABN",
+		"bbox": "31,41,6,21",
+		"regroot": "/pd/data/regclim_data/gridded_data/processed/Khuzestan",
+		"syr_calib": 1981,
+		"eyr_calib": 2016,
+		"variables": "tp, t2m, t2max, t2min, ssrd"
+	},
+	"chira": {
+		"name": "Chira",
+		"bbox": "-82,-78,-7,-2",
+		"regroot": "/pd/data/regclim_data/gridded_data/processed/Khuzestan",
+		"syr_calib": 1981,
+		"eyr_calib": 2016,
+		"variables": "tp, t2m, t2max, t2min, ssrd"
+	}
+}

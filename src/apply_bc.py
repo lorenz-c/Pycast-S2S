@@ -1,5 +1,5 @@
 import netCDF4
-from io_module import io_module
+from io_module import slice_and_correct
 
 def apply_bc(month=None,year=None,domain=None,regroot=None,version=None,*args,**kwargs):
 
@@ -7,7 +7,8 @@ def apply_bc(month=None,year=None,domain=None,regroot=None,version=None,*args,**
 
     mnth_str=str(month)
     mnth_str=mnth_str.zfill(2)
-    basedir="/Volumes"+regroot+domain+'/daily/'
+    # basedir=f"{regroot}{domain}/daily/"
+    basedir = f"{regroot}{domain}/daily/"
 
     raw_in=basedir+'seas5_h/SEAS5_daily_'+yr_str+mnth_str+'_0.1_'+domain+'.nc'
     raw_lnechnks=basedir+'linechunks/SEAS5_daily_'+yr_str+mnth_str+'_0.1_'+domain+'_lns.nc'
@@ -19,12 +20,12 @@ def apply_bc(month=None,year=None,domain=None,regroot=None,version=None,*args,**
     else:
         nrens=51
 
-    ds = netCDF4.Dataset("test_files/SEAS5_daily_2017_2019_12_0.1_Khuzestan_lns.nc")
-    lat = ds['lat'][:]
-    lon = ds['lon'][:]
+    #ds = netCDF4.Dataset("test_files/SEAS5_daily_2017_2019_12_0.1_Khuzestan_lns.nc")
+    #lat = ds['lat'][:]
+    #lon = ds['lon'][:]
 
-    nlon = len(lon)
-    nlat = len(lat)
+    #nlon = len(lon)
+    #nlat = len(lat)
 
     syr_calib=1981
 
@@ -51,14 +52,14 @@ def apply_bc(month=None,year=None,domain=None,regroot=None,version=None,*args,**
 
     
     # FOR TEST RUN:
-    bc_out_lns = "test_py.nc"
+    #bc_out_lns = "test_py.nc"
 
-    obs_struct = {'tp': 'test_files/obs_struct/ERA5_Land_daily_tp_1981_2016_Khuzestan_lns.nc',
-                  't2m': 'test_files/obs_struct/ERA5_Land_daily_t2m_1981_2016_Khuzestan_lns.nc'}
-    mdl_struct = {'tp': 'test_files/mdl_struct/SEAS5_daily_1981_2016_04_0.1_Khuzestan_lns.nc',
-                  't2m': 'test_files/mdl_struct/SEAS5_daily_1981_2016_04_0.1_Khuzestan_lns.nc'}
-    pred_struct = {'tp': 'test_files/raw_lnechnks/SEAS5_daily_202204_0.1_Khuzestan_lns.nc',
-                   't2m': 'test_files/raw_lnechnks/SEAS5_daily_202204_0.1_Khuzestan_lns.nc'}
+    #obs_struct = {'tp': 'test_files/obs_struct/ERA5_Land_daily_tp_1981_2016_Khuzestan_lns.nc',
+    #              't2m': 'test_files/obs_struct/ERA5_Land_daily_t2m_1981_2016_Khuzestan_lns.nc'}
+    #mdl_struct = {'tp': 'test_files/mdl_struct/SEAS5_daily_1981_2016_04_0.1_Khuzestan_lns.nc',
+    #              't2m': 'test_files/mdl_struct/SEAS5_daily_1981_2016_04_0.1_Khuzestan_lns.nc'}
+    #pred_struct = {'tp': 'test_files/raw_lnechnks/SEAS5_daily_202204_0.1_Khuzestan_lns.nc',
+    #               't2m': 'test_files/raw_lnechnks/SEAS5_daily_202204_0.1_Khuzestan_lns.nc'}
 
     queue_out, dask_jobs = io_module(obs_struct, mdl_struct, pred_struct, month, bc_out_lns, 15, 15)
     return obs_struct, mdl_struct, pred_struct, queue_out, dask_jobs
