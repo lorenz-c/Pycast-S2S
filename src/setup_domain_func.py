@@ -55,6 +55,7 @@ def set_and_make_dirs(domain_config):
         "ref_clim":       f"{domain_config['regroot']}/climatology/{domain_config['reference_history']['prefix']}"
     }
 
+
     # Directory of raw SEAS5-Data for each Domain
     
 
