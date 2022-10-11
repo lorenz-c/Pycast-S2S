@@ -58,7 +58,12 @@ if __name__ == '__main__':
     variable_config = { key:value for key,value in variable_config.items() if key in domain_config['variables']}
 
     # Set all filenames, etc.
-    raw_dict, bcsd_dict, ref_hist_dict, mdl_hist_dict = modules.set_filenames(args.year, args.month, domain_config, variable_config)
+    if args.domain == 'germany':
+        raw_dict, bcsd_dict, ref_hist_dict, mdl_hist_dict = modules.set_filenames(args.year, args.month, domain_config, variable_config, False)
+    else:
+        raw_dict, bcsd_dict, ref_hist_dict, mdl_hist_dict = modules.set_filenames(args.year, args.month, domain_config, variable_config, True)
+        
+
 
     # IMPLEMENT A CHECK IF ALL INPUT FILES ARE AVAILABL!!!!!!
     #
@@ -122,7 +127,7 @@ if __name__ == '__main__':
         da_pred = ds_pred[variable].persist()
         
         # Change data type of latidude and longitude, otherwise apply_u_func does not work
-        da_pred = da_pred.assign_coords(lon=ds_pred.lon.values.astype(np.float32), lat=ds_pred.lat.values.astype(np.float32))
+        #da_pred = da_pred.assign_coords(lon=ds_pred.lon.values.astype(np.float32), lat=ds_pred.lat.values.astype(np.float32))
 
         # Calculate day of the year from time variable
         dayofyear_obs = ds_obs['time.dayofyear']
@@ -146,7 +151,7 @@ if __name__ == '__main__':
 
             day = dayofyear_mdl[timestep]
     
-            day_range = (np.arange(day - domain_config['bc_window'], day + domain_config['bc_window'] + 1) + 365) % 365 + 1
+            day_range = (np.arange(day - domain_config['bc_params']['window'], day + domain_config['bc_params']['window'] + 1) + 365) % 365 + 1
             intersection_day_obs = np.in1d(dayofyear_obs, day_range)
             intersection_day_mdl = np.in1d(dayofyear_mdl, day_range)
     
@@ -159,6 +164,10 @@ if __name__ == '__main__':
     
     
             da_pred_sub = da_pred.isel(time=timestep)
+            
+            print(da_obs_sub.lon)
+            print(da_mdl_sub.lon)
+            print(da_pred_sub.lon)
 
             pred_corr_act = xr.apply_ufunc(
                 bc_module_v2.bc_module, 
