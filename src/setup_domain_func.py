@@ -51,6 +51,7 @@ def set_and_make_dirs(domain_config):
         "hr_reg_dir":     f"{domain_config['regroot']}/daily/{domain_config['raw_forecasts']['prefix']}_h",
         "lnch_dir":       f"{domain_config['regroot']}/daily/linechunks",
         "climatology":    f"{domain_config['regroot']}/climatology",
+        # CAUTION!!! : Prefix and name of directories of existing domains differ (e.g. era5_land (dir) and ERA5_Land (prefix and filenames)!!!!
         "seas5_clim":     f"{domain_config['regroot']}/climatology/{domain_config['raw_forecasts']['prefix']}",
         "ref_clim":       f"{domain_config['regroot']}/climatology/{domain_config['reference_history']['prefix']}"
     }
@@ -311,17 +312,26 @@ def remap_forecasts(domain_config, dir_dict, year, month, grd_fle):
 
 def create_climatology(domain_config, variable_config, dir_dict, syr_calib, eyr_calib):
     # Open Points:
-    # --> Prefix and Directories does not match (era5_land / ERA5_Land)
+    # --> Prefix and Directories does not match (era5_land / ERA5_Land) --> Issue
+    # --> Alles einheitlich bennen für die Funktionen --> Issue
     # --> Encoding while writing netcdf????
     # --> Loop over months for SEAS5???
     # --> Write one function and choose ref or seas5 product???
+    # --> Choose baseline period with start and end year (up to now, all files in the folder are selected and opened)
     # set up encoding for netcdf-file later
+
+
 
     #### SEAS5
     # loop over month
     for month in range(1,13):
+        # Select period of time
+        fle_list = []
+        for year in range(syr_calib, eyr_calib + 1):
+            fle_list.append(f"{dir_dict['raw_reg_dir']}/{domain_config['raw_forecasts']['prefix']}_daily_{year}{str(month).zfill(2)}_O320_{domain_config['prefix']}.nc")
+
         # load nc-Files for each month over all years
-        ds = xr.open_mfdataset(f"{dir_dict['raw_reg_dir']}/{domain_config['raw_forecasts']['prefix']}_daily_****{str(month).zfill(2)}_O320_{domain_config['prefix']}.nc", concat_dim="time", combine='nested', parallel = True)
+        ds = xr.open_mfdataset(fle_list, parallel = True, engine='netcdf4')
         # Calculate climatogloy (mean) for each lead month
         ds_clim = ds.groupby('time.month').mean('time')
         ds_clim = ds_clim.rename({'month': 'time'})
@@ -339,8 +349,13 @@ def create_climatology(domain_config, variable_config, dir_dict, syr_calib, eyr_
     #### Ref - ERA5
     # loop over variables
     for variable in domain_config['variables']:
+        # Select period of time
+        fle_list = []
+        for year in range(syr_calib, eyr_calib + 1):
+            fle_list.append(f"{dir_dict['ref_reg_dir']}/{domain_config['reference_history']['prefix']}_daily_{variable}_{year}_{domain_config['prefix']}.nc")
+
         # Open dataset
-        ds = xr.open_mfdataset(f"{dir_dict['ref_reg_dir']}/{domain_config['reference_history']['prefix']}_daily_{variable}_*_{domain_config['prefix']}.nc", concat_dim="time", combine='nested', parallel=True)
+        ds = xr.open_mfdataset(fle_list, parallel = True, engine='netcdf4')
         # Calculate climatogloy (mean)
         ds_clim  = ds.groupby('time.month').mean('time')
         ds_clim = ds_clim.rename({'month': 'time'})
