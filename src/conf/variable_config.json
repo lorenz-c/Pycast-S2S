@@ -36,7 +36,8 @@
         "dtype": "int16",
         "_FillValue": -9999, 
         "scale_factor": 0.01,
-        "add_offset": 237.15
+        "add_offset": 237.15,
+        "isprecip": false
     },
     "t2plus": {
         "long_name": "t2max_minus_t2mean", 
@@ -45,7 +46,8 @@
         "dtype": "int16",
         "_FillValue": -9999, 
         "scale_factor": 0.01,
-        "add_offset": 0
+        "add_offset": 0,
+        "isprecip": false
     },
     "t2minus": {
         "long_name": "t2m_minus_t2min", 
@@ -54,7 +56,8 @@
         "dtype": "int16",
         "_FillValue": -9999, 
         "scale_factor": 0.01,
-        "add_offset": 0
+        "add_offset": 0,
+        "isprecip": false
     },   
     "ssrd": {
         "long_name": "surface_solar_radiation", 
@@ -63,7 +66,8 @@
         "dtype": "int32",
         "_FillValue": -9999, 
         "scale_factor": 0.01,
-        "add_offset": 0
+        "add_offset": 0,
+        "isprecip": false
     }    
 }
 
