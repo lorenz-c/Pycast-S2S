@@ -204,8 +204,8 @@ def create_4d_netcdf(bcsd_dict, global_config, domain_config, variable_config, c
             coords = {
                 'time': ('time', coordinates['time'], {'standard_name': 'time', 'long_name': 'time'}),
                 'ens': ('ens', coordinates['ens'], {'standard_name': 'realization', 'long_name': 'ensemble_member'}),
-                'lat': ('lat', coordinates['lat'], {'standard_name': 'latitude', 'long_name': 'latitude', 'units': 'degrees_east'}),
-                'lon': ('lon', coordinates['lon'], {'standard_name': 'longitude', 'long_name': 'longitude', 'units': 'degrees_north'})
+                'lat': ('lat', coordinates['lat'], {'standard_name': 'latitude', 'long_name': 'latitude', 'units': 'degrees_north'}),
+                'lon': ('lon', coordinates['lon'], {'standard_name': 'longitude', 'long_name': 'longitude', 'units': 'degrees_east'})
             },
             attrs = {
                 'standard_name': variable_config[variable]['standard_name'],
@@ -222,8 +222,8 @@ def create_4d_netcdf(bcsd_dict, global_config, domain_config, variable_config, c
             coords = {
                     'time': ('time', coordinates['time'], {'standard_name': 'time', 'long_name': 'time'}),
                     'ens': ('ens', coordinates['ens'], {'standard_name': 'realization', 'long_name': 'ensemble_member'}),
-                    'lat': ('lat', coordinates['lat'], {'standard_name': 'latitude', 'long_name': 'latitude', 'units': 'degrees_east'}),
-                    'lon': ('lon', coordinates['lon'], {'standard_name': 'longitude', 'long_name': 'longitude', 'units': 'degrees_north'})
+                    'lat': ('lat', coordinates['lat'], {'standard_name': 'latitude', 'long_name': 'latitude', 'units': 'degrees_north'}),
+                    'lon': ('lon', coordinates['lon'], {'standard_name': 'longitude', 'long_name': 'longitude', 'units': 'degrees_east'})
                 },
             attrs = global_config
         )
@@ -238,8 +238,8 @@ def create_4d_netcdf(bcsd_dict, global_config, domain_config, variable_config, c
                 coords = {
                     'time': ('time', coordinates['time'], {'standard_name': 'time', 'long_name': 'time'}),
                     'ens': ('ens', coordinates['ens'], {'standard_name': 'realization', 'long_name': 'ensemble_member'}),
-                    'lat': ('lat', coordinates['lat'], {'standard_name': 'latitude', 'long_name': 'latitude', 'units': 'degrees_east'}),
-                    'lon': ('lon', coordinates['lon'], {'standard_name': 'longitude', 'long_name': 'longitude', 'units': 'degrees_north'})
+                    'lat': ('lat', coordinates['lat'], {'standard_name': 'latitude', 'long_name': 'latitude', 'units': 'degrees_north'}),
+                    'lon': ('lon', coordinates['lon'], {'standard_name': 'longitude', 'long_name': 'longitude', 'units': 'degrees_east'})
                 },
             attrs = global_config
         )
