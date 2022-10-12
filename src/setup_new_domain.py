@@ -22,6 +22,7 @@ def get_clas():
     parser.add_argument("-m", "--mode", action="store", type=str, help="Selected mode for setup", required=True)
     parser.add_argument("-p", "--period", action="store", type=str, help="Period for which the pre-processing should be executed", required=False)
     parser.add_argument("-n", "--node", action="store", type=str, help="Node for running the code", required=False)
+    parser.add_argument("-f", "--scheduler_file", action="store", type=str, help="If a scheduler-file is provided, the function does not start its own cluster but rather uses a running environment", required=False)
     
     return parser.parse_args()
 
