@@ -52,7 +52,7 @@ def set_and_make_dirs(domain_config):
         "lnch_dir":       f"{domain_config['regroot']}/daily/linechunks",
         "climatology":    f"{domain_config['regroot']}/climatology",
         # CAUTION!!! : Prefix and name of directories of existing domains differ (e.g. era5_land (dir) and ERA5_Land (prefix and filenames)!!!!
-        "seas5_clim":     f"{domain_config['regroot']}/climatology/{domain_config['raw_forecasts']['prefix']}",
+        "raw_clim":     f"{domain_config['regroot']}/climatology/{domain_config['raw_forecasts']['prefix']}",
         "ref_clim":       f"{domain_config['regroot']}/climatology/{domain_config['reference_history']['prefix']}"
     }
 
@@ -89,10 +89,10 @@ def set_and_make_dirs(domain_config):
         os.makedirs(dir_dict["lnch_dir"])
     if not os.path.isdir(dir_dict["climatology"]):
         os.makedirs(dir_dict["climatology"])
-    if not os.path.isdir(dir_dict["seas5_clim"]):
-        os.makedirs(dir_dict["seas5_clim"])
-    if not os.path.isdir(dir_dict["era5_clim"]):
-        os.makedirs(dir_dict["era5_clim"])
+    if not os.path.isdir(dir_dict["raw_clim"]):
+        os.makedirs(dir_dict["raw_clim"])
+    if not os.path.isdir(dir_dict["ref_clim"]):
+        os.makedirs(dir_dict["ref_clim"])
 
     return dir_dict
 
