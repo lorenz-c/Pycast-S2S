@@ -72,9 +72,9 @@ def bc_module(pred, obs, mdl, bc_params, precip):
         # Y_pred = interp1d(q_obs,p_obs)(pred)
         # else:
         # Y_pred = pred
-
-        pred_corr = interp1d(p_obs, q_obs, bounds_error=False)(Y_pred)
-
+        
+        #pred_corr = interp1d(p_obs, q_obs, bounds_error=False)(Y_pred)
+        pred_corr = np.interp(Y_pred, p_obs, q_obs, left=np.nan, right=np.nan)
         # else:
         # pred_corr = ds_nan
 
