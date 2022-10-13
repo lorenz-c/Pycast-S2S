@@ -65,8 +65,8 @@ if __name__ == '__main__':
         domain_config = json.loads(j.read())
 
     # Read the global configuration from the respective JSON --> Add this as further input parameter
-    with open('conf/global_config.json', 'r') as j:
-        global_config = json.loads(j.read())
+    with open('conf/attribute_config.json', 'r') as j:
+        attribute_config = json.loads(j.read())
 
     # Read the variable configuration from the respective JSON
     with open('conf/variable_config.json', 'r') as j:
@@ -97,12 +97,12 @@ if __name__ == '__main__':
     # Read the dimensions for the output file (current prediction)
     coords = modules.get_coords_from_files(list(raw_dict.values())[0])
     
-    global_config = modules.update_global_attributes(global_config, domain_config['bc_params'], coords, args.domain)
+    attribute_config = modules.update_global_attributes(attribute_config, domain_config['bc_params'], coords, args.domain)
 
     encoding = modules.set_encoding(variable_config, coords)
     
     # Create an empty NetCDF in which we write the BCSD output
-    ds = modules.create_4d_netcdf(bcsd_dict, global_config, domain_config, variable_config, coords)
+    ds = modules.create_4d_netcdf(bcsd_dict, attribute_config, domain_config, variable_config, coords)
     
     # Loop over each variable
     for variable in variable_config:

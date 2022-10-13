@@ -4,8 +4,9 @@ import json
 import dask
 import argparse
 
-import modules
 import regional_processing_modules
+
+from helper_modules import getCluster
 
 import logging
 
@@ -69,14 +70,14 @@ if __name__ == "__main__":
         if period_list[0] > 1000 and (period_list[1] >= 1 and period_list[1] <= 12):
             # [year, month]
             syr = period_list[0]
-            eyr = period_list[0] + 1
+            eyr = period_list[0]
             smnth = period_list[1]
-            emnth = period_list[1] + 1
+            emnth = period_list[1]
         elif period_list[0] > 1000 and period_list[1] > 1000:
             syr = period_list[0]
-            eyr = period_list[1] + 1
+            eyr = period_list[1]
             smnth = 1
-            emnth = 13
+            emnth = 12
         else:
             logging.error("Period not defined properly")
     else:
@@ -88,7 +89,7 @@ if __name__ == "__main__":
 
         
     # Get some ressourcers
-    client, cluster = modules.getCluster(args.node, 1, 35)
+    client, cluster = getCluster(args.node, 1, 35)
     
     client.get_versions(check=True)
     
@@ -106,7 +107,7 @@ if __name__ == "__main__":
             
             results = []
             
-            for month in range(smnth, emnth):
+            for month in range(smnth, emnth + 1):
                 
                 month_str = str(month).zfill(2)
                 
@@ -124,7 +125,7 @@ if __name__ == "__main__":
             
             results = []
             
-            for month in range(smnth, emnth):
+            for month in range(smnth, emnth + 1):
                 
                 month_str = str(month).zfill(2)
                 
@@ -139,7 +140,7 @@ if __name__ == "__main__":
     
     elif args.mode == 'rechunk_frcst':
         
-        for month in range(smnth, emnth):
+        for month in range(smnth, emnth + 1):
             
             month_str = str(month).zfill(2)
             
