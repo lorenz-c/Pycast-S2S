@@ -5,7 +5,7 @@ import dask
 import argparse
 
 import modules
-import setup_domain_func
+import regional_processing_modules
 
 import logging
 
@@ -42,8 +42,8 @@ if __name__ == "__main__":
         domain_config = json.loads(j.read())
 
     # Read the global configuration from the respective JSON --> Add this as further input parameter
-    with open('conf/global_config.json', 'r') as j:
-        global_config = json.loads(j.read())
+    with open('conf/attribute_config.json', 'r') as j:
+        attribute_config = json.loads(j.read())
 
     # Read the variable configuration from the respective JSON
     with open('conf/variable_config.json', 'r') as j:
@@ -58,9 +58,9 @@ if __name__ == "__main__":
 
     variable_config = { key:value for key,value in variable_config.items() if key in domain_config['variables']}
 
-    dir_dict = setup_domain_func.set_and_make_dirs(domain_config)
+    dir_dict = regional_processing_modules.set_and_make_dirs(domain_config)
 
-    grd_fle = setup_domain_func.create_grd_file(domain_config, dir_dict)
+    grd_fle = regional_processing_modules.create_grd_file(domain_config, dir_dict)
     
     if args.period is not None:
         # Period can be in the format "year, year" or "year, month"
@@ -110,7 +110,7 @@ if __name__ == "__main__":
                 
                 month_str = str(month).zfill(2)
                 
-                results.append(setup_domain_func.truncate_forecasts(domain_config, variable_config, dir_dict, year, month_str))
+                results.append(regional_processing_modules.truncate_forecasts(domain_config, variable_config, dir_dict, year, month_str))
     
             try:
                 dask.compute(results)
@@ -128,7 +128,7 @@ if __name__ == "__main__":
                 
                 month_str = str(month).zfill(2)
                 
-                results.append(setup_domain_func.remap_forecasts(domain_config, dir_dict, year, month_str, grd_fle))
+                results.append(regional_processing_modules.remap_forecasts(domain_config, dir_dict, year, month_str, grd_fle))
                 
             #try:
             dask.compute(results)
@@ -143,23 +143,23 @@ if __name__ == "__main__":
             
             month_str = str(month).zfill(2)
             
-            setup_domain_func.rechunk_forecasts(domain_config, variable_config, dir_dict, syr, eyr, month_str)
+            regional_processing_modules.rechunk_forecasts(domain_config, variable_config, dir_dict, syr, eyr, month_str)
                 
     elif args.mode == 'trunc_ref':
         
-        setup_domain_func.truncate_reference(domain_config, variable_config, dir_dict, syr, eyr)
+        regional_processing_modules.truncate_reference(domain_config, variable_config, dir_dict, syr, eyr)
         
     elif args.mode == 'remap_ref':
         
-        setup_domain_func.remap_reference(domain_config, variable_config, dir_dict, syr, eyr, grd_fle)
+        regional_processing_modules.remap_reference(domain_config, variable_config, dir_dict, syr, eyr, grd_fle)
         
     elif args.mode == 'rechunk_ref':
         
-        setup_domain_func.rechunk_reference(domain_config, variable_config, dir_dict, syr, eyr)
+        regional_processing_modules.rechunk_reference(domain_config, variable_config, dir_dict, syr, eyr)
 
     elif args.mode == "climatology":
 
-        setup_domain_func.create_climatology(domain_config, variable_config, dir_dict, syr, eyr)
+        regional_processing_modules.create_climatology(domain_config, variable_config, dir_dict, syr, eyr)
 
         
 

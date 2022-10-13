@@ -387,6 +387,13 @@ def run_cmd(cmd, path_extra=Path(sys.exec_prefix)/'bin'):
 
 
 
+
+
+        
+        
+        
+        
+
  #   for year in range(syr_calibdomain_config["syr_calib"], domain_config["eyr_calib"]+1):##
 
  #       year_str = str(year)
