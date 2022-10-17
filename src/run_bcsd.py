@@ -78,6 +78,9 @@ if __name__ == '__main__':
     # Get only the variables that are needed for the current domain
     variable_config = { key:value for key,value in variable_config.items() if key in domain_config['variables']}
 
+    # Insert If-Statement, in order to run bcsd for the whole historical period!!!
+
+
     # Set all filenames, etc.
     if args.domain == 'germany':
         raw_dict, bcsd_dict, ref_hist_dict, mdl_hist_dict = modules.set_filenames(args.year, args.month, domain_config, variable_config, False)
@@ -170,6 +173,10 @@ if __name__ == '__main__':
                 
             da_mdl_sub = da_mdl_sub.stack(ens_time=("ens", "time"), create_index=True)
             da_mdl_sub = da_mdl_sub.drop('time')
+
+            # Cut the actual year out of the calibration period (e.g. year of prediction = 1981 and calibration period 1981 to 2016)
+            da_obs_sub = da_obs_sub.sel(time=~da_obs_sub.time.dt.year.isin(args.year))
+            da_mdl_sub = da_mdl_sub.sel(time=~da_mdl_sub.time.dt.year.isin(args.year))
 
             da_pred_sub = da_pred.isel(time=timestep)
 
