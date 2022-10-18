@@ -160,7 +160,18 @@ if __name__ == "__main__":
 
     elif args.mode == "climatology":
 
-        regional_processing_modules.create_climatology(domain_config, variable_config, dir_dict, syr, eyr)
+         # Climatology for SEAS5
+        for month in range(smnth, emnth +1):
+            dataset = "seas5"
+            month_str = str(month).zfill(2)
+            regional_processing_modules.create_climatology(dataset, domain_config, variable_config, dir_dict, syr, eyr, month_str)
+
+        # Climatology for ERA5
+        dataset = "ref"
+        month_str = ""
+        regional_processing_modules.create_climatology(dataset, domain_config, variable_config, dir_dict, syr, eyr, month_str)
+
+
 
         
 

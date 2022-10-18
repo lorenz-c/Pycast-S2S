@@ -311,7 +311,7 @@ def remap_forecasts(domain_config, dir_dict, year, month, grd_fle):
     #    logging.error(f"Remap_forecast: Something went wrong during remapping for month {month} and year {year}")      
         
 
-def create_climatology(domain_config, variable_config, dir_dict, syr_calib, eyr_calib):
+def create_climatology(dataset, domain_config, variable_config, dir_dict, syr_calib, eyr_calib, month_str):
     # Open Points:
     # --> Prefix and Directories does not match (era5_land / ERA5_Land) --> Issue
     # --> Alles einheitlich bennen für die Funktionen --> Issue
@@ -321,15 +321,12 @@ def create_climatology(domain_config, variable_config, dir_dict, syr_calib, eyr_
     # --> Choose baseline period with start and end year (up to now, all files in the folder are selected and opened)
     # set up encoding for netcdf-file later
 
-
-
-    #### SEAS5
-    # loop over month
-    for month in range(1,13):
+    # SEAS5
+    if dataset == "seas5":
         # Select period of time
         fle_list = []
         for year in range(syr_calib, eyr_calib + 1):
-            fle_list.append(f"{dir_dict['raw_reg_dir']}/{domain_config['raw_forecasts']['prefix']}_daily_{year}{str(month).zfill(2)}_O320_{domain_config['prefix']}.nc")
+            fle_list.append(f"{dir_dict['raw_reg_dir']}/{domain_config['raw_forecasts']['prefix']}_daily_{year}{month_str}_O320_{domain_config['prefix']}.nc")
 
         # load nc-Files for each month over all years
         ds = xr.open_mfdataset(fle_list, parallel = True, engine='netcdf4')
@@ -342,34 +339,31 @@ def create_climatology(domain_config, variable_config, dir_dict, syr_calib, eyr_
 
         # Save NC-File
         try:
-            ds_clim.to_netcdf(f"{dir_dict['seas5_clim']}/{domain_config['raw_forecasts']['prefix']}_climatology_{syr_calib}_{eyr_calib}_{str(month).zfill(2)}_0320_{domain_config['prefix']}.nc", encoding = encoding)
+            ds_clim.to_netcdf(f"{dir_dict['seas5_clim']}/{domain_config['raw_forecasts']['prefix']}_climatology_{syr_calib}_{eyr_calib}_{month_str}_0320_{domain_config['prefix']}.nc", encoding = encoding)
         except:
             logging.error(f"Calculate climatology of SEAS5: Climatology for month {str(month).zfill(2)} failed!")
 
-
     #### Ref - ERA5
-    # loop over variables
-    for variable in domain_config['variables']:
-        # Select period of time
-        fle_list = []
-        for year in range(syr_calib, eyr_calib + 1):
-            fle_list.append(f"{dir_dict['ref_reg_dir']}/{domain_config['reference_history']['prefix']}_daily_{variable}_{year}_{domain_config['prefix']}.nc")
+    else:
+        # loop over variables
+        for variable in domain_config['variables']:
+            # Select period of time
+            fle_list = []
+            for year in range(syr_calib, eyr_calib + 1):
+                fle_list.append(f"{dir_dict['ref_reg_dir']}/{domain_config['reference_history']['prefix']}_daily_{variable}_{year}_{domain_config['prefix']}.nc")
 
-        # Open dataset
-        ds = xr.open_mfdataset(fle_list, parallel = True, engine='netcdf4')
-        # Calculate climatogloy (mean)
-        ds_clim  = ds.groupby('time.month').mean('time')
-        ds_clim = ds_clim.rename({'month': 'time'})
-        # set encoding
-        coords = {'time': ds_clim['time'].values, 'lat': ds_clim['lat'].values.astype(np.float32), 'lon': ds_clim['lon'].values.astype(np.float32)}
-        encoding = set_encoding(variable_config, coords, 'lines')
-        # Save NC-File
-        try:
-            ds_clim.to_netcdf(f"{dir_dict['ref_clim']}/{domain_config['reference_history']['prefix']}_climatology_{variable}_{syr_calib}_{eyr_calib}_{domain_config['prefix']}.nc", encoding = {variable: encoding[variable]})
-        except:
-            logging.error(f"Calculate climatology of Ref: Climatology for variable {variable} failed!")
-
-
-
+            # Open dataset
+            ds = xr.open_mfdataset(fle_list, parallel = True, engine='netcdf4')
+            # Calculate climatogloy (mean)
+            ds_clim  = ds.groupby('time.month').mean('time')
+            ds_clim = ds_clim.rename({'month': 'time'})
+            # set encoding
+            coords = {'time': ds_clim['time'].values, 'lat': ds_clim['lat'].values.astype(np.float32), 'lon': ds_clim['lon'].values.astype(np.float32)}
+            encoding = set_encoding(variable_config, coords, 'lines')
+            # Save NC-File
+            try:
+                ds_clim.to_netcdf(f"{dir_dict['ref_clim']}/{domain_config['reference_history']['prefix']}_climatology_{variable}_{syr_calib}_{eyr_calib}_{domain_config['prefix']}.nc", encoding = {variable: encoding[variable]})
+            except:
+                logging.error(f"Calculate climatology of Ref: Climatology for variable {variable} failed!")
 
 
