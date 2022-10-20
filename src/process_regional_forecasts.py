@@ -158,19 +158,26 @@ if __name__ == "__main__":
         
         regional_processing_modules.rechunk_reference(domain_config, variable_config, dir_dict, syr, eyr)
 
-    elif args.mode == "climatology":
+    # Calculate climatology for calibration period
+    elif args.mode == 'climatology':
 
          # Climatology for SEAS5
         for month in range(smnth, emnth +1):
-            dataset = "seas5"
+            dataset = 'seas5'
             month_str = str(month).zfill(2)
             regional_processing_modules.create_climatology(dataset, domain_config, variable_config, dir_dict, syr, eyr, month_str)
 
         # Climatology for ERA5
-        dataset = "ref"
-        month_str = ""
+        dataset = 'ref'
+        month_str = ''
         regional_processing_modules.create_climatology(dataset, domain_config, variable_config, dir_dict, syr, eyr, month_str)
 
+    # Create quantiles, terciles, extremes, etc. for later evaluation
+    elif args.mode == 'quantiles':
+        for month in range(smnth, emnth +1):
+            month_str = str(month).zfill(2)
+
+            regional_processing_modules.calc_quantile_thresh(domain_config, dir_dict, syr, eyr, month_str)
 
 
         
