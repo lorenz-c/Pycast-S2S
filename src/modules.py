@@ -80,9 +80,11 @@ def set_filenames(year, month, domain_config, variable_config, forecast_linechun
     mnth_str = str(month)
     mnth_str = mnth_str.zfill(2)
     basedir  = f"{domain_config['regroot']}/daily/"
+    basedir_month= f"{domain_config['regroot']}/monthly/"
 
     raw_dict       = {}
     bcsd_dict      = {}
+    bcsd_dict_monthly = {}
     ref_hist_dict  = {}
     mdl_hist_dict  = {}
 
@@ -103,14 +105,17 @@ def set_filenames(year, month, domain_config, variable_config, forecast_linechun
         if domain_config["bcsd_forecasts"]['merged_variables'] == True:
             if forecast_linechunks == True:
                 bcsd_dict[variable] = f"{basedir}linechunks/{domain_config['bcsd_forecasts']['prefix']}_v{domain_config['version']}_daily_{yr_str}{mnth_str}_{domain_config['target_resolution']}_{domain_config['prefix']}_lns.nc"
+                bcsd_dict_monthly[variable] = f"{basedir_month}/{domain_config['bcsd_forecasts']['prefix']}/{domain_config['bcsd_forecasts']['prefix']}_v{domain_config['version']}_monthly_{yr_str}{mnth_str}_{domain_config['target_resolution']}_{domain_config['prefix']}_lns.nc"
             else:
                 bcsd_dict[variable] = f"{basedir}output_target_res/{domain_config['bcsd_forecasts']['prefix']}_v{domain_config['version']}_daily_{yr_str}{mnth_str}_{domain_config['target_resolution']}_{domain_config['prefix']}.nc"
-                
+                bcsd_dict_monthly[variable] = f"{basedir_month}/{domain_config['bcsd_forecasts']['prefix']}/{domain_config['bcsd_forecasts']['prefix']}_v{domain_config['version']}_monthly_{yr_str}{mnth_str}_{domain_config['target_resolution']}_{domain_config['prefix']}.nc"
         else:
             if forecast_linechunks == True:
                 bcsd_dict[variable] = f"{basedir}linechunks/{domain_config['bcsd_forecasts']['prefix']}_v{domain_config['version']}_daily_{variable}_{yr_str}{mnth_str}_{domain_config['target_resolution']}_{domain_config['prefix']}_lns.nc"
+                bcsd_dict_monthly[variable] = f"{basedir_month}/{domain_config['bcsd_forecasts']['prefix']}/{domain_config['bcsd_forecasts']['prefix']}_v{domain_config['version']}_monthly_{variable}_{yr_str}{mnth_str}_{domain_config['target_resolution']}_{domain_config['prefix']}_lns.nc"
             else:
                 bcsd_dict[variable] = f"{basedir}output_target_res/{domain_config['bcsd_forecasts']['prefix']}_v{domain_config['version']}_daily_{variable}_{yr_str}{mnth_str}_{domain_config['target_resolution']}_{domain_config['prefix']}.nc"
+                bcsd_dict_monthly[variable] = f"{basedir_month}/{domain_config['bcsd_forecasts']['prefix']}/{domain_config['bcsd_forecasts']['prefix']}_v{domain_config['version']}_monthly_{variable}_{yr_str}{mnth_str}_{domain_config['target_resolution']}_{domain_config['prefix']}.nc"
 
         if domain_config['reference_history']['merged_variables'] == True:
             ref_hist_dict[variable]  = f"{basedir}linechunks/{domain_config['reference_history']['prefix']}_daily_{domain_config['syr_calib']}_{domain_config['eyr_calib']}_{domain_config['target_resolution']}_{domain_config['prefix']}_lns.nc"
@@ -123,7 +128,7 @@ def set_filenames(year, month, domain_config, variable_config, forecast_linechun
         else:
             mdl_hist_dict[variable]  = f"{basedir}linechunks/{domain_config['model_history']['prefix']}_daily_{variable}_{domain_config['syr_calib']}_{domain_config['eyr_calib']}__{mnth_str}{domain_config['target_resolution']}_{domain_config['prefix']}_lns.nc"
 
-    return raw_dict, bcsd_dict, ref_hist_dict, mdl_hist_dict
+    return raw_dict, bcsd_dict, ref_hist_dict, mdl_hist_dict, bcsd_dict_monthly
 
 # def set_filenames(month = None, year = None, domain = None, regroot = None, version = None, *args, **kwargs):
 
