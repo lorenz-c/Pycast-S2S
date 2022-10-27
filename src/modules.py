@@ -197,7 +197,7 @@ def set_encoding(variable_config, coordinates, type='maps'):
         if type == 'eval':
             # load variable_eval_config
             # Read the variable configuration from the respective JSON
-            with open('variable_eval_config.json', 'r') as j:
+            with open('conf/variable_eval_config.json', 'r') as j:
                 variable_eval_config = json.loads(j.read())
 
             for variable_eval in variable_eval_config:
@@ -240,7 +240,7 @@ def create_3d_netcdf(eval_dict, global_config, var, variable_config, coordinates
 
     # load variable_eval_config
     # Read the variable configuration from the respective JSON
-    with open('variable_eval_config.json', 'r') as j:
+    with open('conf/variable_eval_config.json', 'r') as j:
         variable_eval_config = json.loads(j.read())
 
     # This dataarray has all variables, that are included in variable_config
