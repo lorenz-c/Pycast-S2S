@@ -56,7 +56,8 @@ def set_and_make_dirs(domain_config):
         "ref_clim":         f"{domain_config['regroot']}/climatology/{domain_config['reference_history']['prefix']}",
         "monthly_dir":      f"{domain_config['regroot']}monthly/",
         "monthly_bcsd":     f"{domain_config['regroot']}monthly/{domain_config['bcsd_forecasts']['prefix']}",
-        "monthly_quantile": f"{domain_config['regroot']}monthly/{domain_config['bcsd_forecasts']['prefix']}_thresholds"
+        "monthly_quantile": f"{domain_config['regroot']}monthly/{domain_config['bcsd_forecasts']['prefix']}_thresholds",
+        "monthly_eval":     f"{domain_config['regroot']}monthly/{domain_config['bcsd_forecasts']['prefix']}_eval"
     }
 
 
@@ -102,6 +103,8 @@ def set_and_make_dirs(domain_config):
         os.makedirs(dir_dict["monthly_bcsd"])
     if not os.path.isdir(dir_dict["monthly_quantile"]):
         os.makedirs(dir_dict["monthly_quantile"])
+    if not os.path.isdir(dir_dict["monthly_eval"]):
+        os.makedirs(dir_dict["monthly_eval"])
 
 
     return dir_dict
