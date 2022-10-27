@@ -235,6 +235,7 @@ if __name__ == '__main__':
                 ds_out_sel.to_netcdf(bcsd_dict[variable], mode='a', format='NETCDF4_CLASSIC', engine='netcdf4', encoding = {variable: encoding[variable]})
 
             # calculate monthly files
+            # Missing: Different code, depeding if the variables are stored as single or in one netcdf-File
             flenme_daily = bcsd_dict[variable]
             flenme_monthly = bcsd_dict_monthly[variable]
 
