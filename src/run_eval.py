@@ -111,6 +111,12 @@ if __name__ == '__main__':
 
 
     for year in range(syr, eyr + 1):
+        if year > 2017:
+            ens = 51
+        else:
+            ens = 25
+
+
         for month in range(smnth, emnth + 1):
             month_str = str(month).zfill(2)
             # Set filename of historical quantile-Files (extreme, quintile, tercile)
