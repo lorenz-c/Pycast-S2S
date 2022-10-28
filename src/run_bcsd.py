@@ -78,6 +78,8 @@ if __name__ == '__main__':
     # Get only the variables that are needed for the current domain
     variable_config = { key:value for key,value in variable_config.items() if key in domain_config['variables']}
 
+    # Insert IF-Statement in order to run the bcsd for the historical files
+
     # Set all filenames, etc.
     if args.domain == 'germany':
         raw_dict, bcsd_dict, ref_hist_dict, mdl_hist_dict = helper_modules.set_filenames(args.year, args.month, domain_config, variable_config, False)
@@ -165,11 +167,16 @@ if __name__ == '__main__':
             intersection_day_mdl = np.in1d(dayofyear_mdl, day_range)
             
             da_obs_sub = da_obs.loc[dict(time=intersection_day_obs)]
+
             with dask.config.set(**{'array.slicing.split_large_chunks': False}): # --> I really don't know why we need to silence the warning here...
                 da_mdl_sub = da_mdl.loc[dict(time=intersection_day_mdl)]
                 
             da_mdl_sub = da_mdl_sub.stack(ens_time=("ens", "time"), create_index=True)
             da_mdl_sub = da_mdl_sub.drop('time')
+
+            # If the actual year of prediction (e.g. 1981) is within the calibration period (1981 to 2016): cut this year out in both, the historical obs and mdl data
+            da_obs_sub = da_obs_sub.sel(time=~da_obs_sub.time.dt.year.isin(args.year))
+            da_mdl_sub = da_mdl_sub.sel(time=~da_mdl_sub.time.dt.year.isin(args.year))
 
             da_pred_sub = da_pred.isel(time=timestep)
 
