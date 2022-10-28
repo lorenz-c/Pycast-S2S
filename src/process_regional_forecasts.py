@@ -84,7 +84,7 @@ if __name__ == "__main__":
         syr = domain_config["syr_calib"]
         eyr = domain_config["eyr_calib"]
         smnth = 1
-        emnth = 13
+        emnth = 12
         
 
         

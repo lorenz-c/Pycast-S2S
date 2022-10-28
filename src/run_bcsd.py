@@ -9,7 +9,7 @@ import argparse
 
 import logging
 
-import modules
+import helper_modules
 
 
 
@@ -38,7 +38,7 @@ if __name__ == '__main__':
         client=Client(scheduler_file=args.scheduler_file)
     elif args.node is not None:
         if args.processes is not None:
-            client, cluster = modules.getCluster(args.node, 1,  args.processes)
+            client, cluster = helper_modules.getCluster(args.node, 1,  args.processes)
         else:
             logging.error('Run BCSD: If node is provided, you must also set number of processes')
     else:
@@ -80,9 +80,9 @@ if __name__ == '__main__':
 
     # Set all filenames, etc.
     if args.domain == 'germany':
-        raw_dict, bcsd_dict, ref_hist_dict, mdl_hist_dict = modules.set_filenames(args.year, args.month, domain_config, variable_config, False)
+        raw_dict, bcsd_dict, ref_hist_dict, mdl_hist_dict = helper_modules.set_filenames(args.year, args.month, domain_config, variable_config, False)
     else:
-        raw_dict, bcsd_dict, ref_hist_dict, mdl_hist_dict = modules.set_filenames(args.year, args.month, domain_config, variable_config, True)
+        raw_dict, bcsd_dict, ref_hist_dict, mdl_hist_dict = helper_modules.set_filenames(args.year, args.month, domain_config, variable_config, True)
         
 
 
@@ -95,14 +95,14 @@ if __name__ == '__main__':
 
 
     # Read the dimensions for the output file (current prediction)
-    coords = modules.get_coords_from_files(list(raw_dict.values())[0])
+    coords = helper_modules.get_coords_from_files(list(raw_dict.values())[0])
     
-    attribute_config = modules.update_global_attributes(attribute_config, domain_config['bc_params'], coords, args.domain)
+    attribute_config = helper_modules.update_global_attributes(attribute_config, domain_config['bc_params'], coords, args.domain)
 
-    encoding = modules.set_encoding(variable_config, coords)
+    encoding = helper_modules.set_encoding(variable_config, coords)
     
     # Create an empty NetCDF in which we write the BCSD output
-    ds = modules.create_4d_netcdf(bcsd_dict, attribute_config, domain_config, variable_config, coords)
+    ds = helper_modules.create_4d_netcdf(bcsd_dict, attribute_config, domain_config, variable_config, coords)
     
     # Loop over each variable
     for variable in variable_config:
@@ -118,7 +118,7 @@ if __name__ == '__main__':
         # Preprocess historical mdl-data, create a new time coord, which contain year and day at once and not separate
         print(f"Opening {mdl_hist_dict[variable]}")
         if args.forecast_structure == '5D':
-            ds_mdl = modules.preprocess_mdl_hist(mdl_hist_dict[variable], args.month, variable) # chunks={'time': 215, 'year': 36, 'ens': 25, 'lat': 1, 'lon': 1})
+            ds_mdl = helper_modules.preprocess_mdl_hist(mdl_hist_dict[variable], args.month, variable) # chunks={'time': 215, 'year': 36, 'ens': 25, 'lat': 1, 'lon': 1})
             da_mdl = ds_mdl.persist()
         elif args.forecast_structure == '4D':
             ds_mdl = xr.open_mfdataset(mdl_hist_dict[variable])
@@ -202,7 +202,7 @@ if __name__ == '__main__':
 
     client.close()
     
-    if args.scheduler_file is not None:
+    if cluster is not None:
         cluster.close()
 
 
