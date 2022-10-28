@@ -9,7 +9,7 @@ import argparse
 
 import logging
 
-import modules
+import helper_modules
 
 from cdo import *
 cdo = Cdo()
@@ -23,6 +23,7 @@ def get_clas():
     # parser.add_argument("-y", "--year", action="store", type=int, help="Year of the actual forecast", required=True)
     # parser.add_argument("-m", "--month", action="store", type=int, help="Month of the actual forecast", required=True)
     parser.add_argument("-p", "--period", action="store", type=str, help="Period for which the BCSD should be executed", required=False)
+    parser.add_argument("-c", "--crossval", action="store", type=str, help="If TRUE, do not use actual forecast for computing forecast climatology ", required=False)
     parser.add_argument("-s", "--forecast_structure", action="store", type=str, help="Structure of the line-chunked forecasts (can be 5D or 4D)", required=True)
     parser.add_argument("-f", "--scheduler_file", action="store", type=str, help="If a scheduler-file is provided, the function does not start its own cluster but rather uses a running environment", required=False)
     parser.add_argument("-n", "--node", action="store", type=str, help="Node for running the code", required=False)
@@ -41,7 +42,7 @@ if __name__ == '__main__':
         client=Client(scheduler_file=args.scheduler_file)
     elif args.node is not None:
         if args.processes is not None:
-            client, cluster = modules.getCluster(args.node, 1,  args.processes)
+            client, cluster = helper_modules.getCluster(args.node, 1,  args.processes)
         else:
             logging.error('Run BCSD: If node is provided, you must also set number of processes')
     else:
@@ -80,7 +81,7 @@ if __name__ == '__main__':
 
     # Get only the variables that are needed for the current domain
     variable_config = { key:value for key,value in variable_config.items() if key in domain_config['variables']}
-
+    
     if args.period is not None:
         # Period can be in the format "year, year" or "year, month"
         period_list = [int(item) for item in args.period.split(',')]
@@ -105,66 +106,70 @@ if __name__ == '__main__':
         emnth = 13
 
 
+    # Insert IF-Statement in order to run the bcsd for the historical files
+
     for year in range(syr, eyr + 1):
-        # insert empty list for job collection with das???
+        
         for month in range(smnth, emnth + 1):
+            
             # Set all filenames, etc.
             if args.domain == 'germany':
-                raw_dict, bcsd_dict, ref_hist_dict, mdl_hist_dict, bcsd_dict_monthly = modules.set_filenames(year, month, domain_config, variable_config, False)
+                raw_dict, bcsd_dict, ref_hist_dict, mdl_hist_dict = helper_modules.set_filenames(args.year, args.month, domain_config, variable_config, False)
             else:
-                raw_dict, bcsd_dict, ref_hist_dict, mdl_hist_dict, bcsd_dict_monthly = modules.set_filenames(year, month, domain_config, variable_config, True)
-
-
-
+                raw_dict, bcsd_dict, ref_hist_dict, mdl_hist_dict = helper_modules.set_filenames(args.year, args.month, domain_config, variable_config, True)
+                
             # IMPLEMENT A CHECK IF ALL INPUT FILES ARE AVAILABL!!!!!!
             #
             #
             #
             #
 
-
-
             # Read the dimensions for the output file (current prediction)
-            coords = modules.get_coords_from_files(list(raw_dict.values())[0])
+            coords = helper_modules.get_coords_from_files(list(raw_dict.values())[0])
+    
+            attribute_config = helper_modules.update_global_attributes(attribute_config, domain_config['bc_params'], coords, args.domain)
 
-            attribute_config = modules.update_global_attributes(attribute_config, domain_config['bc_params'], coords, args.domain)
-
-            encoding = modules.set_encoding(variable_config, coords)
-
+            encoding = helper_modules.set_encoding(variable_config, coords)
+    
             # Create an empty NetCDF in which we write the BCSD output
-            ds = modules.create_4d_netcdf(bcsd_dict, attribute_config, domain_config, variable_config, coords)
-
+            ds = helper_modules.create_4d_netcdf(bcsd_dict, attribute_config, domain_config, variable_config, coords)
+    
             # Loop over each variable
             for variable in variable_config:
-
+     
                 ###### Old IO-Module #####
                 # load data as dask objects
                 print(f"Opening {ref_hist_dict[variable]}")
                 ds_obs = xr.open_dataset(ref_hist_dict[variable])
                 ds_obs = xr.open_mfdataset(ref_hist_dict[variable], chunks={'time': len(ds_obs.time), 'lat': 50, 'lon': 50}, parallel=True, engine='netcdf4')
                 da_obs = ds_obs[variable].persist()
-
+        
                 # Mdl (historical, 1981 - 2016 for one month and 215 days)  215, 36, 25, 1, 1 ;
                 # Preprocess historical mdl-data, create a new time coord, which contain year and day at once and not separate
                 print(f"Opening {mdl_hist_dict[variable]}")
                 if args.forecast_structure == '5D':
-                    ds_mdl = modules.preprocess_mdl_hist(mdl_hist_dict[variable], month, variable) # chunks={'time': 215, 'year': 36, 'ens': 25, 'lat': 1, 'lon': 1})
+                    ds_mdl = helper_modules.preprocess_mdl_hist(mdl_hist_dict[variable], args.month, variable) # chunks={'time': 215, 'year': 36, 'ens': 25, 'lat': 1, 'lon': 1})
                     da_mdl = ds_mdl.persist()
                 elif args.forecast_structure == '4D':
                     ds_mdl = xr.open_mfdataset(mdl_hist_dict[variable])
                     ds_mdl = xr.open_mfdataset(mdl_hist_dict[variable], chunks={'time': len(ds_mdl.time), 'ens': len(ds_mdl.ens), 'lat': 5, 'lon': 5}, parallel=True, engine='netcdf4')
                     da_mdl = ds_mdl[variable].persist()
-
-
-
+            
+            
+            
                 # IMPLEMENT ELSE-Statement for logging
-
-
+       
+        
                 # Pred (current year for one month and 215 days)
                 ds_pred = xr.open_dataset(raw_dict[variable])
                 ds_pred = xr.open_mfdataset(raw_dict[variable], chunks={'time': len(ds_pred.time), 'ens': len(ds_pred.ens), 'lat': 50, 'lon': 50}, parallel=True, engine='netcdf4')
                 da_pred = ds_pred[variable].persist()
-
+                
+                # IF ABFAGE OB AKTUELLE VORHERSAGE AUS HISTORIE ENTFERNT WERDEN SOLL
+                if args.crossval == True:
+                    da_mdl = da_mdl.sel(time~=da_pred.time)
+                    da_obs = da_obs.sel(time~=da_pred.time)
+        
                 # Change data type of latidude and longitude, otherwise apply_u_func does not work
                 #da_pred = da_pred.assign_coords(lon=ds_pred.lon.values.astype(np.float32), lat=ds_pred.lat.values.astype(np.float32))
 
@@ -172,10 +177,10 @@ if __name__ == '__main__':
                 dayofyear_obs = ds_obs['time.dayofyear']
                 dayofyear_mdl = ds_mdl['time.dayofyear']
 
-
+    
                 da_temp = xr.DataArray(
-                    None,
-                    dims = ['time', 'lat', 'lon', 'ens'],
+                    None, 
+                    dims = ['time', 'lat', 'lon', 'ens'], 
                     coords = {
                         'time': ('time', coords['time'], {'standard_name': 'time', 'long_name': 'time'}),
                         'ens': ('ens', coords['ens'], {'standard_name': 'realization', 'long_name': 'ensemble_member'}),
@@ -183,68 +188,58 @@ if __name__ == '__main__':
                         'lon': ('lon', coords['lon'], {'standard_name': 'longitude', 'long_name': 'longitude', 'units': 'degrees_east'})
                     }
                 ).persist()
-
+            
                 for timestep in range(0, len(ds_pred.time)):
-
+            
                     print(f'Correcting timestep {timestep}...')
 
                     day = dayofyear_mdl[timestep]
-
+    
                     day_range = (np.arange(day - domain_config['bc_params']['window'], day + domain_config['bc_params']['window'] + 1) + 365) % 365 + 1
                     intersection_day_obs = np.in1d(dayofyear_obs, day_range)
                     intersection_day_mdl = np.in1d(dayofyear_mdl, day_range)
-
+            
                     da_obs_sub = da_obs.loc[dict(time=intersection_day_obs)]
+
                     with dask.config.set(**{'array.slicing.split_large_chunks': False}): # --> I really don't know why we need to silence the warning here...
                         da_mdl_sub = da_mdl.loc[dict(time=intersection_day_mdl)]
-
+                
                     da_mdl_sub = da_mdl_sub.stack(ens_time=("ens", "time"), create_index=True)
                     da_mdl_sub = da_mdl_sub.drop('time')
 
-                    # Cut the actual year out of the calibration period (e.g. year of prediction = 1981 and calibration period 1981 to 2016)
-                    da_obs_sub = da_obs_sub.sel(time=~da_obs_sub.time.dt.year.isin(year))
-                    da_mdl_sub = da_mdl_sub.sel(time=~da_mdl_sub.time.dt.year.isin(year))
+                    # If the actual year of prediction (e.g. 1981) is within the calibration period (1981 to 2016): cut this year out in both, the historical obs and mdl data
+                    da_obs_sub = da_obs_sub.sel(time=~da_obs_sub.time.dt.year.isin(args.year))
+                    da_mdl_sub = da_mdl_sub.sel(time=~da_mdl_sub.time.dt.year.isin(args.year))
 
                     da_pred_sub = da_pred.isel(time=timestep)
 
                     da_temp[timestep, :, :] = xr.apply_ufunc(
-                        bc_module,
-                        da_pred_sub,
-                        da_obs_sub,
-                        da_mdl_sub,
+                        bc_module, 
+                        da_pred_sub, 
+                        da_obs_sub, 
+                        da_mdl_sub, 
                         kwargs={'bc_params': domain_config['bc_params'], 'precip': variable_config[variable]['isprecip']},
-                        input_core_dims=[["ens"], ["time"], ['ens_time']],
-                        output_core_dims=[["ens"]],
-                        vectorize=True,
-                        dask="parallelized",
-                        output_dtypes=[np.float64])
-
-                    #da_temp.loc[dict(time=ds_pred.time.values[timestep])] = pred_corr_act
-                    #da_temp[timestep, :, :] = pred_corr_act
-
+                        input_core_dims=[["ens"], ["time"], ['ens_time']], 
+                        output_core_dims=[["ens"]], 
+                        vectorize=True, 
+                        dask="parallelized", 
+                        output_dtypes=[np.float64]) 
+    
                 # Change the datatype from "object" to "float64" --> Can we somehow get around this???
                 da_temp = da_temp.astype('float64')
-
+        
                 # Select only the actual variable from the output dataset
                 ds_out_sel = ds[[variable]]
-
+        
                 # Fill this variable with some data...
                 ds_out_sel[variable].values = da_temp.transpose('time', 'ens', 'lat', 'lon').values
-
+        
                 # ...and save everything to disk..
                 ds_out_sel.to_netcdf(bcsd_dict[variable], mode='a', format='NETCDF4_CLASSIC', engine='netcdf4', encoding = {variable: encoding[variable]})
 
-            # calculate monthly files
-            # Missing: Different code, depeding if the variables are stored as single or in one netcdf-File
-            flenme_daily = bcsd_dict[variable]
-            flenme_monthly = bcsd_dict_monthly[variable]
-
-            cdo.monmean(input=flenme_daily, output=flenme_monthly, options='-f nc4c -k grid -z zip_6')
-
-
     client.close()
-
-    if args.scheduler_file is not None:
+    
+    if cluster is not None:
         cluster.close()
 
 
