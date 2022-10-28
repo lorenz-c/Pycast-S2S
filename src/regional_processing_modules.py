@@ -43,17 +43,21 @@ def set_and_make_dirs(domain_config):
 
     # List of Directories
     dir_dict = {
-        "seas5_raw_dir":  "/pd/data/regclim_data/gridded_data/seasonal_predictions/seas5/daily",
-        "ref_dir":        "/pd/data/regclim_data/gridded_data/reanalyses/era5_land/daily",
-        "raw_reg_dir":    f"{domain_config['regroot']}/daily/{domain_config['raw_forecasts']['prefix']}",
-        "ref_reg_dir":    f"{domain_config['regroot']}/daily/{domain_config['reference_history']['prefix']}",
-        "grd_dir":        f"{domain_config['regroot']}/static",
-        "hr_reg_dir":     f"{domain_config['regroot']}/daily/{domain_config['raw_forecasts']['prefix']}_h",
-        "lnch_dir":       f"{domain_config['regroot']}/daily/linechunks",
-        "climatology":    f"{domain_config['regroot']}/climatology",
+        "seas5_raw_dir":    "/pd/data/regclim_data/gridded_data/seasonal_predictions/seas5/daily",
+        "ref_dir":          "/pd/data/regclim_data/gridded_data/reanalyses/era5_land/daily",
+        "raw_reg_dir":      f"{domain_config['regroot']}/daily/{domain_config['raw_forecasts']['prefix']}",
+        "ref_reg_dir":      f"{domain_config['regroot']}/daily/{domain_config['reference_history']['prefix']}",
+        "grd_dir":          f"{domain_config['regroot']}/static",
+        "hr_reg_dir":       f"{domain_config['regroot']}/daily/{domain_config['raw_forecasts']['prefix']}_h",
+        "lnch_dir":         f"{domain_config['regroot']}/daily/linechunks",
+        "climatology":      f"{domain_config['regroot']}/climatology",
         # CAUTION!!! : Prefix and name of directories of existing domains differ (e.g. era5_land (dir) and ERA5_Land (prefix and filenames)!!!!
-        "raw_clim":     f"{domain_config['regroot']}/climatology/{domain_config['raw_forecasts']['prefix']}",
-        "ref_clim":       f"{domain_config['regroot']}/climatology/{domain_config['reference_history']['prefix']}"
+        "raw_clim":         f"{domain_config['regroot']}/climatology/{domain_config['raw_forecasts']['prefix']}",
+        "ref_clim":         f"{domain_config['regroot']}/climatology/{domain_config['reference_history']['prefix']}",
+        "monthly_dir":      f"{domain_config['regroot']}monthly/",
+        "monthly_bcsd":     f"{domain_config['regroot']}monthly/{domain_config['bcsd_forecasts']['prefix']}",
+        "monthly_quantile": f"{domain_config['regroot']}monthly/{domain_config['bcsd_forecasts']['prefix']}_thresholds",
+        "monthly_eval":     f"{domain_config['regroot']}monthly/{domain_config['bcsd_forecasts']['prefix']}_eval"
     }
 
 
@@ -93,6 +97,15 @@ def set_and_make_dirs(domain_config):
         os.makedirs(dir_dict["raw_clim"])
     if not os.path.isdir(dir_dict["ref_clim"]):
         os.makedirs(dir_dict["ref_clim"])
+    if not os.path.isdir(dir_dict["monthly_dir"]):
+        os.makedirs(dir_dict["monthly_dir"])
+    if not os.path.isdir(dir_dict["monthly_bcsd"]):
+        os.makedirs(dir_dict["monthly_bcsd"])
+    if not os.path.isdir(dir_dict["monthly_quantile"]):
+        os.makedirs(dir_dict["monthly_quantile"])
+    if not os.path.isdir(dir_dict["monthly_eval"]):
+        os.makedirs(dir_dict["monthly_eval"])
+
 
     return dir_dict
 
@@ -311,7 +324,7 @@ def remap_forecasts(domain_config, dir_dict, year, month, grd_fle):
     #    logging.error(f"Remap_forecast: Something went wrong during remapping for month {month} and year {year}")      
         
 
-def create_climatology(domain_config, variable_config, dir_dict, syr_calib, eyr_calib):
+def create_climatology(dataset, domain_config, variable_config, dir_dict, syr_calib, eyr_calib, month_str):
     # Open Points:
     # --> Prefix and Directories does not match (era5_land / ERA5_Land) --> Issue
     # --> Alles einheitlich bennen für die Funktionen --> Issue
@@ -321,15 +334,12 @@ def create_climatology(domain_config, variable_config, dir_dict, syr_calib, eyr_
     # --> Choose baseline period with start and end year (up to now, all files in the folder are selected and opened)
     # set up encoding for netcdf-file later
 
-
-
-    #### SEAS5
-    # loop over month
-    for month in range(1,13):
+    # SEAS5
+    if dataset == "seas5":
         # Select period of time
         fle_list = []
         for year in range(syr_calib, eyr_calib + 1):
-            fle_list.append(f"{dir_dict['raw_reg_dir']}/{domain_config['raw_forecasts']['prefix']}_daily_{year}{str(month).zfill(2)}_O320_{domain_config['prefix']}.nc")
+            fle_list.append(f"{dir_dict['raw_reg_dir']}/{domain_config['raw_forecasts']['prefix']}_daily_{year}{month_str}_O320_{domain_config['prefix']}.nc")
 
         # load nc-Files for each month over all years
         ds = xr.open_mfdataset(fle_list, parallel = True, engine='netcdf4')
@@ -342,34 +352,67 @@ def create_climatology(domain_config, variable_config, dir_dict, syr_calib, eyr_
 
         # Save NC-File
         try:
-            ds_clim.to_netcdf(f"{dir_dict['seas5_clim']}/{domain_config['raw_forecasts']['prefix']}_climatology_{syr_calib}_{eyr_calib}_{str(month).zfill(2)}_0320_{domain_config['prefix']}.nc", encoding = encoding)
+            ds_clim.to_netcdf(f"{dir_dict['seas5_clim']}/{domain_config['raw_forecasts']['prefix']}_climatology_{syr_calib}_{eyr_calib}_{month_str}_0320_{domain_config['prefix']}.nc", encoding = encoding)
         except:
-            logging.error(f"Calculate climatology of SEAS5: Climatology for month {str(month).zfill(2)} failed!")
-
+            logging.error(f"Calculate climatology of SEAS5: Climatology for month {month_str} failed!")
 
     #### Ref - ERA5
-    # loop over variables
-    for variable in domain_config['variables']:
-        # Select period of time
-        fle_list = []
-        for year in range(syr_calib, eyr_calib + 1):
-            fle_list.append(f"{dir_dict['ref_reg_dir']}/{domain_config['reference_history']['prefix']}_daily_{variable}_{year}_{domain_config['prefix']}.nc")
+    else:
+        # loop over variables
+        for variable in domain_config['variables']:
+            # Select period of time
+            fle_list = []
+            for year in range(syr_calib, eyr_calib + 1):
+                fle_list.append(f"{dir_dict['ref_reg_dir']}/{domain_config['reference_history']['prefix']}_daily_{variable}_{year}_{domain_config['prefix']}.nc")
 
-        # Open dataset
-        ds = xr.open_mfdataset(fle_list, parallel = True, engine='netcdf4')
-        # Calculate climatogloy (mean)
-        ds_clim  = ds.groupby('time.month').mean('time')
-        ds_clim = ds_clim.rename({'month': 'time'})
-        # set encoding
-        coords = {'time': ds_clim['time'].values, 'lat': ds_clim['lat'].values.astype(np.float32), 'lon': ds_clim['lon'].values.astype(np.float32)}
-        encoding = set_encoding(variable_config, coords, 'lines')
-        # Save NC-File
-        try:
-            ds_clim.to_netcdf(f"{dir_dict['ref_clim']}/{domain_config['reference_history']['prefix']}_climatology_{variable}_{syr_calib}_{eyr_calib}_{domain_config['prefix']}.nc", encoding = {variable: encoding[variable]})
-        except:
-            logging.error(f"Calculate climatology of Ref: Climatology for variable {variable} failed!")
+            # Open dataset
+            ds = xr.open_mfdataset(fle_list, parallel = True, engine='netcdf4')
+            # Calculate climatogloy (mean)
+            ds_clim  = ds.groupby('time.month').mean('time')
+            ds_clim = ds_clim.rename({'month': 'time'})
+            # set encoding
+            coords = {'time': ds_clim['time'].values, 'lat': ds_clim['lat'].values.astype(np.float32), 'lon': ds_clim['lon'].values.astype(np.float32)}
+            encoding = set_encoding(variable_config, coords, 'lines')
+            # Save NC-File
+            try:
+                ds_clim.to_netcdf(f"{dir_dict['ref_clim']}/{domain_config['reference_history']['prefix']}_climatology_{variable}_{syr_calib}_{eyr_calib}_{domain_config['prefix']}.nc", encoding = {variable: encoding[variable]})
+            except:
+                logging.error(f"Calculate climatology of Ref: Climatology for variable {variable} failed!")
 
+def calc_quantile_thresh(domain_config, dir_dict, syr_calib, eyr_calib, month_str):
+    # Create empty file list
+    file_lst = []
+    # Load all years of specific months in one file
+    for year in range(syr_calib, eyr_calib+1):
+        ##### Monthly Filename = .../domain/monthly/SEAS5_BCSD/SEAS5_BCSD_V3.0_monthly_198101_0.1_Chira.nc"
+        file_lst.append(f"{dir_dict['monthly_bcsd']}/{domain_config['bcsd_forecasts']['prefix']}_{domain_config['version']}_monthly_{year}{month_str}_{domain_config['target_resolution']}_{domain_config['prefix']}.nc")
 
+    # Load file list at once
+    ds = xr.open_mfdataset(file_lst, parallel=True, engine='netcdf4')
+    # This step depends on how the files will look like and if they have the variable "time_bnds"
+    ds = ds.drop_vars("time_bnds")
 
+    # Necessary otherwise error
+    ds = ds.chunk(dict(time=-1))
 
+    # Calculate quantile, tercile and extremes
+    ds_quintiles = ds.groupby('time.month').quantile(q=[0.2, 0.4, 0.6, 0.8], dim=['time', 'ens'])
+    ds_tercile = ds.groupby('time.month').quantile(q=[0.33, 0.66], dim=['time', 'ens'])
+    ds_extreme = ds.groupby('time.month').quantile(q=[0.1, 0.9], dim=['time', 'ens'])
 
+    # Save NC-File
+    ### ENCODING?!
+    try:
+        ds_quintiles.to_netcdf(f"{dir_dict['monthly_quantile']}/{domain_config['bcsd_forecasts']['prefix']}_{domain_config['version']}_monthly_quintiles_{syr_calib}_{eyr_calib}_{month_str}_{domain_config['target_resolution']}_{domain_config['prefix']}.nc")
+    except:
+        logging.error(f"Error: Create NC-File for quantiles")
+
+    try:
+        ds_tercile.to_netcdf(f"{dir_dict['monthly_quantile']}/{domain_config['bcsd_forecasts']['prefix']}_{domain_config['version']}_monthly_tercile_{syr_calib}_{eyr_calib}_{month_str}_{domain_config['target_resolution']}_{domain_config['prefix']}.nc")
+    except:
+        logging.error(f"Error: Create NC-File for tercile")
+
+    try:
+        ds_extreme.to_netcdf(f"{dir_dict['monthly_quantile']}/{domain_config['bcsd_forecasts']['prefix']}_{domain_config['version']}_monthly_extreme_{syr_calib}_{eyr_calib}_{month_str}_{domain_config['target_resolution']}_{domain_config['prefix']}.nc")
+    except:
+        logging.error(f"Error: Create NC-File for extreme")

@@ -11,10 +11,12 @@ import logging
 
 import helper_modules
 
+from cdo import *
+cdo = Cdo()
 
 
 def get_clas():
-    
+    # insert period, for which the bcsd-should be running! similar to process_regional_forecast
     parser = argparse.ArgumentParser(description="Python-based BCSD", formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
     parser.add_argument("-d", "--domain", action="store", type=str, help="Domain", required=True)

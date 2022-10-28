@@ -1,0 +1,73 @@
+{
+    "ensemble_mean": {
+        "long_name": "Ensemble mean",
+        "standard_name": "",
+        "units": "var"
+    },
+    "ensemble_median": {
+        "long_name": "Ensemble median",
+        "standard_name": "",
+        "units": "var"
+    },
+    "ensemble_spread": {
+        "long_name": "Ensemble spread",
+        "standard_name": "",
+        "units": "var"
+    },
+    "ensemble_std": {
+        "long_name": "Ensemble standard deviation",
+        "standard_name": "",
+        "units": "var"
+    },
+    "ensemble_iqr": {
+        "long_name": "Ensemble inter quartile range",
+        "standard_name": "",
+        "units": "var"
+    },
+    "ensemble_anomaly": {
+        "long_name": "Ensemble anomaly from the climatology",
+        "standard_name": "",
+        "units": "var"
+    },
+    "ensemble_mean_relative": {
+        "long_name": "Relative ensemble anomaly",
+        "standard_name": "",
+        "units": "-"
+    },
+    "tercile_probab": {
+        "long_name": "Tercile category and probability with most ensemble members",
+        "standard_name": "",
+        "units": "-"
+    },
+    "quintile_probab": {
+        "long_name": "Quintile category and probability with most ensemble members",
+        "standard_name": "",
+        "units": "-"
+    },
+    "extreme_probab": {
+        "long_name": "Extreme category and probability with most ensemble members",
+        "standard_name": "",
+        "units": "-"
+    },
+    "above_normal_probab": {
+        "long_name": "Probability of above normal conditions",
+        "standard_name": "",
+        "units": "%"
+    },
+    "below_normal_probab": {
+        "long_name": "Probability of below normal conditions",
+        "standard_name": "",
+        "units": "%"
+    },
+    "extreme_high_probab": {
+        "long_name": "Probability of extreme high conditions",
+        "standard_name": "",
+        "units": "%"
+    },
+    "extreme_low_probab": {
+        "long_name": "Probability of extreme low conditions",
+        "standard_name": "",
+        "units": "%"
+    }
+}
+
