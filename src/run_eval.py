@@ -111,11 +111,10 @@ if __name__ == '__main__':
 
 
     for year in range(syr, eyr + 1):
-        if year > 2017:
-            ens = 51
-        else:
+        if year < 2017:
             ens = 25
-
+        else:
+            ens = 51
 
         for month in range(smnth, emnth + 1):
             month_str = str(month).zfill(2)
