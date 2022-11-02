@@ -167,8 +167,8 @@ if __name__ == '__main__':
                 
                 # IF ABFAGE OB AKTUELLE VORHERSAGE AUS HISTORIE ENTFERNT WERDEN SOLL
                 if args.crossval == True:
-                    da_mdl = da_mdl.sel(time~=da_pred.time)
-                    da_obs = da_obs.sel(time~=da_pred.time)
+                    da_mdl = da_mdl.sel(time=~da_pred.time)
+                    da_obs = da_obs.sel(time=~da_pred.time)
         
                 # Change data type of latidude and longitude, otherwise apply_u_func does not work
                 #da_pred = da_pred.assign_coords(lon=ds_pred.lon.values.astype(np.float32), lat=ds_pred.lat.values.astype(np.float32))
