@@ -395,7 +395,7 @@ def calc_quantile_thresh(domain_config, dir_dict, syr_calib, eyr_calib, month_st
     # Necessary otherwise error
     ds = ds.chunk(dict(time=-1))
 
-    # Calculate quantile, tercile and extremes
+    # Calculate quantile, tercile and extremes on a monthly basis
     ds_quintiles = ds.groupby('time.month').quantile(q=[0.2, 0.4, 0.6, 0.8], dim=['time', 'ens'])
     ds_tercile = ds.groupby('time.month').quantile(q=[0.33, 0.66], dim=['time', 'ens'])
     ds_extreme = ds.groupby('time.month').quantile(q=[0.1, 0.9], dim=['time', 'ens'])
