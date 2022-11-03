@@ -54,10 +54,10 @@ def set_and_make_dirs(domain_config):
         # CAUTION!!! : Prefix and name of directories of existing domains differ (e.g. era5_land (dir) and ERA5_Land (prefix and filenames)!!!!
         "raw_clim":         f"{domain_config['regroot']}/climatology/{domain_config['raw_forecasts']['prefix']}",
         "ref_clim":         f"{domain_config['regroot']}/climatology/{domain_config['reference_history']['prefix']}",
-        "monthly_dir":      f"{domain_config['regroot']}monthly/",
-        "monthly_bcsd":     f"{domain_config['regroot']}monthly/{domain_config['bcsd_forecasts']['prefix']}",
-        "monthly_quantile": f"{domain_config['regroot']}monthly/{domain_config['bcsd_forecasts']['prefix']}_thresholds",
-        "monthly_eval":     f"{domain_config['regroot']}monthly/{domain_config['bcsd_forecasts']['prefix']}_eval"
+        "monthly_dir":      f"{domain_config['regroot']}/monthly/",
+        "monthly_bcsd":     f"{domain_config['regroot']}/monthly/{domain_config['bcsd_forecasts']['prefix']}",
+        "monthly_quantile": f"{domain_config['regroot']}/monthly/{domain_config['bcsd_forecasts']['prefix']}_thresholds",
+        "monthly_eval":     f"{domain_config['regroot']}/monthly/{domain_config['bcsd_forecasts']['prefix']}_eval"
     }
 
 
