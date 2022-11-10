@@ -3,10 +3,12 @@ from genericpath import exists
 import json
 import dask
 import argparse
-
+import xarray as xr
 import regional_processing_modules
-
-from helper_modules import getCluster
+import dir_fnme
+import helper_modules
+import numpy as np
+# from helper_modules import getCluster
 
 import logging
 
@@ -16,25 +18,32 @@ import sys
 
 
 def get_clas():
-    
-    parser = argparse.ArgumentParser(description="Creation of a new domain for BCSD", formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser = argparse.ArgumentParser(description="Creation of a new domain for BCSD",
+                                     formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
     parser.add_argument("-d", "--domain", action="store", type=str, help="Domain", required=True)
     parser.add_argument("-m", "--mode", action="store", type=str, help="Selected mode for setup", required=True)
-    parser.add_argument("-p", "--period", action="store", type=str, help="Period for which the pre-processing should be executed", required=False)
+    parser.add_argument("-p", "--period", action="store", type=str,
+                        help="Period for which the pre-processing should be executed", required=False)
     parser.add_argument("-n", "--node", action="store", type=str, help="Node for running the code", required=False)
-    parser.add_argument("-f", "--scheduler_file", action="store", type=str, help="If a scheduler-file is provided, the function does not start its own cluster but rather uses a running environment", required=False)
-    
+    parser.add_argument("-f", "--scheduler_file", action="store", type=str,
+                        help="If a scheduler-file is provided, the function does not start its own cluster but rather uses a running environment",
+                        required=False)
+
     return parser.parse_args()
 
+
 def setup_logger(domain_name):
-    logging.basicConfig(filename=f"logs/{domain_name}_setup_domain.log", encoding='utf-8', level=logging.INFO, format='%(asctime)s:%(levelname)s:%(message)s')
+    logging.basicConfig(filename=f"logs/{domain_name}_setup_domain.log", level=logging.INFO,
+                        format='%(asctime)s:%(levelname)s:%(message)s')
+    # encoding='utf-8'
+
 
 if __name__ == "__main__":
-    
+
     # Read the command line arguments
     args = get_clas()
-    
+
     # Create a new logger file (or append to an existing file)
     setup_logger(args.domain)
 
@@ -49,24 +58,26 @@ if __name__ == "__main__":
     # Read the variable configuration from the respective JSON
     with open('conf/variable_config.json', 'r') as j:
         variable_config = json.loads(j.read())
-    
+
     try:
         domain_config = domain_config[args.domain]
     except:
         logging.error(f"Init: no configuration for domain {args.domain}")
         sys.exit()
-        
 
-    variable_config = { key:value for key,value in variable_config.items() if key in domain_config['variables']}
+    variable_config = {key: value for key, value in variable_config.items() if key in domain_config['variables']}
 
-    dir_dict = regional_processing_modules.set_and_make_dirs(domain_config)
+    dir_dict = dir_fnme.set_and_make_dirs(domain_config)
 
-    grd_fle = regional_processing_modules.create_grd_file(domain_config, dir_dict)
-    
+    # get filename of grid-File
+    fnme_dict = dir_fnme.set_filenames(domain_config)
+
+    grd_fle = regional_processing_modules.create_grd_file(domain_config, dir_dict, fnme_dict)
+
     if args.period is not None:
         # Period can be in the format "year, year" or "year, month"
         period_list = [int(item) for item in args.period.split(',')]
-        
+
         if period_list[0] > 1000 and (period_list[1] >= 1 and period_list[1] <= 12):
             # [year, month]
             syr = period_list[0]
@@ -77,121 +88,219 @@ if __name__ == "__main__":
             syr = period_list[0]
             eyr = period_list[1]
             smnth = 1
-            emnth = 12
+            emnth = 2  # 12
         else:
             logging.error("Period not defined properly")
     else:
         syr = domain_config["syr_calib"]
         eyr = domain_config["eyr_calib"]
         smnth = 1
-        emnth = 12
-        
+        emnth = 2  # 12
 
-        
     # Get some ressourcers
-    client, cluster = getCluster(args.node, 1, 35)
-    
-    client.get_versions(check=True)
-    
+    # client, cluster = getCluster(args.node, 1, 35)
+
+    # local cluster for testing
+    # from dask.distributed import Client
+    # client = Client(processes = False)
+
+    # client.get_versions(check=True)
+
     # Do the memory magic...
-    client.amm.start() 
-    
+    # client.amm.start()
+
     # Write some info about the cluster
-    print(f"Dask dashboard available at {client.dashboard_link}")
-    
-    
-    
+    # print(f"Dask dashboard available at {client.dashboard_link}")
+
+    ## Create some code for calculation of history files for period syr_calib to eyr_calib
+
     if args.mode == 'trunc_frcst':
-    
+
         for year in range(syr, eyr + 1):
-            
+
             results = []
-            
+
             for month in range(smnth, emnth + 1):
-                
                 month_str = str(month).zfill(2)
-                
-                results.append(regional_processing_modules.truncate_forecasts(domain_config, variable_config, dir_dict, year, month_str))
-    
+
+                results.append(
+                    regional_processing_modules.truncate_forecasts(domain_config, variable_config, dir_dict, syr, eyr,
+                                                                   year, month_str))
             try:
                 dask.compute(results)
                 logging.info(f"Truncate forecasts: Truncation for year {year} successful")
             except:
                 logging.warning(f"Truncate forecasts: Something went wrong during truncation for year {year}")
-              
+
     elif args.mode == 'remap_frcst':
-        
+
         for year in range(syr, eyr + 1):
-            
+
             results = []
-            
+
             for month in range(smnth, emnth + 1):
-                
                 month_str = str(month).zfill(2)
-                
-                results.append(regional_processing_modules.remap_forecasts(domain_config, dir_dict, year, month_str, grd_fle))
-                
-            #try:
-            dask.compute(results)
-            logging.info(f"Remap forecasts: Remapping for year {year} successful")
-                
-            #except:
-            #    logging.warning(f"Remap forecasts: Something went wrong during remapping for year {year}")
-    
+
+                results.append(
+                    regional_processing_modules.remap_forecasts(domain_config, variable_config, dir_dict, syr, eyr,
+                                                                year, month_str, grd_fle))
+
+            try:
+                dask.compute(results)
+                logging.info(f"Remap forecasts: Remapping for year {year} successful")
+
+            except:
+                logging.warning(f"Remap forecasts: Something went wrong during remapping for year {year}")
+
+    #
     elif args.mode == 'rechunk_frcst':
-        
+
+        for year in range(syr, eyr + 1):
+
+            results = []
+
+            for month in range(smnth, emnth + 1):
+                month_str = str(month).zfill(2)
+
+                results.append(
+                    regional_processing_modules.rechunk_forecasts(domain_config, variable_config, dir_dict, syr, eyr,
+                                                                  year, month_str))
+
+            try:
+                dask.compute(results)
+                logging.info(f"Rechunk forecasts: Rechunking for year {year} successful")
+
+            except:
+                logging.warning(f"Rechunk forecasts: Something went wrong during rechunking for year {year}")
+
+
+    elif args.mode == 'calib-frcst':
+
+        syr_calib = domain_config['syr_calib']
+        eyr_calib = domain_config['eyr_calib']
+
         for month in range(smnth, emnth + 1):
-            
             month_str = str(month).zfill(2)
-            
-            regional_processing_modules.rechunk_forecasts(domain_config, variable_config, dir_dict, syr, eyr, month_str)
-                
+
+            regional_processing_modules.calib_forecasts(domain_config, variable_config, dir_dict, syr_calib, eyr_calib,
+                                                        month_str)
+
+
     elif args.mode == 'trunc_ref':
-        
-        regional_processing_modules.truncate_reference(domain_config, variable_config, dir_dict, syr, eyr)
-        
+
+        for year in range(syr, eyr + 1):
+            results = []
+            fle_list = []
+            for variable in variable_config:
+
+                if domain_config['reference_history']['merged_variables'] == True:
+                    month_str = "01"  # dummy
+                    fnme_dict = dir_fnme.set_filenames(domain_config, syr, eyr, year, month_str, True, variable)
+                    fle_list.append(f"{dir_dict['ref_low_glob_dir']}/{fnme_dict['ref_low_glob_raw_dir']}")
+                    fle_string = fle_list
+                else:
+                    # Update Filenames
+                    month_str = "01"  # dummy
+                    fnme_dict = dir_fnme.set_filenames(domain_config, syr, eyr, year, month_str, False, variable)
+                    fle_string = f"{dir_dict['ref_low_glob_dir']}/{fnme_dict['ref_low_glob_dir']}"
+                    results.append(
+                        regional_processing_modules.truncate_reference(domain_config, variable_config, dir_dict,
+                                                                       fnme_dict, fle_string, variable))
+
+            if domain_config['reference_history']['merged_variables'] == True:
+                results.append(
+                    regional_processing_modules.truncate_reference(domain_config, variable_config, dir_dict, fnme_dict,
+                                                                   fle_string, variable))
+
+            try:
+                dask.compute(results)
+                logging.info(f"Truncate reference: Truncation for year {year} successful")
+            except:
+                logging.warning(f"Truncate reference: Something went wrong during truncation for year {year}")
+
+
+
     elif args.mode == 'remap_ref':
-        
-        regional_processing_modules.remap_reference(domain_config, variable_config, dir_dict, syr, eyr, grd_fle)
-        
+
+        for year in range(syr, eyr + 1):
+            results = []
+
+            month_str = "01"  # dummy
+            results.append(
+                regional_processing_modules.remap_reference(domain_config, variable_config, dir_dict, syr, eyr, year,
+                                                            month_str, grd_fle))
+
+            try:
+                dask.compute(results)
+                logging.info(f"Remap reference: Remap for year {year} successful")
+            except:
+                logging.warning(f"Remap reference: Something went wrong during truncation for year {year}")
+
+
     elif args.mode == 'rechunk_ref':
-        
-        regional_processing_modules.rechunk_reference(domain_config, variable_config, dir_dict, syr, eyr)
+
+        for year in range(syr, eyr + 1):
+            results = []
+
+            # Update Filenames
+            month_str = "01"  # dummy
+            results.append(
+                regional_processing_modules.rechunk_reference(domain_config, variable_config, dir_dict, syr, eyr, year,
+                                                              month_str))
+
+            try:
+                dask.compute(results)
+                logging.info(f"Rechunk reference: Rechunk for year {year} successful")
+            except:
+                logging.warning(f"Rechunk reference: Something went wrong during rechunk for year {year}")
+
+    elif args.mode == 'calib_ref':
+
+        syr_calib = domain_config['syr_calib']
+        eyr_calib = domain_config['eyr_calib']
+
+        regional_processing_modules.calib_reference(domain_config, variable_config, dir_dict, syr_calib, eyr_calib)
+
+
 
     # Calculate climatology for calibration period
     elif args.mode == 'climatology':
 
-         # Climatology for SEAS5
-        for month in range(smnth, emnth +1):
+        syr_calib = domain_config['syr_calib']
+        eyr_calib = domain_config['eyr_calib']
+        # Climatology for SEAS5
+        for month in range(smnth, emnth + 1):
             dataset = 'seas5'
             month_str = str(month).zfill(2)
-            regional_processing_modules.create_climatology(dataset, domain_config, variable_config, dir_dict, syr, eyr, month_str)
+            regional_processing_modules.create_climatology(dataset, domain_config, variable_config, dir_dict, syr_calib,
+                                                           eyr_calib, month_str)
 
         # Climatology for ERA5
         dataset = 'ref'
         month_str = ''
-        regional_processing_modules.create_climatology(dataset, domain_config, variable_config, dir_dict, syr, eyr, month_str)
+        regional_processing_modules.create_climatology(dataset, domain_config, variable_config, dir_dict, syr_calib,
+                                                       eyr_calib, month_str)
 
     # Create quantiles, terciles, extremes, etc. for later evaluation
     elif args.mode == 'quantiles':
-        for month in range(smnth, emnth +1):
+        for month in range(smnth, emnth + 1):
             month_str = str(month).zfill(2)
 
             regional_processing_modules.calc_quantile_thresh(domain_config, dir_dict, syr, eyr, month_str)
 
 
-        
 
-        
-        
-        
-                
-            
-                
-    
-                
-            
-            
-        
-        
-            
+
+
+
+
+
+
+
+
+
+
+
+
+
+

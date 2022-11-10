@@ -5,9 +5,9 @@ from scipy.stats import gumbel_l
 from scipy.stats import norm
 import surpyval as surv
 
+
 def bc_module(pred, obs, mdl, bc_params, precip):
-    
-    #bc_params = {
+    # bc_params = {
     #    'dry_thresh': 0.01,
     #    'precip': True,
     #    'low_extrapol': "delta_additive",
@@ -15,22 +15,19 @@ def bc_module(pred, obs, mdl, bc_params, precip):
     #    'extremes': "weibull",
     #    'intermittency': True,
     #    'nquants': 2500
-    #}
-    
-    
-    
-    
-    #nts = len(pred.time.values)
-        
-    print(mdl)
-    
+    # }
+
+    # nts = len(pred.time.values)
+
+    # print(mdl)
+
     ds_nan = pred.copy()
     ds_nan[:] = np.nan
-    
 
     # only do the bc-calculation, if obs and mdl are not NAN
-
-    if np.any(~np.isnan(obs)) & np.any(~np.isnan(mdl)):
+    # print(np.any(~np.isnan(obs)))
+    # print(np.any(~np.isnan(mdl)))
+    if np.any(~np.isnan(obs)) and np.any(~np.isnan(mdl)):
         # nmdl = mdl.shape[0]
         nmdl = bc_params['nquants']
         p_min_mdl = 1 / (nmdl + 1)
@@ -50,18 +47,19 @@ def bc_module(pred, obs, mdl, bc_params, precip):
         q_mdl, ids_mdl = np.unique(q_mdl, return_index=True)
         p_mdl = p_mdl[ids_mdl]
 
+        # print(q_mdl)
+
         pred = pred.copy()
         pred[pred > max(q_mdl)] = max(q_mdl)
         pred[pred < min(q_mdl)] = min(q_mdl)
 
-        # if len(q_mdl)>1 and ~np.isnan(q_mdl.item(0)):
-        # Transform the predictions to the rank space
-        # from scipy.interpolate import interp1d
-        Y_pred = interp1d(q_mdl, p_mdl)(pred)
-        # else:
-        # create nan-array with size, that match pred and contains nan
-
-        # Y_pred = ds_nan
+        if len(q_mdl) > 1 and ~np.isnan(q_mdl.item(0)):
+            # Transform the predictions to the rank space
+            # from scipy.interpolate import interp1d
+            Y_pred = interp1d(q_mdl, p_mdl)(pred)
+        else:
+            # create nan-array with size, that match pred and contains nan
+            Y_pred = ds_nan
 
         q_obs, ids_obs = np.unique(q_obs, return_index=True)
         p_obs = p_obs[ids_obs]
@@ -72,8 +70,8 @@ def bc_module(pred, obs, mdl, bc_params, precip):
         # Y_pred = interp1d(q_obs,p_obs)(pred)
         # else:
         # Y_pred = pred
-        
-        #pred_corr = interp1d(p_obs, q_obs, bounds_error=False)(Y_pred)
+
+        # pred_corr = interp1d(p_obs, q_obs, bounds_error=False)(Y_pred)
         pred_corr = np.interp(Y_pred, p_obs, q_obs, left=np.nan, right=np.nan)
         # else:
         # pred_corr = ds_nan
@@ -96,7 +94,7 @@ def bc_module(pred, obs, mdl, bc_params, precip):
             # print(low)
 
         pred_corr = pred_corr.copy()
-        
+
         if np.any(up):
             if bc_params['up_extrapol'] == 'constant':
                 pred_corr[up] = np.max(obs)
@@ -197,7 +195,7 @@ def bc_module(pred, obs, mdl, bc_params, precip):
                         # minimum probability of the observations.
 
     else:
-
+        print('no')
         pred_corr = ds_nan
 
     return pred_corr

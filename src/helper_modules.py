@@ -6,7 +6,7 @@ import numpy as np
 import xarray as xr
 import pandas as pd
 import dask.array as da
-
+import dir_fnme
 import dask
 from dask_jobqueue import SLURMCluster
 from dask.distributed import Client
@@ -15,8 +15,10 @@ from subprocess import run, PIPE
 from pathlib import Path
 
 import sys
-#from bc_module import bc_module
-#from write_output import write_output
+
+
+# from bc_module import bc_module
+# from write_output import write_output
 
 
 def update_global_attributes(global_config, bc_params, coords, domain):
@@ -30,163 +32,169 @@ def update_global_attributes(global_config, bc_params, coords, domain):
     global_config['geospatial_lon_max'] = max(coords['lon'])
     global_config['geospatial_lat_min'] = min(coords['lat'])
     global_config['geospatial_lat_max'] = max(coords['lat'])
-    global_config['StartTime']          = pd.to_datetime(coords['time'][0]).strftime("%Y-%m-%dT%H:%M:%S")
-    global_config['StopTime']           = pd.to_datetime(coords['time'][-1]).strftime("%Y-%m-%dT%H:%M:%S")
+    global_config['StartTime'] = pd.to_datetime(coords['time'][0]).strftime("%Y-%m-%dT%H:%M:%S")
+    global_config['StopTime'] = pd.to_datetime(coords['time'][-1]).strftime("%Y-%m-%dT%H:%M:%S")
 
     return global_config
 
-def set_filenames(year, month, domain_config, variable_config, forecast_linechunks):
 
-    # Integrate check for every parameter...
-    yr_str   = str(year)
-    mnth_str = str(month)
-    mnth_str = mnth_str.zfill(2)
-    basedir  = f"{domain_config['regroot']}/daily/"
-
-    raw_dict       = {}
-    bcsd_dict      = {}
-    ref_hist_dict  = {}
-    mdl_hist_dict  = {}
+def set_filenames(domain_config, variable_config, dir_dict, syr_calib, eyr_calib, year, month_str, forecast_linechunks):
+    raw_dict = {}
+    bcsd_dict = {}
+    ref_hist_dict = {}
+    mdl_hist_dict = {}
 
     for variable in variable_config:
 
-        if domain_config['raw_forecasts']['merged_variables'] == True:
-            if forecast_linechunks == True:
-                raw_dict[variable]  = f"{basedir}linechunks/{domain_config['raw_forecasts']['prefix']}_daily_{yr_str}{mnth_str}_{domain_config['target_resolution']}_{domain_config['prefix']}_lns.nc"
-            else:
-                raw_dict[variable]  = f"{basedir}input_target_res/{domain_config['raw_forecasts']['prefix']}_daily_{yr_str}{mnth_str}_{domain_config['target_resolution']}_{domain_config['prefix']}.nc"
-        else:
-            if forecast_linechunks == True:
-                raw_dict[variable]  = f"{basedir}linechunks/{domain_config['raw_forecasts']['prefix']}_daily_{variable}_{yr_str}{mnth_str}_{domain_config['target_resolution']}_{domain_config['prefix']}_lns.nc"
-            else:
-                raw_dict[variable]  = f"{basedir}input_target_res/{domain_config['raw_forecasts']['prefix']}_daily_{variable}_{yr_str}{mnth_str}_{domain_config['target_resolution']}_{domain_config['prefix']}.nc"
-                
-                
-        if domain_config["bcsd_forecasts"]['merged_variables'] == True:
-            if forecast_linechunks == True:
-                bcsd_dict[variable] = f"{basedir}linechunks/{domain_config['bcsd_forecasts']['prefix']}_v{domain_config['version']}_daily_{yr_str}{mnth_str}_{domain_config['target_resolution']}_{domain_config['prefix']}_lns.nc"
-            else:
-                bcsd_dict[variable] = f"{basedir}output_target_res/{domain_config['bcsd_forecasts']['prefix']}_v{domain_config['version']}_daily_{yr_str}{mnth_str}_{domain_config['target_resolution']}_{domain_config['prefix']}.nc"
-                
-        else:
-            if forecast_linechunks == True:
-                bcsd_dict[variable] = f"{basedir}linechunks/{domain_config['bcsd_forecasts']['prefix']}_v{domain_config['version']}_daily_{variable}_{yr_str}{mnth_str}_{domain_config['target_resolution']}_{domain_config['prefix']}_lns.nc"
-            else:
-                bcsd_dict[variable] = f"{basedir}output_target_res/{domain_config['bcsd_forecasts']['prefix']}_v{domain_config['version']}_daily_{variable}_{yr_str}{mnth_str}_{domain_config['target_resolution']}_{domain_config['prefix']}.nc"
+        # Update Filename
+        fnme_dict = dir_fnme.set_filenames(domain_config, syr_calib, eyr_calib, year, month_str,
+                                           domain_config['bcsd_forecasts']['merged_variables'], variable)
 
-        if domain_config['reference_history']['merged_variables'] == True:
-            ref_hist_dict[variable]  = f"{basedir}linechunks/{domain_config['reference_history']['prefix']}_daily_{domain_config['syr_calib']}_{domain_config['eyr_calib']}_{domain_config['target_resolution']}_{domain_config['prefix']}_lns.nc"
+        if forecast_linechunks == True:
+            raw_dict[variable] = f"{dir_dict['frcst_high_reg_lnch_dir']}/{fnme_dict['frcst_high_reg_lnch_dir']}"
         else:
-            ref_hist_dict[variable]  = f"{basedir}linechunks/{domain_config['reference_history']['prefix']}_daily_{variable}_{domain_config['syr_calib']}_{domain_config['eyr_calib']}_{domain_config['target_resolution']}_{domain_config['prefix']}_lns.nc"
+            raw_dict[variable] = f"{dir_dict['frcst_high_reg_dir']}/{fnme_dict['frcst_high_reg_dir']}"
 
-
-        if domain_config['model_history']['merged_variables'] == True:
-            mdl_hist_dict[variable]  = f"{basedir}linechunks/{domain_config['model_history']['prefix']}_daily_{domain_config['syr_calib']}_{domain_config['eyr_calib']}_{mnth_str}_{domain_config['target_resolution']}_{domain_config['prefix']}_lns.nc"
+        if forecast_linechunks == True:
+            bcsd_dict[
+                variable] = f"{dir_dict['frcst_high_reg_bcsd_daily_lnch_dir']}/{fnme_dict['frcst_high_reg_bcsd_daily_lnch_dir']}"
         else:
-            mdl_hist_dict[variable]  = f"{basedir}linechunks/{domain_config['model_history']['prefix']}_daily_{variable}_{domain_config['syr_calib']}_{domain_config['eyr_calib']}__{mnth_str}{domain_config['target_resolution']}_{domain_config['prefix']}_lns.nc"
+            bcsd_dict[
+                variable] = f"{dir_dict['frcst_high_reg_bcsd_daily_dir']}/{fnme_dict['frcst_high_reg_bcsd_daily_dir']}"
+
+        ref_hist_dict[
+            variable] = f"{dir_dict['ref_high_reg_daily_lnch_calib_dir']}/{fnme_dict['ref_high_reg_daily_lnch_calib_dir']}"
+
+        mdl_hist_dict[
+            variable] = f"{dir_dict['frcst_high_reg_lnch_calib_dir']}/{fnme_dict['frcst_high_reg_lnch_calib_dir']}"
 
     return raw_dict, bcsd_dict, ref_hist_dict, mdl_hist_dict
 
 
 def set_encoding(variable_config, coordinates, type='maps'):
     encoding = {}
-    
+
     if type == 'maps':
         if 'ens' in coordinates:
             chunksizes = [20, len(coordinates['ens']), len(coordinates['lat']), len(coordinates['lon'])]
         else:
-            chunksizes =  [20, len(coordinates['lat']), len(coordinates['lon'])]
+            chunksizes = [20, len(coordinates['lat']), len(coordinates['lon'])]
     elif type == 'lines':
         if 'ens' in coordinates:
             chunksizes = [len(coordinates['time']), len(coordinates['ens']), 1, 1]
         else:
             chunksizes = [len(coordinates['time']), 1, 1]
-            
-            
 
-    for variable in variable_config:        
-        encoding[variable] =  {
-            #'zlib': True,
-            #'complevel': 4,
+    for variable in variable_config:
+        encoding[variable] = {
+            # 'zlib': True,
+            # 'complevel': 4,
             '_FillValue': variable_config[variable]['_FillValue'],
             'scale_factor': variable_config[variable]['scale_factor'],
             'add_offset': variable_config[variable]['scale_factor'],
-            'dtype':variable_config[variable]['dtype'],
-            'chunksizes': chunksizes            
+            'dtype': variable_config[variable]['dtype'],
+            'chunksizes': chunksizes
         }
-        
+
     return encoding
 
-def create_4d_netcdf(bcsd_dict, global_config, domain_config, variable_config, coordinates):
 
-    da_dict  = {}
+def create_4d_netcdf(bcsd_dict, global_config, domain_config, variable_config, coordinates, variable):
+    da_dict = {}
 
     encoding = set_encoding(variable_config, coordinates)
- 
 
-    # This dataarray has all variables, that are included in variable_config
-    for variable in variable_config:
-        da_dict[variable] = xr.DataArray(
-            None, 
-            dims = ['time', 'ens', 'lat', 'lon'], 
-            coords = {
+    if domain_config["bcsd_forecasts"]['merged_variables'] == True:
+
+        # This dataarray has all variables, that are included in variable_config
+        for variable in variable_config:
+            da_dict[variable] = xr.DataArray(
+                None,
+                dims=['time', 'ens', 'lat', 'lon'],
+                coords={
+                    'time': ('time', coordinates['time'], {'standard_name': 'time', 'long_name': 'time'}),
+                    'ens': (
+                        'ens', coordinates['ens'], {'standard_name': 'realization', 'long_name': 'ensemble_member'}),
+                    'lat': ('lat', coordinates['lat'],
+                            {'standard_name': 'latitude', 'long_name': 'latitude', 'units': 'degrees_north'}),
+                    'lon': ('lon', coordinates['lon'],
+                            {'standard_name': 'longitude', 'long_name': 'longitude', 'units': 'degrees_east'})
+                },
+                attrs={
+                    'standard_name': variable_config[variable]['standard_name'],
+                    'long_name': variable_config[variable]['long_name'],
+                    'units': variable_config[variable]['units'],
+                },
+            )
+
+        ds = xr.Dataset(
+            data_vars=da_dict,
+            coords={
                 'time': ('time', coordinates['time'], {'standard_name': 'time', 'long_name': 'time'}),
                 'ens': ('ens', coordinates['ens'], {'standard_name': 'realization', 'long_name': 'ensemble_member'}),
-                'lat': ('lat', coordinates['lat'], {'standard_name': 'latitude', 'long_name': 'latitude', 'units': 'degrees_north'}),
-                'lon': ('lon', coordinates['lon'], {'standard_name': 'longitude', 'long_name': 'longitude', 'units': 'degrees_east'})
+                'lat': ('lat', coordinates['lat'],
+                        {'standard_name': 'latitude', 'long_name': 'latitude', 'units': 'degrees_north'}),
+                'lon': ('lon', coordinates['lon'],
+                        {'standard_name': 'longitude', 'long_name': 'longitude', 'units': 'degrees_east'})
             },
-            attrs = {
+            attrs=global_config
+        )
+
+        # ds.to_netcdf(list(bcsd_dict.values())[0], mode='w', format='NETCDF4_CLASSIC', engine='netcdf4', encoding = encoding)
+        ds.to_netcdf(list(bcsd_dict.values())[0], mode='w', engine='netcdf4', encoding=encoding)
+        # ds.to_netcdf(bcsd_dict, mode='w', format='NETCDF4_CLASSIC', engine='netcdf4',encoding=encoding)
+    else:
+        # This dataarray has all variables, that are included in variable_config
+
+        da_dict[variable] = xr.DataArray(
+            None,
+            dims=['time', 'ens', 'lat', 'lon'],
+            coords={
+                'time': ('time', coordinates['time'], {'standard_name': 'time', 'long_name': 'time'}),
+                'ens': (
+                    'ens', coordinates['ens'], {'standard_name': 'realization', 'long_name': 'ensemble_member'}),
+                'lat': ('lat', coordinates['lat'],
+                        {'standard_name': 'latitude', 'long_name': 'latitude', 'units': 'degrees_north'}),
+                'lon': ('lon', coordinates['lon'],
+                        {'standard_name': 'longitude', 'long_name': 'longitude', 'units': 'degrees_east'})
+            },
+            attrs={
                 'standard_name': variable_config[variable]['standard_name'],
                 'long_name': variable_config[variable]['long_name'],
                 'units': variable_config[variable]['units'],
             },
         )
 
-
-    if domain_config["bcsd_forecasts"]['merged_variables'] == True:
-
         ds = xr.Dataset(
-            data_vars = da_dict,
-            coords = {
-                    'time': ('time', coordinates['time'], {'standard_name': 'time', 'long_name': 'time'}),
-                    'ens': ('ens', coordinates['ens'], {'standard_name': 'realization', 'long_name': 'ensemble_member'}),
-                    'lat': ('lat', coordinates['lat'], {'standard_name': 'latitude', 'long_name': 'latitude', 'units': 'degrees_north'}),
-                    'lon': ('lon', coordinates['lon'], {'standard_name': 'longitude', 'long_name': 'longitude', 'units': 'degrees_east'})
-                },
-            attrs = global_config
+            data_vars={variable: da_dict[variable]},
+            coords={
+                'time': ('time', coordinates['time'], {'standard_name': 'time', 'long_name': 'time'}),
+                'ens': ('ens', coordinates['ens'], {'standard_name': 'realization', 'long_name': 'ensemble_member'}),
+                'lat': ('lat', coordinates['lat'],
+                        {'standard_name': 'latitude', 'long_name': 'latitude', 'units': 'degrees_north'}),
+                'lon': ('lon', coordinates['lon'],
+                        {'standard_name': 'longitude', 'long_name': 'longitude', 'units': 'degrees_east'})
+            },
+            attrs=global_config
         )
 
-        ds.to_netcdf(list(bcsd_dict.values())[0], mode='w', format='NETCDF4_CLASSIC', engine='netcdf4', encoding = encoding)
-
-    else:
-
-        for variable in variable_config:
-            ds = xr.Dataset(
-                data_vars = {variable: da_dict[variable]},
-                coords = {
-                    'time': ('time', coordinates['time'], {'standard_name': 'time', 'long_name': 'time'}),
-                    'ens': ('ens', coordinates['ens'], {'standard_name': 'realization', 'long_name': 'ensemble_member'}),
-                    'lat': ('lat', coordinates['lat'], {'standard_name': 'latitude', 'long_name': 'latitude', 'units': 'degrees_north'}),
-                    'lon': ('lon', coordinates['lon'], {'standard_name': 'longitude', 'long_name': 'longitude', 'units': 'degrees_east'})
-                },
-            attrs = global_config
-        )
-
-        ds.to_netcdf(bcsd_dict[variable], mode='w', format='NETCDF4_CLASSIC', engine='netcdf4', encoding = {variable: encoding[variable]})
+        # ds.to_netcdf(bcsd_dict[variable], mode='w', format='NETCDF4_CLASSIC', engine='netcdf4', encoding = {variable: encoding[variable]})
+        ds.to_netcdf(bcsd_dict[variable], mode='w', engine='netcdf4', encoding={variable: encoding[variable]})
+        # ds.to_netcdf(bcsd_dict, mode='w', format='NETCDF4_CLASSIC', engine='netcdf4',encoding={variable: encoding[variable]})
 
     return ds
 
 
-def get_coords_from_files(filename):
+def get_coords_from_frcst(filename):
     ds = xr.open_dataset(filename)
 
-    #return {
+    # return {
     #    'time': ds['time'].values,
     #    'lat': ds['lat'].values.astype(np.float32),
     #    'lon': ds['lon'].values.astype(np.float32),
     #    'ens': ds['ens'].values
-    #}
-    
+    # }
+
     return {
         'time': ds['time'].values,
         'lat': ds['lat'].values,
@@ -195,9 +203,27 @@ def get_coords_from_files(filename):
     }
 
 
+def get_coords_from_ref(filename):
+    ds = xr.open_dataset(filename)
+
+    # return {
+    #    'time': ds['time'].values,
+    #    'lat': ds['lat'].values.astype(np.float32),
+    #    'lon': ds['lon'].values.astype(np.float32),
+    #    'ens': ds['ens'].values
+    # }
+
+    return {
+        'time': ds['time'].values,
+        'lat': ds['lat'].values,
+        'lon': ds['lon'].values,
+    }
+
+
 def preprocess_mdl_hist(filename, month, variable):
     # Open data
-    ds = xr.open_mfdataset(filename, chunks={'time': 215, 'year': 36, 'ens': 25, 'lat': 10, 'lon': 10}, parallel=True, engine='netcdf4')
+    ds = xr.open_mfdataset(filename, chunks={'time': 215, 'year': 36, 'ens': 25, 'lat': 10, 'lon': 10}, parallel=True,
+                           engine='netcdf4')
 
     ds = ds[variable]
 
@@ -218,11 +244,9 @@ def preprocess_mdl_hist(filename, month, variable):
     return ds
 
 
-
 def getCluster(queue, nodes, jobs_per_node):
-    
     workers = nodes * jobs_per_node
-    
+
     # cluster options
     if queue == 'rome':
         cores, memory, walltime = (62, '220GB', '0-15:00:00')
@@ -236,28 +260,27 @@ def getCluster(queue, nodes, jobs_per_node):
         cores, memory, walltime = (40, '60GB', '04:00:00')
     elif queue == 'fat':
         cores, memory, walltime = (96, '800GB', '48:00:00')
-    
+
     # cluster if only single cluster is needed!
     cluster = SLURMCluster(
-         cores = cores,             
-         memory = memory,       
-         processes = jobs_per_node,
-         local_directory = '/bg/data/NCZarr/temp',  
-         queue = queue,
-         project = 'dask_test',
-         walltime = walltime
+        cores=cores,
+        memory=memory,
+        processes=jobs_per_node,
+        local_directory='/bg/data/NCZarr/temp',
+        queue=queue,
+        project='dask_test',
+        walltime=walltime
     )
-    
+
     client = Client(cluster)
-    
+
     cluster.scale(n=workers)
 
     return client, cluster
 
 
-def run_cmd(cmd, path_extra=Path(sys.exec_prefix)/'bin'):
-    
-    #'''Run a bash command.'''
+def run_cmd(cmd, path_extra=Path(sys.exec_prefix) / 'bin'):
+    # '''Run a bash command.'''
     env_extra = os.environ.copy()
     env_extra['PATH'] = str(path_extra) + ':' + env_extra['PATH']
     status = run(cmd, check=False, stderr=PIPE, stdout=PIPE, env=env_extra)
