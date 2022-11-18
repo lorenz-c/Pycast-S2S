@@ -45,7 +45,7 @@
 			"window": 15
 		}
 	},
-		"west_africa": {
+	"west_africa": {
 		"prefix": "west_africa",
 		"bbox": [-12.9, 16.9, 3.2, 24.9],
 		"regroot": "/pd/data/regclim_data/gridded_data/processed/west_africa",
