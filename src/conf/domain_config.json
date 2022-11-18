@@ -91,6 +91,30 @@
 			"window": 15
 		}
 	},
+	"chira_test": {
+		"prefix": "chira",
+		"bbox": [-82,-78,-7,-2],
+		"regroot": "/Users/borkenhagen-c/KIT_Master/test/Chira",
+		"syr_calib": 1981,
+		"eyr_calib": 2016,
+		"variables": "tp",
+		"raw_forecasts": {"prefix": "SEAS5", "merged_variables": true},
+		"bcsd_forecasts": {"prefix": "SEAS5_BCSD", "merged_variables": true},
+		"reference_history": {"prefix": "ERA5_Land", "merged_variables": true},
+		"model_history": {"prefix": "SEAS5", "merged_variables": true},
+		"target_resolution": 0.1,
+		"version": "3.0",
+		"bc_params": {
+			"dry_thresh": 0.01,
+			"low_extrapol": "delta_additive",
+			"up_extrapol": "delta_additive",
+			"extremes": "weibull",
+			"intermittency": true,
+			"nquants": 2500,
+			"window": 15
+		}
+	},
+
 	"sf_basin": {
 		"name": "SF_Basin",
 		"bbox": "-49,-35,-22.5,-2.5",

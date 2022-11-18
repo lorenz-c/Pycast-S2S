@@ -143,10 +143,6 @@ if __name__ == '__main__':
             #     raw_dict, bcsd_dict, ref_hist_dict, mdl_hist_dict = helper_modules.set_filenames(args.year, args.month, domain_config, variable_config, True)
 
             # IMPLEMENT A CHECK IF ALL INPUT FILES ARE AVAILABL!!!!!!
-            #
-            #
-            #
-            #
 
             # Read the dimensions for the output file (current prediction)
             coords = helper_modules.get_coords_from_frcst(list(raw_dict.values())[0])
@@ -175,7 +171,7 @@ if __name__ == '__main__':
                 # Preprocess historical mdl-data, create a new time coord, which contain year and day at once and not separate
                 print(f"Opening {mdl_hist_dict[variable]}")
                 if args.forecast_structure == '5D':
-                    ds_mdl = helper_modules.preprocess_mdl_hist(mdl_hist_dict[variable], args.month,
+                    ds_mdl = helper_modules.preprocess_mdl_hist(mdl_hist_dict[variable], month_str,
                                                                 variable)  # chunks={'time': 215, 'year': 36, 'ens': 25, 'lat': 1, 'lon': 1})
                     da_mdl = ds_mdl.persist()
                 elif args.forecast_structure == '4D':
@@ -203,8 +199,8 @@ if __name__ == '__main__':
                 # da_pred = da_pred.assign_coords(lon=ds_pred.lon.values.astype(np.float32), lat=ds_pred.lat.values.astype(np.float32))
 
                 # Calculate day of the year from time variable
-                dayofyear_obs = ds_obs['time.dayofyear']
-                dayofyear_mdl = ds_mdl['time.dayofyear']
+                # dayofyear_obs = ds_obs['time.dayofyear']
+                # dayofyear_mdl = ds_mdl['time.dayofyear']
 
                 da_temp = xr.DataArray(
                     None,
@@ -219,16 +215,50 @@ if __name__ == '__main__':
                     }
                 ).persist()
 
-                # for timestep in range(0, len(ds_pred.time)):
-                for timestep in range(0, 5):
-                    print(f'Correcting timestep {timestep}...')
+                for timestep in range(0, len(ds_pred.time)):
+                    # for timestep in range(82, 83):
 
+                    print(f'Correcting timestep {timestep}...')
+                    dayofyear_mdl = ds_mdl['time.dayofyear']
                     day = dayofyear_mdl[timestep]
 
-                    day_range = (np.arange(day - domain_config['bc_params']['window'],
-                                           day + domain_config['bc_params']['window'] + 1) + 365) % 365 + 1
-                    intersection_day_obs = np.in1d(dayofyear_obs, day_range)
-                    intersection_day_mdl = np.in1d(dayofyear_mdl, day_range)
+                    # Deal with normal and leap years
+                    for year in range(syr_calib, eyr_calib + 1):
+
+                        ds_obs_year = ds_obs.sel(time=ds_obs.time.dt.year == year)
+                        ds_mdl_year = ds_mdl.sel(time=ds_mdl.time.dt.year == year)
+                        dayofyear_obs = ds_obs_year['time.dayofyear']
+                        dayofyear_mdl = ds_mdl_year['time.dayofyear']
+
+                        # normal years
+                        if len(ds_obs_year.time.values) == 365:
+
+                            # day_range = (np.arange(day - domain_config['bc_params']['window'], day + domain_config['bc_params']['window'] + 1) + 365) % 365 + 1
+                            day_range = (np.arange(day - domain_config['bc_params']['window'] - 1,
+                                                   day + domain_config['bc_params']['window']) + 365) % 365 + 1
+
+                            # leap years
+                        else:
+                            day_range = (np.arange(day - domain_config['bc_params']['window'] - 1,
+                                                   day + domain_config['bc_params']['window']) + 366) % 366 + 1
+
+                        intersection_day_obs_year = np.in1d(dayofyear_obs, day_range)
+                        intersection_day_mdl_year = np.in1d(dayofyear_mdl, day_range)
+
+                        if year == syr_calib:
+                            intersection_day_obs = intersection_day_obs_year
+                            intersection_day_mdl = intersection_day_mdl_year
+                        else:
+                            intersection_day_obs = np.append(intersection_day_obs, intersection_day_obs_year)
+                            intersection_day_mdl = np.append(intersection_day_mdl, intersection_day_mdl_year)
+
+                        # print(f'Correcting timestep {timestep}...')
+
+                        # day = dayofyear_mdl[timestep]
+
+                        # day_range = (np.arange(day - domain_config['bc_params']['window'], day + domain_config['bc_params']['window'] + 1) + 365) % 365 # +1
+                        # intersection_day_obs = np.in1d(dayofyear_obs, day_range)
+                        # intersection_day_mdl = np.in1d(dayofyear_mdl, day_range)
 
                     da_obs_sub = da_obs.loc[dict(time=intersection_day_obs)]
 
@@ -258,7 +288,8 @@ if __name__ == '__main__':
                         dask="parallelized",
                         output_dtypes=[np.float64])
 
-                    # Change the datatype from "object" to "float64" --> Can we somehow get around this???
+
+                # Change the datatype from "object" to "float64" --> Can we somehow get around this???
                 da_temp = da_temp.astype('float64')
 
                 # Select only the actual variable from the output dataset
@@ -271,6 +302,7 @@ if __name__ == '__main__':
                 # ds_out_sel.to_netcdf(bcsd_dict[variable], mode='a', format='NETCDF4_CLASSIC', engine='netcdf4', encoding = {variable: encoding[variable]})
                 ds_out_sel.to_netcdf(bcsd_dict[variable], mode='a', engine='netcdf4',
                                      encoding={variable: encoding[variable]})
+                # ds_out_sel.close()
 
     # client.close()
 
