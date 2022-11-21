@@ -48,7 +48,7 @@
 	"west_africa": {
 		"prefix": "west_africa",
 		"bbox": [-12.9, 16.9, 3.2, 24.9],
-		"regroot": "/Users/borkenhagen-c/KIT_Master/test/west_africa",
+		"regroot": "/pd/data/regclim_data/gridded_data/processed/west_africa",
 		"syr_calib": 1981,
 		"eyr_calib": 2016,
 		"variables": ["tp", "t2m", "t2min", "t2max"],
@@ -71,7 +71,7 @@
 	"west_africa_test": {
 		"prefix": "west_africa",
 		"bbox": [0, 6, 10, 15],
-		"regroot": "/Users/borkenhagen-c/KIT_Master/test/west_africa",
+		"regroot": "/pd/data/regclim_data/gridded_data/processed/west_africa",
 		"syr_calib": 1981,
 		"eyr_calib": 1982,
 		"variables": ["tp", "t2m"],
@@ -94,7 +94,7 @@
 	"chira_test": {
 		"prefix": "chira",
 		"bbox": [-82,-78,-7,-2],
-		"regroot": "/Users/borkenhagen-c/KIT_Master/test/Chira",
+		"regroot": "/pd/data/regclim_data/gridded_data/processed/Chira",
 		"syr_calib": 1981,
 		"eyr_calib": 2016,
 		"variables": "tp",
