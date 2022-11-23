@@ -6,7 +6,7 @@ import numpy as np
 import xarray as xr
 import pandas as pd
 import dask.array as da
-import dir_fnme
+#import dir_fnme
 import dask
 from dask_jobqueue import SLURMCluster
 from dask.distributed import Client
@@ -288,3 +288,41 @@ def run_cmd(cmd, path_extra=Path(sys.exec_prefix) / 'bin'):
         error = f'''{' '.join(cmd)}: {status.stderr.decode('utf-8')}'''
         raise RuntimeError(f'{error}')
     return status.stdout.decode('utf-8')
+
+def decode_processing_years(years_string):
+    
+    year_list  = [int(item) for item in years_string.split(',')]
+    
+    if len(year_list) == 1:
+        # We want to run the routine for a single year
+        years = [year_list[0]]
+    elif len(year_list) == 2:
+        years = year_list
+    elif len(year_list) == 3:
+        if year_list[1] == 0:
+            years = range(year_list[0], year_list[2] + 1) # We want the last year to be included in the list...
+        else:
+            years = year_list
+            
+    return years
+
+
+        
+def decode_processing_months(months_string):
+    
+    month_list = [int(item) for item in months_string.split(',')]
+    
+    if len(month_list) == 1:
+        # We want to run the routine for a single year
+        months = [month_list[0]]
+    elif len(month_list) == 2:
+        months = month_list
+    elif len(month_list) == 3:
+        if month_list[1] == 0:
+            months = range(month_list[0], month_list[2] + 1) # We want the last month to be included in the list...
+        else:
+            months = month_list
+            
+    return months
+    
+        
