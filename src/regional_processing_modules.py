@@ -101,7 +101,7 @@ def preprocess(ds):
 
 
 @dask.delayed
-def truncate_forecasts(domain_config, variable_config, dir_dict, syr, eyr, year, month_str):
+def truncate_forecasts(domain_config, variable_config, dir_dict, year, month_str):
     bbox = domain_config['bbox']
 
     # Add one degree in each direction to avoid NaNs at the boarder after remapping.
@@ -111,11 +111,12 @@ def truncate_forecasts(domain_config, variable_config, dir_dict, syr, eyr, year,
     max_lat = bbox[3] + 1
 
     # Update Filenames
-    fnme_dict = dir_fnme.set_filenames(domain_config, syr, eyr, year, month_str,
-                                       domain_config['raw_forecasts']["merged_variables"])
+    fnme_dict = dir_fnme.set_filenames(domain_config, year, month_str, domain_config['raw_forecasts']["merged_variables"])
 
     fle_string = f"{dir_dict['frcst_low_glob_dir']}/{year}/{month_str}/{fnme_dict['frcst_low_glob_dir']}"
 
+    print(fle_string)
+    
     # ds = xr.open_mfdataset(fle_string, concat_dim = 'ens', combine = 'nested', parallel = True, chunks = {'time': 50}, engine='netcdf4', preprocess=preprocess, autoclose=True)
     ds = xr.open_mfdataset(fle_string, concat_dim='ens', combine='nested', parallel=True, chunks={'time': 50},
                            preprocess=preprocess)
@@ -133,8 +134,7 @@ def truncate_forecasts(domain_config, variable_config, dir_dict, syr, eyr, year,
     if domain_config["raw_forecasts"]["merged_variables"] == True:
         try:
             # Update Filenames
-            fnme_dict = dir_fnme.set_filenames(domain_config, syr, eyr, year, month_str,
-                                               domain_config['raw_forecasts']["merged_variables"])
+            fnme_dict = dir_fnme.set_filenames(domain_config, year, month_str, sdomain_config['raw_forecasts']["merged_variables"])
 
             ds.to_netcdf(f"{dir_dict['frcst_low_reg_dir']}/{fnme_dict['frcst_low_reg_dir']}", encoding=encoding)
             logging.info(f"Slicing for month {month_str} and year {year} successful")
@@ -144,8 +144,7 @@ def truncate_forecasts(domain_config, variable_config, dir_dict, syr, eyr, year,
         for variable in variable_config:
             try:
                 # Update Filenames
-                fnme_dict = dir_fnme.set_filenames(domain_config, syr, eyr, year, month_str,
-                                                   domain_config['raw_forecasts']["merged_variables"], variable)
+                fnme_dict = dir_fnme.set_filenames(domain_config, year, month_str, domain_config['raw_forecasts']["merged_variables"], variable)
 
                 ds[variable].to_netcdf(f"{dir_dict['frcst_low_reg_dir']}/{fnme_dict['frcst_low_reg_dir']}",
                                        encoding={variable: encoding[variable]})
@@ -155,13 +154,12 @@ def truncate_forecasts(domain_config, variable_config, dir_dict, syr, eyr, year,
 
 
 @dask.delayed
-def remap_forecasts(domain_config, variable_config, dir_dict, syr, eyr, year, month_str, grd_fle):
+def remap_forecasts(domain_config, variable_config, dir_dict, year, month_str, grd_fle):
     import logging
 
     if domain_config['reference_history']['merged_variables'] == True:
         # Update Filenames
-        fnme_dict = dir_fnme.set_filenames(domain_config, syr, eyr, year, month_str,
-                                           domain_config['raw_forecasts']["merged_variables"])
+        fnme_dict = dir_fnme.set_filenames(domain_config, year, month_str,domain_config['raw_forecasts']["merged_variables"])
 
         coarse_file = f"{dir_dict['frcst_low_reg_dir']}/{fnme_dict['frcst_low_reg_dir']}"
         hires_file = f"{dir_dict['frcst_high_reg_dir']}/{fnme_dict['frcst_high_reg_dir']}"
@@ -204,11 +202,10 @@ def remap_forecasts(domain_config, variable_config, dir_dict, syr, eyr, year, mo
 
 
 # @dask.delayed
-def rechunk_forecasts(domain_config, variable_config, dir_dict, syr, eyr, year, month_str):
+def rechunk_forecasts(domain_config, variable_config, dir_dict, year, month_str):
     if domain_config['reference_history']['merged_variables'] == True:
         # Update Filenames
-        fnme_dict = dir_fnme.set_filenames(domain_config, syr, eyr, year, month_str,
-                                           domain_config['raw_forecasts']["merged_variables"])
+        fnme_dict = dir_fnme.set_filenames(domain_config, year, month_str, domain_config['raw_forecasts']["merged_variables"])
 
         fle_string = f"{dir_dict['frcst_high_reg_dir']}/{fnme_dict['frcst_high_reg_dir']}"
 
@@ -229,11 +226,10 @@ def rechunk_forecasts(domain_config, variable_config, dir_dict, syr, eyr, year, 
     else:
         for variable in variable_config:
             # Update Filenames
-            fnme_dict = dir_fnme.set_filenames(domain_config, syr, eyr, year, month_str,
-                                               domain_config['raw_forecasts']["merged_variables"], variable)
+            fnme_dict = dir_fnme.set_filenames(domain_config, year, month_str, domain_config['raw_forecasts']["merged_variables"], variable)
 
             fle_string = f"{dir_dict['frcst_high_reg_dir']}/{fnme_dict['frcst_high_reg_dir']}"
-
+            print(fle_string)
             ds = xr.open_mfdataset(fle_string, parallel=True, engine='netcdf4', autoclose=True, chunks={'time': 50})
 
             coords = {'time': ds['time'].values, 'ens': ds['ens'].values, 'lat': ds['lat'].values.astype(np.float32),
