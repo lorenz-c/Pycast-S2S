@@ -8,6 +8,8 @@ import regional_processing_modules
 import dir_fnme
 import helper_modules
 import numpy as np
+
+from dask.distributed import Client
 # from helper_modules import getCluster
 
 import logging
@@ -23,8 +25,9 @@ def get_clas():
 
     parser.add_argument("-d", "--domain", action="store", type=str, help="Domain", required=True)
     parser.add_argument("-m", "--mode", action="store", type=str, help="Selected mode for setup", required=True)
-    parser.add_argument("-p", "--period", action="store", type=str,
-                        help="Period for which the pre-processing should be executed", required=False)
+    #parser.add_argument("-p", "--period", action="store", type=str, help="Period for which the pre-processing should be executed", required=False)
+    parser.add_argument("-Y", "--Years", action="store", type=str, help="Years for which the processing should be executed", required=True)
+    parser.add_argument("-M", "--Months", action="store", type=str, help="Months for which the processing should be executed", required=True)
     parser.add_argument("-n", "--node", action="store", type=str, help="Node for running the code", required=False)
     parser.add_argument("-f", "--scheduler_file", action="store", type=str,
                         help="If a scheduler-file is provided, the function does not start its own cluster but rather uses a running environment",
@@ -73,59 +76,43 @@ if __name__ == "__main__":
     fnme_dict = dir_fnme.set_filenames(domain_config)
 
     grd_fle = regional_processing_modules.create_grd_file(domain_config, dir_dict, fnme_dict)
-
-    if args.period is not None:
-        # Period can be in the format "year, year" or "year, month"
-        period_list = [int(item) for item in args.period.split(',')]
-
-        if period_list[0] > 1000 and (period_list[1] >= 1 and period_list[1] <= 12):
-            # [year, month]
-            syr = period_list[0]
-            eyr = period_list[0]
-            smnth = period_list[1]
-            emnth = period_list[1]
-        elif period_list[0] > 1000 and period_list[1] > 1000:
-            syr = period_list[0]
-            eyr = period_list[1]
-            smnth = 1
-            emnth = 2  # 12
-        else:
-            logging.error("Period not defined properly")
-    else:
-        syr = domain_config["syr_calib"]
-        eyr = domain_config["eyr_calib"]
-        smnth = 1
-        emnth = 2  # 12
+    
+    process_years  = helper_modules.decode_processing_years(args.Years)
+    process_months = helper_modules.decode_processing_months(args.Months)
 
     # Get some ressourcers
-    # client, cluster = getCluster(args.node, 1, 35)
+    if args.node is not None:
+        client, cluster = helper_modules.getCluster(args.node, 1, 35)
+    
+    if args.scheduler_file is not None:
+        client = Client(scheduler_file=args.scheduler_file)
 
     # local cluster for testing
     # from dask.distributed import Client
     # client = Client(processes = False)
 
-    # client.get_versions(check=True)
+    client.get_versions(check=True)
 
     # Do the memory magic...
-    # client.amm.start()
+    client.amm.start()
 
     # Write some info about the cluster
-    # print(f"Dask dashboard available at {client.dashboard_link}")
+    print(f"Dask dashboard available at {client.dashboard_link}")
 
     ## Create some code for calculation of history files for period syr_calib to eyr_calib
 
     if args.mode == 'trunc_frcst':
 
-        for year in range(syr, eyr + 1):
+        for year in process_years:
 
             results = []
 
-            for month in range(smnth, emnth + 1):
+            for month in process_months:
+                
                 month_str = str(month).zfill(2)
 
                 results.append(
-                    regional_processing_modules.truncate_forecasts(domain_config, variable_config, dir_dict, syr, eyr,
-                                                                   year, month_str))
+                    regional_processing_modules.truncate_forecasts(domain_config, variable_config, dir_dict, year, month_str))
             try:
                 dask.compute(results)
                 logging.info(f"Truncate forecasts: Truncation for year {year} successful")
@@ -134,16 +121,17 @@ if __name__ == "__main__":
 
     elif args.mode == 'remap_frcst':
 
-        for year in range(syr, eyr + 1):
+        for year in process_years:
 
             results = []
 
-            for month in range(smnth, emnth + 1):
+            #for month in range(smnth, emnth + 1):
+            for month in process_months:
+                
                 month_str = str(month).zfill(2)
 
                 results.append(
-                    regional_processing_modules.remap_forecasts(domain_config, variable_config, dir_dict, syr, eyr,
-                                                                year, month_str, grd_fle))
+                    regional_processing_modules.remap_forecasts(domain_config, variable_config, dir_dict, year, month_str, grd_fle))
 
             try:
                 dask.compute(results)
@@ -155,16 +143,18 @@ if __name__ == "__main__":
     #
     elif args.mode == 'rechunk_frcst':
 
-        for year in range(syr, eyr + 1):
+        for year in process_years:
 
             results = []
 
-            for month in range(smnth, emnth + 1):
+            for month in process_months:
+                
                 month_str = str(month).zfill(2)
 
                 results.append(
-                    regional_processing_modules.rechunk_forecasts(domain_config, variable_config, dir_dict, syr, eyr,
-                                                                  year, month_str))
+                    #regional_processing_modules.rechunk_forecasts(domain_config, variable_config, dir_dict, syr, eyr,
+                    #                                              year, month_str))
+                    regional_processing_modules.rechunk_forecasts(domain_config, variable_config, dir_dict, year, month_str))
 
             try:
                 dask.compute(results)
@@ -179,7 +169,7 @@ if __name__ == "__main__":
         syr_calib = domain_config['syr_calib']
         eyr_calib = domain_config['eyr_calib']
 
-        for month in range(smnth, emnth + 1):
+        for month in process_months:
             month_str = str(month).zfill(2)
 
             regional_processing_modules.calib_forecasts(domain_config, variable_config, dir_dict, syr_calib, eyr_calib,
@@ -188,20 +178,20 @@ if __name__ == "__main__":
 
     elif args.mode == 'trunc_ref':
 
-        for year in range(syr, eyr + 1):
+        for year in process_years:
             results = []
             fle_list = []
             for variable in variable_config:
 
                 if domain_config['reference_history']['merged_variables'] == True:
                     month_str = "01"  # dummy
-                    fnme_dict = dir_fnme.set_filenames(domain_config, syr, eyr, year, month_str, True, variable)
+                    fnme_dict = dir_fnme.set_filenames(domain_config, year, month_str, True, variable)
                     fle_list.append(f"{dir_dict['ref_low_glob_dir']}/{fnme_dict['ref_low_glob_raw_dir']}")
                     fle_string = fle_list
                 else:
                     # Update Filenames
                     month_str = "01"  # dummy
-                    fnme_dict = dir_fnme.set_filenames(domain_config, syr, eyr, year, month_str, False, variable)
+                    fnme_dict = dir_fnme.set_filenames(domain_config, year, month_str, False, variable)
                     fle_string = f"{dir_dict['ref_low_glob_dir']}/{fnme_dict['ref_low_glob_dir']}"
                     results.append(
                         regional_processing_modules.truncate_reference(domain_config, variable_config, dir_dict,
@@ -212,17 +202,17 @@ if __name__ == "__main__":
                     regional_processing_modules.truncate_reference(domain_config, variable_config, dir_dict, fnme_dict,
                                                                    fle_string, variable))
 
-            try:
-                dask.compute(results)
-                logging.info(f"Truncate reference: Truncation for year {year} successful")
-            except:
-                logging.warning(f"Truncate reference: Something went wrong during truncation for year {year}")
+        try:
+            dask.compute(results)
+            logging.info(f"Truncate reference: Truncation successful")
+        except:
+            logging.warning(f"Truncate reference: Something went wrong during truncation for year {year}")
 
 
 
     elif args.mode == 'remap_ref':
 
-        for year in range(syr, eyr + 1):
+        for year in process_years:
             results = []
 
             month_str = "01"  # dummy
@@ -239,7 +229,7 @@ if __name__ == "__main__":
 
     elif args.mode == 'rechunk_ref':
 
-        for year in range(syr, eyr + 1):
+        for year in process_years:
             results = []
 
             # Update Filenames
@@ -269,7 +259,7 @@ if __name__ == "__main__":
         syr_calib = domain_config['syr_calib']
         eyr_calib = domain_config['eyr_calib']
         # Climatology for SEAS5
-        for month in range(smnth, emnth + 1):
+        for month in process_months:
             dataset = 'seas5'
             month_str = str(month).zfill(2)
             regional_processing_modules.create_climatology(dataset, domain_config, variable_config, dir_dict, syr_calib,
@@ -283,7 +273,7 @@ if __name__ == "__main__":
 
     # Create quantiles, terciles, extremes, etc. for later evaluation
     elif args.mode == 'quantiles':
-        for month in range(smnth, emnth + 1):
+        for month in process_months:
             month_str = str(month).zfill(2)
 
             regional_processing_modules.calc_quantile_thresh(domain_config, dir_dict, syr, eyr, month_str)
