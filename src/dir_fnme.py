@@ -62,7 +62,9 @@ def set_and_make_dirs(domain_config):
 # Set filenames
 # Change this function and add some history filenames with syr_calib and eyr_calib
 #def set_filenames(domain_config, syr = None, eyr = None, year = None, month_str = None, merge = None, variable = None):
+
 def set_filenames(domain_config, year = None, month_str = None, merge = None, variable = None):
+    
     # Filenames are different depending, if all variables should be merged into one file, or each variable will be stored as sepperate file
     if merge == True:
         fnme_dict = {
