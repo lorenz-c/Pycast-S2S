@@ -1,0 +1,22 @@
+# This CITATION.cff file was generated with cffinit.
+# Visit https://bit.ly/cffinit to generate yours today!
+
+cff-version: 1.2.0
+title: >-
+  Post-processing routines for hydrometeorological
+  subseasonal-to-seasonal forecasts
+message: >-
+  If you use this software, please cite it using the
+  metadata from this file.
+type: software
+authors:
+  - given-names: Christof
+    family-names: Lorenz
+    email: Christof.Lorenz@kit.edu
+    affiliation: Karlsruhe Institute of Technology
+    orcid: 'https://orcid.org/0000-0001-5590-5470'
+  - given-names: Borkenhagen
+    family-names: Clemens
+    email: clemens.borkenhagen9@kit.edu
+    affiliation: Karlsruhe Institute of Technology
+
