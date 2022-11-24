@@ -1,0 +1,9 @@
+pandas
+dask
+xarray
+numpy
+netCDF4
+scipy
+pytest
+surpyval
+formulaic
