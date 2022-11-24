@@ -12,6 +12,7 @@ dependencies:
   - numpy
   - netCDF4
   - scipy
+  - pytest
   - pip
   - pip:
     - surpyval

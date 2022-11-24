@@ -4,9 +4,9 @@ import json
 import dask
 import argparse
 import xarray as xr
-import regional_processing_modules
-import dir_fnme
-import helper_modules
+import regional_processing_modules 
+import dir_fnme 
+import helper_modules 
 import numpy as np
 
 from dask.distributed import Client
@@ -109,10 +109,8 @@ if __name__ == "__main__":
 
             for month in process_months:
                 
-                month_str = str(month).zfill(2)
-
                 results.append(
-                    regional_processing_modules.truncate_forecasts(domain_config, variable_config, dir_dict, year, month_str))
+                    regional_processing_modules.truncate_forecasts(domain_config, variable_config, dir_dict, year, month))
             try:
                 dask.compute(results)
                 logging.info(f"Truncate forecasts: Truncation for year {year} successful")
@@ -127,11 +125,9 @@ if __name__ == "__main__":
 
             #for month in range(smnth, emnth + 1):
             for month in process_months:
-                
-                month_str = str(month).zfill(2)
 
                 results.append(
-                    regional_processing_modules.remap_forecasts(domain_config, variable_config, dir_dict, year, month_str, grd_fle))
+                    regional_processing_modules.remap_forecasts(domain_config, variable_config, dir_dict, year, month, grd_fle))
 
             try:
                 dask.compute(results)
@@ -148,13 +144,10 @@ if __name__ == "__main__":
             results = []
 
             for month in process_months:
-                
-                month_str = str(month).zfill(2)
 
                 results.append(
-                    #regional_processing_modules.rechunk_forecasts(domain_config, variable_config, dir_dict, syr, eyr,
-                    #                                              year, month_str))
-                    regional_processing_modules.rechunk_forecasts(domain_config, variable_config, dir_dict, year, month_str))
+                    regional_processing_modules.rechunk_forecasts(domain_config, variable_config, dir_dict, year, month)
+                    )
 
             try:
                 dask.compute(results)
@@ -212,37 +205,37 @@ if __name__ == "__main__":
 
     elif args.mode == 'remap_ref':
 
+        results = []
+        
         for year in process_years:
-            results = []
+        
+            month = 1 # Dummy... In a future release, we also want to support monthly insead of yearly files
+            results.append(regional_processing_modules.remap_reference(domain_config, variable_config, dir_dict, year, month, grd_fle))
 
-            month_str = "01"  # dummy
-            results.append(
-                regional_processing_modules.remap_reference(domain_config, variable_config, dir_dict, syr, eyr, year,
-                                                            month_str, grd_fle))
-
-            try:
-                dask.compute(results)
-                logging.info(f"Remap reference: Remap for year {year} successful")
-            except:
-                logging.warning(f"Remap reference: Something went wrong during truncation for year {year}")
+        try:
+            dask.compute(results)
+            logging.info(f"Remap reference: Remap for year {year} successful")
+        except:
+            logging.warning(f"Remap reference: Something went wrong during truncation for year {year}")
 
 
     elif args.mode == 'rechunk_ref':
 
+        results = []
+        
         for year in process_years:
-            results = []
-
             # Update Filenames
-            month_str = "01"  # dummy
-            results.append(
-                regional_processing_modules.rechunk_reference(domain_config, variable_config, dir_dict, syr, eyr, year,
-                                                              month_str))
+            month = 1
+            regional_processing_modules.rechunk_reference(domain_config, variable_config, dir_dict, year, month)
+            #results.append(regional_processing_modules.rechunk_reference(domain_config, variable_config, dir_dict, year, month))
 
-            try:
-                dask.compute(results)
-                logging.info(f"Rechunk reference: Rechunk for year {year} successful")
-            except:
-                logging.warning(f"Rechunk reference: Something went wrong during rechunk for year {year}")
+        #try:
+        #    dask.compute(results)
+        #    logging.info(f"Rechunk reference: Rechunk for year {year} successful")
+        #except:
+        #    logging.warning(f"Rechunk reference: Something went wrong during rechunk for year {year}")
+                
+                
 
     elif args.mode == 'calib_ref':
 

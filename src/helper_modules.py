@@ -303,6 +303,8 @@ def decode_processing_years(years_string):
             years = range(year_list[0], year_list[2] + 1) # We want the last year to be included in the list...
         else:
             years = year_list
+    elif len(year_list) > 3:
+        years = year_list
             
     return years
 
@@ -322,6 +324,8 @@ def decode_processing_months(months_string):
             months = range(month_list[0], month_list[2] + 1) # We want the last month to be included in the list...
         else:
             months = month_list
+    elif len(month_list) > 3:
+        months = month_list
             
     return months
     

@@ -37,7 +37,8 @@ import dir_fnme
 global bbox
 
 
-def create_grd_file(domain_config, dir_dict, fnme_dict):
+def create_grd_file(domain_config: dict, dir_dict: dict, fnme_dict: dict) -> str:
+    """Creates a grid description file that is used for remapping the forecasts to the final resolution."""
     min_lon = domain_config["bbox"][0]
     max_lon = domain_config["bbox"][1]
     min_lat = domain_config["bbox"][2]
@@ -101,7 +102,9 @@ def preprocess(ds):
 
 
 @dask.delayed
-def truncate_forecasts(domain_config, variable_config, dir_dict, year, month_str):
+def truncate_forecasts(domain_config: dict, variable_config: dict, dir_dict: dict, year: int, month: int):
+    
+    month_str = str(month).zfill(2)
     bbox = domain_config['bbox']
 
     # Add one degree in each direction to avoid NaNs at the boarder after remapping.
@@ -154,12 +157,14 @@ def truncate_forecasts(domain_config, variable_config, dir_dict, year, month_str
 
 
 @dask.delayed
-def remap_forecasts(domain_config, variable_config, dir_dict, year, month_str, grd_fle):
+def remap_forecasts(domain_config: dict, variable_config: dict, dir_dict: dict, year: int, month: int, grd_fle: str):
     import logging
 
+    month_str = str(month).zfill(2)
+    
     if domain_config['reference_history']['merged_variables'] == True:
         # Update Filenames
-        fnme_dict = dir_fnme.set_filenames(domain_config, year, month_str,domain_config['raw_forecasts']["merged_variables"])
+        fnme_dict = dir_fnme.set_filenames(domain_config, year, month_str, domain_config['raw_forecasts']["merged_variables"])
 
         coarse_file = f"{dir_dict['frcst_low_reg_dir']}/{fnme_dict['frcst_low_reg_dir']}"
         hires_file = f"{dir_dict['frcst_high_reg_dir']}/{fnme_dict['frcst_high_reg_dir']}"
@@ -201,8 +206,11 @@ def remap_forecasts(domain_config, variable_config, dir_dict, year, month_str, g
             #    logging.error(f"Remap_forecast: Something went wrong during remapping for month {month} and year {year}")
 
 
-# @dask.delayed
-def rechunk_forecasts(domain_config, variable_config, dir_dict, year, month_str):
+@dask.delayed
+def rechunk_forecasts(domain_config: dict, variable_config: dict, dir_dict: dict, year: int, month: int):
+    
+    month_str = str(month).zfill(2)
+    
     if domain_config['reference_history']['merged_variables'] == True:
         # Update Filenames
         fnme_dict = dir_fnme.set_filenames(domain_config, year, month_str, domain_config['raw_forecasts']["merged_variables"])
@@ -303,7 +311,7 @@ def preprocess_reference(ds):
     time_attr = ds.time.attrs
 
     # Create time values
-    time_values = pd.date_range(f"{year}-01-01 12:00:00", periods=365)
+    time_values = pd.date_range(f"{year}-01-01 12:00:00", f"{year}-12-31 12:00:00")
 
     # Set time values
     ds = ds.assign_coords({"time": time_values})
@@ -334,7 +342,7 @@ def preprocess_reference(ds):
 
 
 @dask.delayed
-def truncate_reference(domain_config, variable_config, dir_dict, fnme_dict, fle_string, variable):
+def truncate_reference(domain_config: dict, variable_config: dict, dir_dict: dict, fnme_dict: dict, fle_string: str, variable: str):
     bbox = domain_config['bbox']
 
     # Add one degree in each direction to avoid NaNs at the boarder after remapping.
@@ -363,71 +371,69 @@ def truncate_reference(domain_config, variable_config, dir_dict, fnme_dict, fle_
     except:
         logging.error(f"Truncate reference: Something went wrong during truncation for variable {variable}!")
 
-
-def remap_reference(domain_config, variable_config, dir_dict, syr, eyr, year, month_str, grd_fle):
+@dask.delayed
+def remap_reference(domain_config: dict, variable_config: dict, dir_dict: dict, year: int, month: int, grd_fle: str):
     import logging
+    
+    month_str = str(month).zfill(2)
 
     if domain_config['reference_history']['merged_variables'] == True:
         # Update Filenames
-        fnme_dict = dir_fnme.set_filenames(domain_config, syr, eyr, year, month_str,
-                                           domain_config['reference_history']['merged_variables'])
-
+        fnme_dict   = dir_fnme.set_filenames(domain_config, year, month_str, domain_config['reference_history']['merged_variables'])
         coarse_file = f"{dir_dict['ref_low_reg_dir']}/{fnme_dict['ref_low_reg_dir']}"
-        hires_file = f"{dir_dict['ref_high_reg_daily_dir']}/{fnme_dict['ref_high_reg_daily_dir']}"
+        hires_file  = f"{dir_dict['ref_high_reg_daily_dir']}/{fnme_dict['ref_high_reg_daily_dir']}"
+        
+        cmd = ('cdo', '-O', '-f', 'nc4c', '-z', 'zip_6', f'remapbil,{grd_fle}', str(coarse_file), str(hires_file))
 
         try:
             os.path.isfile(coarse_file)
         except:
             logging.error(f"Remap_forecast: file {coarse_file} not available")
 
-        cmd = ('cdo', '-O', '-f', 'nc4c', '-z', 'zip_6', f'remapbil,{grd_fle}', str(coarse_file), str(hires_file))
+        
 
         run_cmd(cmd)
     else:
         for variable in variable_config:
             # Update Filenames
-            fnme_dict = dir_fnme.set_filenames(domain_config, syr, eyr, year, month_str,
-                                               domain_config['reference_history']['merged_variables'], variable)
-
+            fnme_dict   = dir_fnme.set_filenames(domain_config, year, month_str, domain_config['reference_history']['merged_variables'], variable)
             coarse_file = f"{dir_dict['ref_low_reg_dir']}/{fnme_dict['ref_low_reg_dir']}"
-            hires_file = f"{dir_dict['ref_high_reg_daily_dir']}/{fnme_dict['ref_high_reg_daily_dir']}"
+            hires_file  = f"{dir_dict['ref_high_reg_daily_dir']}/{fnme_dict['ref_high_reg_daily_dir']}"
+            
+            print(coarse_file) 
+            cmd = ('cdo', '-O', '-f', 'nc4c', '-z', 'zip_6', f'remapbil,{grd_fle}', str(coarse_file), str(hires_file))
 
             try:
                 os.path.isfile(coarse_file)
             except:
                 logging.error(f"Remap_forecast: file {coarse_file} not available")
 
-            cmd = ('cdo', '-O', '-f', 'nc4c', '-z', 'zip_6', f'remapbil,{grd_fle}', str(coarse_file), str(hires_file))
-
             run_cmd(cmd)
 
-
-def rechunk_reference(domain_config, variable_config, dir_dict, syr, eyr, year, month_str):
+#@dask.delayed
+def rechunk_reference(domain_config, variable_config, dir_dict, year, month_str):
     if domain_config['reference_history']['merged_variables'] == True:
         # Update Filenames:
-        fnme_dict = dir_fnme.set_filenames(domain_config, syr, eyr, year, month_str,
+        fnme_dict = dir_fnme.set_filenames(domain_config, year, month_str,
                                            domain_config['reference_history']['merged_variables'])
 
         fle_string = f"{dir_dict['ref_high_reg_daily_dir']}/{fnme_dict['ref_high_reg_daily_dir']}"
 
         # ds = xr.open_mfdataset(input_file, parallel = True, chunks = {'time': 100})
-        ds = xr.open_mfdataset(fle_string, parallel=True, chunks={'time': 50}, engine='netcdf4', preprocess=preprocess,
-                               autoclose=True)
+        ds = xr.open_mfdataset(fle_string, parallel=True, chunks={'time': 50}, engine='netcdf4', preprocess=preprocess, utoclose=True)
 
-        coords = {'time': ds['time'].values, 'lat': ds['lat'].values.astype(np.float32),
-                  'lon': ds['lon'].values.astype(np.float32)}
+        coords = {'time': ds['time'].values, 'lat': ds['lat'].values.astype(np.float32), 'lon': ds['lon'].values.astype(np.float32)}
 
         encoding = set_encoding(variable_config, coords, 'lines')
 
         try:
-            ds.to_netcdf(f"{dir_dict['ref_high_reg_daily_lnch_dir']}/{fnme_dict['ref_high_reg_daily_lnch_dir']}",
-                         encoding=encoding)
+            ds.to_netcdf(f"{dir_dict['ref_high_reg_daily_lnch_dir']}/{fnme_dict['ref_high_reg_daily_lnch_dir']}", encoding=encoding)
         except:
             logging.error(f"Rechunk reference: Rechunking of reference data failed!")
     else:
         for variable in variable_config:
             # Update Filenames:
-            fnme_dict = dir_fnme.set_filenames(domain_config, syr, eyr, year, month_str,
+            fnme_dict = dir_fnme.set_filenames(domain_config, year, month_str,
                                                domain_config['reference_history']['merged_variables'], variable)
 
             fle_string = f"{dir_dict['ref_high_reg_daily_dir']}/{fnme_dict['ref_high_reg_daily_dir']}"
@@ -448,14 +454,13 @@ def rechunk_reference(domain_config, variable_config, dir_dict, syr, eyr, year, 
                 logging.error(f"Rechunk reference: Rechunking of reference data failed for variable {variable}!")
 
 
-def calib_reference(domain_config, variable_config, dir_dict, syr, eyr):
+def calib_reference(domain_config: dict, variable_config: dict, dir_dict: dict, syr: int, eyr: int):
     fle_list = []
     if domain_config['reference_history']['merged_variables'] == True:
         for year in range(syr, eyr + 1):
             # Update filenames
             month_str = "01"  # dummy
-            fnme_dict = dir_fnme.set_filenames(domain_config, syr, eyr, year, month_str,
-                                               domain_config['reference_history']['merged_variables'])
+            fnme_dict = dir_fnme.set_filenames(domain_config, year, month_str, domain_config['reference_history']['merged_variables'])
 
             fle_list.append(f"{dir_dict['ref_high_reg_daily_dir']}/{fnme_dict['ref_high_reg_daily_dir']}")
 
@@ -474,17 +479,18 @@ def calib_reference(domain_config, variable_config, dir_dict, syr, eyr):
         except:
             logging.error(f"Rechunk reference: Rechunking of reference data failed for variable!")
     else:
+        
         for variable in variable_config:
+            
             for year in range(syr, eyr + 1):
                 # Update filenames
                 month_str = "01"  # dummy
-                fnme_dict = dir_fnme.set_filenames(domain_config, syr, eyr, year, month_str,
-                                                   domain_config['reference_history']['merged_variables'], variable)
+                fnme_dict = dir_fnme.set_filenames(domain_config, year, month_str, domain_config['reference_history']['merged_variables'], variable)
 
                 fle_list.append(f"{dir_dict['ref_high_reg_daily_dir']}/{fnme_dict['ref_high_reg_daily_dir']}")
 
             # ds = xr.open_mfdataset(input_file, parallel = True, chunks = {'time': 100})
-            ds = xr.open_mfdataset(fle_list, parallel=True, chunks={'time': 50}, engine='netcdf4', autoclose=True)
+            ds = xr.open_mfdataset(fle_list, parallel=True, engine='netcdf4', autoclose=True)
 
             coords = {'time': ds['time'].values, 'lat': ds['lat'].values.astype(np.float32),
                       'lon': ds['lon'].values.astype(np.float32)}
