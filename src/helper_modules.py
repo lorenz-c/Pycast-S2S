@@ -278,7 +278,7 @@ def getCluster(queue, nodes, jobs_per_node):
     #)
 
 
-    os.environ["MALLOC_TRIM_THRESHOLD_"] = 0
+    os.environ["MALLOC_TRIM_THRESHOLD_"] = "0"
         # str(dask.config.get("distributed.nanny.environ.MALLOC_TRIM_THRESHOLD_"))
 
 
