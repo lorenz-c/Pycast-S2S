@@ -245,7 +245,7 @@ def preprocess_mdl_hist(filename, month, variable):
 
 
 def getCluster(queue, nodes, jobs_per_node):
-
+    import distributed
     import dask.config
     import os
 
@@ -277,8 +277,7 @@ def getCluster(queue, nodes, jobs_per_node):
     #    walltime=walltime
     #)
 
-
-    os.environ["MALLOC_TRIM_THRESHOLD_"] = "100"
+    os.environ["MALLOC_TRIM_THRESHOLD_"] = str(dask.config.get("distributed.nanny.environ.MALLOC_TRIM_THRESHOLD_"))
         # str(dask.config.get("distributed.nanny.environ.MALLOC_TRIM_THRESHOLD_"))
 
 
