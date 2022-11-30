@@ -245,6 +245,10 @@ def preprocess_mdl_hist(filename, month, variable):
 
 
 def getCluster(queue, nodes, jobs_per_node):
+
+    import dask.config
+    import os
+
     workers = nodes * jobs_per_node
 
     # cluster options
@@ -272,6 +276,11 @@ def getCluster(queue, nodes, jobs_per_node):
     #    project='dask_test',
     #    walltime=walltime
     #)
+
+
+    os.environ["MALLOC_TRIM_THRESHOLD_"] = 0
+        # str(dask.config.get("distributed.nanny.environ.MALLOC_TRIM_THRESHOLD_"))
+
 
     cluster = SLURMCluster(
         cores=cores,
