@@ -82,7 +82,7 @@ if __name__ == "__main__":
 
     # Get some ressourcers
     if args.node is not None:
-        client, cluster = helper_modules.getCluster(args.node, 1, 10) # 35
+        client, cluster = helper_modules.getCluster(args.node, 1, 5) # 35
     
     if args.scheduler_file is not None:
         client = Client(scheduler_file=args.scheduler_file)
