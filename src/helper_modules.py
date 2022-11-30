@@ -277,7 +277,13 @@ def getCluster(queue, nodes, jobs_per_node):
     #    walltime=walltime
     #)
 
-    os.environ["MALLOC_TRIM_THRESHOLD_"] = str(dask.config.get("distributed.nanny.environ.MALLOC_TRIM_THRESHOLD_"))
+    # import ctypes
+
+    # def trim_memory() -> int:
+    #     libc = ctypes.CDLL("libc.so.6")
+    #     return libc.malloc_trim(0)
+
+    # os.environ["MALLOC_TRIM_THRESHOLD_"] = str(dask.config.get("distributed.nanny.environ.MALLOC_TRIM_THRESHOLD_"))
         # str(dask.config.get("distributed.nanny.environ.MALLOC_TRIM_THRESHOLD_"))
 
 
