@@ -262,11 +262,22 @@ def getCluster(queue, nodes, jobs_per_node):
         cores, memory, walltime = (96, '800GB', '48:00:00')
 
     # cluster if only single cluster is needed!
+    # cluster if only single cluster is needed!
+    # cluster = SLURMCluster(
+    #    cores=cores,
+    #    memory=memory,
+    #    processes=jobs_per_node,
+    #    local_directory='/bg/data/NCZarr/temp',
+    #    queue=queue,
+    #    project='dask_test',
+    #    walltime=walltime
+    #)
+
     cluster = SLURMCluster(
         cores=cores,
         memory=memory,
         processes=jobs_per_node,
-        local_directory='/bg/data/NCZarr/temp',
+        local_directory='/pd/home/borkenhagen-c/temp',
         queue=queue,
         project='dask_test',
         walltime=walltime
