@@ -280,7 +280,8 @@ def getCluster(queue, nodes, jobs_per_node):
         local_directory='/pd/home/borkenhagen-c/temp',
         queue=queue,
         project='dask_test',
-        walltime=walltime
+        walltime=walltime,
+        environ = {"MALLOC_TRIM_THRESHOLD_": "65536"}
     )
 
     client = Client(cluster)
