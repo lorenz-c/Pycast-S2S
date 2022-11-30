@@ -281,7 +281,6 @@ def getCluster(queue, nodes, jobs_per_node):
         queue=queue,
         project='dask_test',
         walltime=walltime,
-        worker_extra_args = {"MALLOC_TRIM_THRESHOLD_": "65536"}
     )
 
     client = Client(cluster)
