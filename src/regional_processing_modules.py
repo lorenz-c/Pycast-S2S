@@ -253,6 +253,7 @@ def rechunk_forecasts(domain_config: dict, variable_config: dict, dir_dict: dict
     try:
         ds.to_netcdf(final_file, encoding={variable: encoding[variable]})
         logging.info(f"Rechunking forecast for {month_str} successful")
+        ds.close()
     except:
         logging.error(f"Something went wrong during writing of forecast linechunks")
 
