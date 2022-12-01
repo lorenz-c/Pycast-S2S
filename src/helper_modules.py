@@ -92,10 +92,9 @@ def set_encoding(variable_config, coordinates, type='maps'):
             '_FillValue': variable_config[variable]['_FillValue'],
             'scale_factor': variable_config[variable]['scale_factor'],
             'add_offset': variable_config[variable]['scale_factor'],
-            'dtype': variable_config[variable]['dtype'],
-            'chunksizes': chunksizes
+            'dtype': variable_config[variable]['dtype']
         }
-
+    # 'chunksizes': chunksizes
     return encoding
 
 
