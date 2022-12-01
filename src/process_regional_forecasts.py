@@ -109,9 +109,7 @@ if __name__ == "__main__":
 
             for month in process_months:
                 
-                y = dask.delayed(regional_processing_modules.truncate_forecasts)(domain_config, variable_config, dir_dict, year, month)
-                results.append(y)
-                # results.append(regional_processing_modules.truncate_forecasts(domain_config, variable_config, dir_dict, year, month))
+                results.append(regional_processing_modules.truncate_forecasts(domain_config, variable_config, dir_dict, year, month))
             try:
                 dask.compute(results)
                 logging.info(f"Truncate forecasts: Truncation for year {year} successful")

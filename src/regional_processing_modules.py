@@ -240,30 +240,30 @@ def rechunk_forecasts(domain_config: dict, variable_config: dict, dir_dict: dict
 
     fle_string = f"{dir_dict['frcst_high_reg_dir']}/{fnme_dict['frcst_high_reg_dir']}"
 
-    ds = xr.open_mfdataset(fle_string, parallel=True, engine='netcdf4', autoclose=True, chunks={'time': -1})
+    ds = xr.open_mfdataset(fle_string, parallel=True, engine='netcdf4', autoclose=True, chunks={'time': 50})
     # ds = xr.open_mfdataset(fle_string, parallel =True, engine='netcdf4', autoclose=True, chunks={'time': 215, 'ens': 25, 'lat': 1, 'lon': 1})
     # ds = xr.open_mfdataset(fle_string)
     coords = {'time': ds['time'].values, 'ens': ds['ens'].values, 'lat': ds['lat'].values.astype(np.float32), 'lon': ds['lon'].values.astype(np.float32)}
     # chunks = {"time": 1}
     encoding = set_encoding(variable_config, coords, 'lines')
 
-    ds = ds.chunk(chunks={'time': len(ds['time'].values), 'ens': len(ds['ens'].values), 'lat': 1, 'lon': 1})
+    # ds = ds.chunk(chunks={'time': len(ds['time'].values), 'ens': len(ds['ens'].values), 'lat': 1, 'lon': 1})
 
     # chunksizes = [len(coords['time']), len(coords['ens']), 1, 1]
 
     final_file = f"{dir_dict['frcst_high_reg_lnch_dir']}/{fnme_dict['frcst_high_reg_lnch_dir']}"
 
-    return ds.to_netcdf(final_file, encoding={variable: encoding[variable]})
+    # ds.to_netcdf(final_file, encoding={variable: encoding[variable]})
     # ds.close()
     # ds.to_netcdf(final_file)
 
 
-    # try:
-    #     ds.to_netcdf(final_file, encoding={variable: encoding[variable]})
-    #     logging.info(f"Rechunking forecast for {month_str} successful")
-    #     ds.close()
-    # except:
-    #     logging.error(f"Something went wrong during writing of forecast linechunks")
+    try:
+        ds.to_netcdf(final_file, encoding={variable: encoding[variable]})
+        logging.info(f"Rechunking forecast for {month_str} successful")
+        ds.close()
+    except:
+        logging.error(f"Something went wrong during writing of forecast linechunks")
 
 
 def calib_forecasts(domain_config, variable_config, dir_dict, syr, eyr, month_str):
