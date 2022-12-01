@@ -253,8 +253,8 @@ def rechunk_forecasts(domain_config: dict, variable_config: dict, dir_dict: dict
 
     final_file = f"{dir_dict['frcst_high_reg_lnch_dir']}/{fnme_dict['frcst_high_reg_lnch_dir']}"
 
-    ds.to_netcdf(final_file, encoding={variable: encoding[variable]})
-    ds.close()
+    return ds.to_netcdf(final_file, encoding={variable: encoding[variable]})
+    # ds.close()
     # ds.to_netcdf(final_file)
 
 
