@@ -242,11 +242,10 @@ def rechunk_forecasts(domain_config: dict, variable_config: dict, dir_dict: dict
 
     # ds = xr.open_mfdataset(fle_string, parallel=True, engine='netcdf4', autoclose=True, chunks={'time': 50})
     ds = xr.open_mfdataset(fle_string, parallel =True, engine='netcdf4', autoclose=True, chunks={'time': 215, 'ens': 25, 'lat': 1, 'lon': 1})
+    ds = xr.open_mfdataset(fle_string)
+    coords = {'time': ds['time'].values, 'ens': ds['ens'].values, 'lat': ds['lat'].values.astype(np.float32), 'lon': ds['lon'].values.astype(np.float32)}
 
-    coords = {'time': ds['time'].values, 'ens': ds['ens'].values, 'lat': ds['lat'].values.astype(np.float32),
-                      'lon': ds['lon'].values.astype(np.float32)}
-
-    encoding = set_encoding(variable_config, coords, 'lines')
+    # encoding = set_encoding(variable_config, coords, 'lines')
 
     # ds = ds.chunk(chunks={'time': len(ds['time'].values), 'ens': len(ds['ens'].values), 'lat': 1, 'lon': 1})
 
