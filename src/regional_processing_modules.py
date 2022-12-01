@@ -248,7 +248,7 @@ def rechunk_forecasts(domain_config: dict, variable_config: dict, dir_dict: dict
 
     # encoding = set_encoding(variable_config, coords, 'lines')
 
-    ds = ds.chunk(chunks={'time': len(ds['time'].values), 'ens': len(ds['ens'].values), 'lat': len(ds['lat'].values.astype(np.float32)), 'lon': len(ds['lon'].values.astype(np.float32))})
+    ds = ds.chunk(chunks={'time': len(ds['time'].values), 'ens': len(ds['ens'].values), 'lat': 1, 'lon': 1})
 
     # chunksizes = [len(coords['time']), len(coords['ens']), 1, 1]
 
