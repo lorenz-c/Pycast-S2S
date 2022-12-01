@@ -240,11 +240,11 @@ def rechunk_forecasts(domain_config: dict, variable_config: dict, dir_dict: dict
 
     fle_string = f"{dir_dict['frcst_high_reg_dir']}/{fnme_dict['frcst_high_reg_dir']}"
 
-    ds = xr.open_mfdataset(fle_string, parallel=True, engine='netcdf4', autoclose=True, chunks={'time': 50})
+    ds = xr.open_mfdataset(fle_string, parallel=True, engine='netcdf4', autoclose=True, chunks={'time': -1})
     # ds = xr.open_mfdataset(fle_string, parallel =True, engine='netcdf4', autoclose=True, chunks={'time': 215, 'ens': 25, 'lat': 1, 'lon': 1})
     # ds = xr.open_mfdataset(fle_string)
     coords = {'time': ds['time'].values, 'ens': ds['ens'].values, 'lat': ds['lat'].values.astype(np.float32), 'lon': ds['lon'].values.astype(np.float32)}
-
+    # chunks = {"time": 1}
     encoding = set_encoding(variable_config, coords, 'lines')
 
     ds = ds.chunk(chunks={'time': len(ds['time'].values), 'ens': len(ds['ens'].values), 'lat': 1, 'lon': 1})
@@ -253,7 +253,8 @@ def rechunk_forecasts(domain_config: dict, variable_config: dict, dir_dict: dict
 
     final_file = f"{dir_dict['frcst_high_reg_lnch_dir']}/{fnme_dict['frcst_high_reg_lnch_dir']}"
 
-    return ds.to_netcdf(final_file, encoding={variable: encoding[variable]}, compute = False)
+    ds.to_netcdf(final_file, encoding={variable: encoding[variable]})
+    ds.close()
     # ds.to_netcdf(final_file)
 
 
