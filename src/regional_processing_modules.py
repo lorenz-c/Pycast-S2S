@@ -243,14 +243,19 @@ def rechunk_forecasts(domain_config: dict, variable_config: dict, dir_dict: dict
     # ds = xr.open_mfdataset(fle_string, parallel=True, engine='netcdf4', autoclose=True, chunks={'time': 50})
     ds = xr.open_mfdataset(fle_string, chunks={'time': 50})
 
-    coords = {'time': ds['time'].values, 'ens': ds['ens'].values, 'lat': ds['lat'].values.astype(np.float32),
-                      'lon': ds['lon'].values.astype(np.float32)}
+    # coords = {'time': ds['time'].values, 'ens': ds['ens'].values, 'lat': ds['lat'].values.astype(np.float32),
+                      # 'lon': ds['lon'].values.astype(np.float32)}
 
-    encoding = set_encoding(variable_config, coords, 'lines')
+    # encoding = set_encoding(variable_config, coords, 'lines')
+
+    ds = ds.chunk( chunks={'time': ds['time'].values, 'ens': ds['ens'].values, 'lat': ds['lat'].values.astype(np.float32), 'lon':ds['lon'].values.astype(np.float32)})
+
+    # chunksizes = [len(coords['time']), len(coords['ens']), 1, 1]
 
     final_file = f"{dir_dict['frcst_high_reg_lnch_dir']}/{fnme_dict['frcst_high_reg_lnch_dir']}"
 
-    ds.to_netcdf(final_file, encoding={variable: encoding[variable]})
+    # ds.to_netcdf(final_file, encoding={variable: encoding[variable]})
+    ds.to_netcdf(final_file)
     ds.close()
 
     # try:
