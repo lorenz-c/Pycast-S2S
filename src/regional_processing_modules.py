@@ -268,9 +268,11 @@ def rechunk_forecasts(domain_config: dict, variable_config: dict, dir_dict: dict
     except:
         logging.error(f"Something went wrong during writing of forecast linechunks")
 
+
 # domain_config: dict, variable_config: dict, dir_dict: dict, year: int, month: int, variable: str
 @dask.delayed
-def calib_forecasts(domain_config: dict, variable_config: dict, dir_dict: dict, file_list: list, month_str: str, variable: str):
+def calib_forecasts(domain_config: dict, variable_config: dict, dir_dict: dict, file_list: list, month_str: str,
+                    variable: str):
     # file_list = []
     # syr =  domain_config['syr_calib']
     # eyr =  domain_config['eyr_calib']
