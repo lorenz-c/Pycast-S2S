@@ -175,7 +175,7 @@ if __name__ == "__main__":
 
                 # year = 1981 #dummy
                 # regional_processing_modules.calib_forecasts(domain_config, variable_config, dir_dict, file_list, month_str, variable)
-                results.append(regional_processing_modules.calib_forecasts(domain_config, variable_config, dir_dict, month_str, variable))
+                results.append(regional_processing_modules.calib_forecasts(domain_config, variable_config, dir_dict, file_list, month_str, variable))
                 # print(results)
         try:
             print("try")
