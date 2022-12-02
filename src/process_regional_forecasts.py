@@ -163,7 +163,7 @@ if __name__ == "__main__":
 
         syr_calib = domain_config['syr_calib']
         eyr_calib = domain_config['eyr_calib']
-
+        print(f"{syr_calib},{eyr_calib}")
         for month in process_months:
             month_str = str(month).zfill(2)
 
