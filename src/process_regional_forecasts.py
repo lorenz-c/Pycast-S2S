@@ -150,7 +150,7 @@ if __name__ == "__main__":
             for year in process_years:
                 for month in process_months:
                     results.append(regional_processing_modules.rechunk_forecasts(domain_config, variable_config, dir_dict, year, month, variable))
-                    # print(results)
+                    print(results)
         try:
             dask.compute(results)
             logging.info(f"Rechunk forecasts: Rechunking for year {year} successful")
