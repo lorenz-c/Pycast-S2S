@@ -161,14 +161,14 @@ if __name__ == "__main__":
 
     elif args.mode == 'calib-frcst':
 
-        syr_calib = domain_config['syr_calib']
-        eyr_calib = domain_config['eyr_calib']
-        print(f"{syr_calib},{eyr_calib}")
+        # syr_calib = domain_config['syr_calib']
+        # eyr_calib = domain_config['eyr_calib']
+        # print(f"{syr_calib},{eyr_calib}")
+
         for month in process_months:
             month_str = str(month).zfill(2)
-
-            regional_processing_modules.calib_forecasts(domain_config, variable_config, dir_dict, syr_calib, eyr_calib,
-                                                        month_str)
+            # year = 1981 #dummy
+            regional_processing_modules.calib_forecasts(domain_config, variable_config, dir_dict, month_str)
 
 
     elif args.mode == 'trunc_ref':

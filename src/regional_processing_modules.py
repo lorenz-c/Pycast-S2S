@@ -266,13 +266,15 @@ def rechunk_forecasts(domain_config: dict, variable_config: dict, dir_dict: dict
         logging.error(f"Something went wrong during writing of forecast linechunks")
 
 
-def calib_forecasts(domain_config, variable_config, dir_dict, syr, eyr, month_str):
+def calib_forecasts(domain_config, variable_config, dir_dict, month_str):
     file_list = []
+    syr =  domain_config['syr_calib']
+    eyr =  domain_config['eyr_calib']
+
     if domain_config['reference_history']['merged_variables'] == True:
         for year in range(syr, eyr + 1):
             # Update Filenames
-            fnme_dict = dir_fnme.set_filenames(domain_config, syr, eyr, year, month_str,
-                                               domain_config['raw_forecasts']["merged_variables"])
+            fnme_dict = dir_fnme.set_filenames(domain_config, year, month_str, domain_config['raw_forecasts']["merged_variables"])
 
             file_list.append(f"{dir_dict['frcst_high_reg_dir']}/{fnme_dict['frcst_high_reg_dir']}")
 
@@ -294,8 +296,7 @@ def calib_forecasts(domain_config, variable_config, dir_dict, syr, eyr, month_st
         for variable in variable_config:
             for year in range(syr, eyr + 1):
                 # Update Filenames
-                fnme_dict = dir_fnme.set_filenames(domain_config, syr, eyr, year, month_str,
-                                                   domain_config['raw_forecasts']["merged_variables"], variable)
+                fnme_dict = dir_fnme.set_filenames(domain_config, year, month_str, domain_config['raw_forecasts']["merged_variables"], variable)
 
                 file_list.append(f"{dir_dict['frcst_high_reg_dir']}/{fnme_dict['frcst_high_reg_dir']}")
 
