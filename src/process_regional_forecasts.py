@@ -53,7 +53,6 @@ if __name__ == "__main__":
     # Read the domain configuration from the respective JSON
     with open('conf/domain_config.json', 'r') as j:
         domain_config = json.loads(j.read())
-
     # Read the global configuration from the respective JSON --> Add this as further input parameter
     with open('conf/attribute_config.json', 'r') as j:
         attribute_config = json.loads(j.read())
@@ -68,6 +67,7 @@ if __name__ == "__main__":
         logging.error(f"Init: no configuration for domain {args.domain}")
         sys.exit()
 
+    print(domain_config)
     variable_config = {key: value for key, value in variable_config.items() if key in domain_config['variables']}
 
     dir_dict = dir_fnme.set_and_make_dirs(domain_config)
@@ -79,6 +79,8 @@ if __name__ == "__main__":
     
     process_years  = helper_modules.decode_processing_years(args.Years)
     process_months = helper_modules.decode_processing_months(args.Months)
+    print(process_years)
+    print(process_months)
 
     # Get some ressourcers
     if args.node is not None:
