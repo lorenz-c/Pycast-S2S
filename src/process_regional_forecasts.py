@@ -174,16 +174,16 @@ if __name__ == "__main__":
                     file_list.append(f"{dir_dict['frcst_high_reg_dir']}/{fnme_dict['frcst_high_reg_dir']}")
 
                 # year = 1981 #dummy
-                # regional_processing_modules.calib_forecasts(domain_config, variable_config, dir_dict, file_list, month_str, variable)
-                results.append(regional_processing_modules.calib_forecasts(domain_config, variable_config, dir_dict, file_list, month_str, variable))
+                regional_processing_modules.calib_forecasts(domain_config, variable_config, dir_dict, file_list, month_str, variable)
+                # results.append(regional_processing_modules.calib_forecasts(domain_config, variable_config, dir_dict, file_list, month_str, variable))
                 # print(results)
-        try:
-            print("try")
-            dask.compute(results)
-            logging.info(f"Calib Forecast: Calibration period successful")
+        # try:
+        #    print("try")
+        #     dask.compute(results)
+        #    logging.info(f"Calib Forecast: Calibration period successful")
 
-        except:
-           logging.warning(f"Calib Forecast:: Something went wrong during calibration period")
+        # except:
+        #    logging.warning(f"Calib Forecast:: Something went wrong during calibration period")
 
     elif args.mode == 'trunc_ref':
 

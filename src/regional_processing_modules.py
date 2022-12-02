@@ -270,7 +270,7 @@ def rechunk_forecasts(domain_config: dict, variable_config: dict, dir_dict: dict
 
 
 # domain_config: dict, variable_config: dict, dir_dict: dict, year: int, month: int, variable: str
-@dask.delayed
+# @dask.delayed
 def calib_forecasts(domain_config: dict, variable_config: dict, dir_dict: dict, file_list: list, month_str: str,
                     variable: str):
     # file_list = []
