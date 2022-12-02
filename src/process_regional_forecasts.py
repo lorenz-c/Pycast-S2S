@@ -67,7 +67,6 @@ if __name__ == "__main__":
         logging.error(f"Init: no configuration for domain {args.domain}")
         sys.exit()
 
-    print(domain_config)
     variable_config = {key: value for key, value in variable_config.items() if key in domain_config['variables']}
 
     dir_dict = dir_fnme.set_and_make_dirs(domain_config)
@@ -79,8 +78,7 @@ if __name__ == "__main__":
     
     process_years  = helper_modules.decode_processing_years(args.Years)
     process_months = helper_modules.decode_processing_months(args.Months)
-    print(process_years)
-    print(process_months)
+
 
     # Get some ressourcers
     if args.node is not None:
@@ -146,11 +144,11 @@ if __name__ == "__main__":
         results = []
         
         for variable in variable_config:
-            print(variable)
+
             for year in process_years:
                 for month in process_months:
                     results.append(regional_processing_modules.rechunk_forecasts(domain_config, variable_config, dir_dict, year, month, variable))
-                    print(results)
+
         try:
             dask.compute(results)
             logging.info(f"Rechunk forecasts: Rechunking for year {year} successful")
