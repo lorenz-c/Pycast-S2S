@@ -146,7 +146,7 @@ if __name__ == "__main__":
         results = []
         
         for variable in variable_config:
-
+            print(variable)
             for year in process_years:
                 for month in process_months:
                     results.append(regional_processing_modules.rechunk_forecasts(domain_config, variable_config, dir_dict, year, month, variable))
