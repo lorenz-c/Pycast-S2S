@@ -169,6 +169,7 @@ if __name__ == "__main__":
                 month_str = str(month).zfill(2)
                 # year = 1981 #dummy
                 results.append(regional_processing_modules.calib_forecasts(domain_config, variable_config, dir_dict, month_str, variable))
+                print(results)
         try:
             dask.compute(results)
             logging.info(f"Calib Forecast: Calibration period successful")
