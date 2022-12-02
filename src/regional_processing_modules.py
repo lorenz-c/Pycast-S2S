@@ -265,7 +265,7 @@ def rechunk_forecasts(domain_config: dict, variable_config: dict, dir_dict: dict
     except:
         logging.error(f"Something went wrong during writing of forecast linechunks")
 
-@dask.delayed
+# @dask.delayed
 def calib_forecasts(domain_config, variable_config, dir_dict, month_str, variable):
     file_list = []
     syr =  domain_config['syr_calib']
@@ -278,7 +278,6 @@ def calib_forecasts(domain_config, variable_config, dir_dict, month_str, variabl
 
         file_list.append(f"{dir_dict['frcst_high_reg_dir']}/{fnme_dict['frcst_high_reg_dir']}")
 
-    print(file_list)
     ds = xr.open_mfdataset(file_list, parallel=True, engine='netcdf4', autoclose=True, chunks={'time': 50})
 
     coords = {'time': ds['time'].values, 'ens': ds['ens'].values, 'lat': ds['lat'].values.astype(np.float32),

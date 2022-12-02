@@ -168,15 +168,16 @@ if __name__ == "__main__":
             for month in process_months:
                 month_str = str(month).zfill(2)
                 # year = 1981 #dummy
-                results.append(regional_processing_modules.calib_forecasts(domain_config, variable_config, dir_dict, month_str, variable))
+                regional_processing_modules.calib_forecasts(domain_config, variable_config, dir_dict, month_str, variable)
+                # results.append(regional_processing_modules.calib_forecasts(domain_config, variable_config, dir_dict, month_str, variable))
                 # print(results)
-        try:
-            print("try")
-            dask.compute(results)
-            logging.info(f"Calib Forecast: Calibration period successful")
+        # try:
+        #    print("try")
+        #    dask.compute(results)
+        #    logging.info(f"Calib Forecast: Calibration period successful")
 
-        except:
-            logging.warning(f"Calib Forecast:: Something went wrong during calibration period")
+        # except:
+        #    logging.warning(f"Calib Forecast:: Something went wrong during calibration period")
 
     elif args.mode == 'trunc_ref':
 
