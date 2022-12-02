@@ -265,55 +265,55 @@ def rechunk_forecasts(domain_config: dict, variable_config: dict, dir_dict: dict
     except:
         logging.error(f"Something went wrong during writing of forecast linechunks")
 
-
-def calib_forecasts(domain_config, variable_config, dir_dict, month_str):
+@dask.delayed
+def calib_forecasts(domain_config, variable_config, dir_dict, month_str, variable):
     file_list = []
     syr =  domain_config['syr_calib']
     eyr =  domain_config['eyr_calib']
 
-    if domain_config['reference_history']['merged_variables'] == True:
-        for year in range(syr, eyr + 1):
-            # Update Filenames
-            fnme_dict = dir_fnme.set_filenames(domain_config, year, month_str, domain_config['raw_forecasts']["merged_variables"])
+    # if domain_config['reference_history']['merged_variables'] == True:
+    for year in range(syr, eyr + 1):
+        # Update Filenames
+        fnme_dict = dir_fnme.set_filenames(domain_config, year, month_str, domain_config['raw_forecasts']["merged_variables"], variable)
 
-            file_list.append(f"{dir_dict['frcst_high_reg_dir']}/{fnme_dict['frcst_high_reg_dir']}")
+        file_list.append(f"{dir_dict['frcst_high_reg_dir']}/{fnme_dict['frcst_high_reg_dir']}")
 
-        ds = xr.open_mfdataset(file_list, parallel=True, engine='netcdf4', autoclose=True, chunks={'time': 50})
+    ds = xr.open_mfdataset(file_list, parallel=True, engine='netcdf4', autoclose=True, chunks={'time': 50})
 
-        coords = {'time': ds['time'].values, 'ens': ds['ens'].values, 'lat': ds['lat'].values.astype(np.float32),
-                  'lon': ds['lon'].values.astype(np.float32)}
+    coords = {'time': ds['time'].values, 'ens': ds['ens'].values, 'lat': ds['lat'].values.astype(np.float32),
+              'lon': ds['lon'].values.astype(np.float32)}
 
-        encoding = set_encoding(variable_config, coords, 'lines')
+    encoding = set_encoding(variable_config, coords, 'lines')
 
-        final_file = f"{dir_dict['frcst_high_reg_lnch_calib_dir']}/{fnme_dict['frcst_high_reg_lnch_calib_dir']}"
+    final_file = f"{dir_dict['frcst_high_reg_lnch_calib_dir']}/{fnme_dict['frcst_high_reg_lnch_calib_dir']}"
 
-        try:
-            ds.to_netcdf(final_file, encoding=encoding)
-            logging.info(f"Rechunking forecast for {month_str} successful")
-        except:
-            logging.error(f"Something went wrong during writing of forecast linechunks")
-    else:
-        for variable in variable_config:
-            for year in range(syr, eyr + 1):
+    try:
+        ds.to_netcdf(final_file, encoding={variable: encoding[variable]})
+        logging.info(f"Rechunking forecast for {month_str} successful")
+    except:
+        logging.error(f"Something went wrong during writing of forecast linechunks")
+    # else:
+    #     for variable in variable_config:
+    #         for year in range(syr, eyr + 1):
                 # Update Filenames
-                fnme_dict = dir_fnme.set_filenames(domain_config, year, month_str, domain_config['raw_forecasts']["merged_variables"], variable)
+    #            fnme_dict = dir_fnme.set_filenames(domain_config, year, month_str, domain_config['raw_forecasts']["merged_variables"], variable)
 
-                file_list.append(f"{dir_dict['frcst_high_reg_dir']}/{fnme_dict['frcst_high_reg_dir']}")
+    #            file_list.append(f"{dir_dict['frcst_high_reg_dir']}/{fnme_dict['frcst_high_reg_dir']}")
 
-            ds = xr.open_mfdataset(file_list, parallel=True, engine='netcdf4', autoclose=True, chunks={'time': 50})
+    #        ds = xr.open_mfdataset(file_list, parallel=True, engine='netcdf4', autoclose=True, chunks={'time': 50})
 
-            coords = {'time': ds['time'].values, 'ens': ds['ens'].values, 'lat': ds['lat'].values.astype(np.float32),
-                      'lon': ds['lon'].values.astype(np.float32)}
+    #        coords = {'time': ds['time'].values, 'ens': ds['ens'].values, 'lat': ds['lat'].values.astype(np.float32),
+    #                  'lon': ds['lon'].values.astype(np.float32)}
 
-            encoding = set_encoding(variable_config, coords, 'lines')
+    #        encoding = set_encoding(variable_config, coords, 'lines')
 
-            final_file = f"{dir_dict['frcst_high_reg_lnch_calib_dir']}/{fnme_dict['frcst_high_reg_lnch_calib_dir']}"
+    #        final_file = f"{dir_dict['frcst_high_reg_lnch_calib_dir']}/{fnme_dict['frcst_high_reg_lnch_calib_dir']}"
 
-            try:
-                ds.to_netcdf(final_file, encoding={variable: encoding[variable]})
-                logging.info(f"Rechunking forecast for {month_str} successful")
-            except:
-                logging.error(f"Something went wrong during writing of forecast linechunks")
+    #        try:
+    #            ds.to_netcdf(final_file, encoding={variable: encoding[variable]})
+    #            logging.info(f"Rechunking forecast for {month_str} successful")
+    #        except:
+    #            logging.error(f"Something went wrong during writing of forecast linechunks")
 
 
 def preprocess_reference(ds):

@@ -160,16 +160,21 @@ if __name__ == "__main__":
 
 
     elif args.mode == 'calib-frcst':
-
+        results = []
         # syr_calib = domain_config['syr_calib']
         # eyr_calib = domain_config['eyr_calib']
         # print(f"{syr_calib},{eyr_calib}")
+        for variable in variable_config:
+            for month in process_months:
+                month_str = str(month).zfill(2)
+                # year = 1981 #dummy
+                results.append(regional_processing_modules.calib_forecasts(domain_config, variable_config, dir_dict, month_str, variable))
+        try:
+            dask.compute(results)
+            logging.info(f"Calib Forecast: Calibration period successful")
 
-        for month in process_months:
-            month_str = str(month).zfill(2)
-            # year = 1981 #dummy
-            regional_processing_modules.calib_forecasts(domain_config, variable_config, dir_dict, month_str)
-
+        except:
+            logging.warning(f"Calib Forecast:: Something went wrong during calibration period")
 
     elif args.mode == 'trunc_ref':
 
