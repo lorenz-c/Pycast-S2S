@@ -171,8 +171,8 @@ if __name__ == "__main__":
                 for year in range(syr_calib, eyr_calib + 1):
                     # Update Filenames
                     fnme_dict = dir_fnme.set_filenames(domain_config, year, month_str, domain_config['raw_forecasts']["merged_variables"], variable)
-                    file_list.append(f"{dir_dict['frcst_high_reg_dir']}/{fnme_dict['frcst_high_reg_dir']}")
-                    # file_list.append(f"{dir_dict['frcst_high_reg_lnch_dir']}/{fnme_dict['frcst_high_reg_lnch_dir']}")
+                    # file_list.append(f"{dir_dict['frcst_high_reg_dir']}/{fnme_dict['frcst_high_reg_dir']}")
+                    file_list.append(f"{dir_dict['frcst_high_reg_lnch_dir']}/{fnme_dict['frcst_high_reg_lnch_dir']}")
 
                 # year = 1981 #dummy
                 regional_processing_modules.calib_forecasts(domain_config, variable_config, dir_dict, file_list, month_str, variable)
