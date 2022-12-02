@@ -238,8 +238,7 @@ def rechunk_forecasts(domain_config: dict, variable_config: dict, dir_dict: dict
     # else:
     #    for variable in variable_config:
     # Update Filenames
-    fnme_dict = dir_fnme.set_filenames(domain_config, year, month_str,
-                                       domain_config['raw_forecasts']["merged_variables"], variable)
+    fnme_dict = dir_fnme.set_filenames(domain_config, year, month_str, domain_config['raw_forecasts']["merged_variables"], variable)
 
     fle_string = f"{dir_dict['frcst_high_reg_dir']}/{fnme_dict['frcst_high_reg_dir']}"
 
