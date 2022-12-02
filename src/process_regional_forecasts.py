@@ -161,23 +161,29 @@ if __name__ == "__main__":
 
     elif args.mode == 'calib-frcst':
         results = []
-        # syr_calib = domain_config['syr_calib']
-        # eyr_calib = domain_config['eyr_calib']
+        syr_calib = domain_config['syr_calib']
+        eyr_calib = domain_config['eyr_calib']
         # print(f"{syr_calib},{eyr_calib}")
         for variable in variable_config:
             for month in process_months:
                 month_str = str(month).zfill(2)
-                # year = 1981 #dummy
-                regional_processing_modules.calib_forecasts(domain_config, variable_config, dir_dict, month_str, variable)
-                # results.append(regional_processing_modules.calib_forecasts(domain_config, variable_config, dir_dict, month_str, variable))
-                # print(results)
-        # try:
-        #    print("try")
-        #    dask.compute(results)
-        #    logging.info(f"Calib Forecast: Calibration period successful")
+                file_list = []
+                for year in range(syr_calib, eyr_calib + 1):
+                    # Update Filenames
+                    fnme_dict = dir_fnme.set_filenames(domain_config, year, month_str, domain_config['raw_forecasts']["merged_variables"], variable)
+                    file_list.append(f"{dir_dict['frcst_high_reg_dir']}/{fnme_dict['frcst_high_reg_dir']}")
 
-        # except:
-        #    logging.warning(f"Calib Forecast:: Something went wrong during calibration period")
+                # year = 1981 #dummy
+                # regional_processing_modules.calib_forecasts(domain_config, variable_config, dir_dict, file_list, month_str, variable)
+                results.append(regional_processing_modules.calib_forecasts(domain_config, variable_config, dir_dict, month_str, variable))
+                # print(results)
+        try:
+            print("try")
+            dask.compute(results)
+            logging.info(f"Calib Forecast: Calibration period successful")
+
+        except:
+           logging.warning(f"Calib Forecast:: Something went wrong during calibration period")
 
     elif args.mode == 'trunc_ref':
 

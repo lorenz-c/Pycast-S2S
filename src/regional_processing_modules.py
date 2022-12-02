@@ -265,19 +265,18 @@ def rechunk_forecasts(domain_config: dict, variable_config: dict, dir_dict: dict
     except:
         logging.error(f"Something went wrong during writing of forecast linechunks")
 
-# @dask.delayed
-def calib_forecasts(domain_config, variable_config, dir_dict, month_str, variable):
-    file_list = []
-    syr =  domain_config['syr_calib']
-    eyr =  domain_config['eyr_calib']
+@dask.delayed
+def calib_forecasts(domain_config, variable_config, dir_dict, file_list, month_str, variable):
+    # file_list = []
+    #syr =  domain_config['syr_calib']
+    #eyr =  domain_config['eyr_calib']
 
     # if domain_config['reference_history']['merged_variables'] == True:
-    for year in range(syr, eyr + 1):
+    # for year in range(syr, eyr + 1):
         # Update Filenames
-        fnme_dict = dir_fnme.set_filenames(domain_config, year, month_str, domain_config['raw_forecasts']["merged_variables"], variable)
+    #    fnme_dict = dir_fnme.set_filenames(domain_config, year, month_str, domain_config['raw_forecasts']["merged_variables"], variable)
 
-        file_list.append(f"{dir_dict['frcst_high_reg_dir']}/{fnme_dict['frcst_high_reg_dir']}")
-
+    #    file_list.append(f"{dir_dict['frcst_high_reg_dir']}/{fnme_dict['frcst_high_reg_dir']}")
     ds = xr.open_mfdataset(file_list, parallel=True, engine='netcdf4', autoclose=True, chunks={'time': 50})
 
     coords = {'time': ds['time'].values, 'ens': ds['ens'].values, 'lat': ds['lat'].values.astype(np.float32),
@@ -285,6 +284,8 @@ def calib_forecasts(domain_config, variable_config, dir_dict, month_str, variabl
 
     encoding = set_encoding(variable_config, coords, 'lines')
 
+    year = 1981  # dummy
+    fnme_dict = dir_fnme.set_filenames(domain_config, year, month_str, domain_config['raw_forecasts']["merged_variables"], variable)
     final_file = f"{dir_dict['frcst_high_reg_lnch_calib_dir']}/{fnme_dict['frcst_high_reg_lnch_calib_dir']}"
 
     try:
