@@ -268,7 +268,7 @@ def rechunk_forecasts(domain_config: dict, variable_config: dict, dir_dict: dict
 
 
 # domain_config: dict, variable_config: dict, dir_dict: dict, year: int, month: int, variable: str
-# @dask.delayed
+@dask.delayed
 def calib_forecasts(domain_config: dict, variable_config: dict, dir_dict: dict, file_list: list, month_str: str,
                     variable: str):
     # file_list = []
@@ -281,8 +281,8 @@ def calib_forecasts(domain_config: dict, variable_config: dict, dir_dict: dict, 
     #    fnme_dict = dir_fnme.set_filenames(domain_config, year, month_str, domain_config['raw_forecasts']["merged_variables"], variable)
 
     #    file_list.append(f"{dir_dict['frcst_high_reg_dir']}/{fnme_dict['frcst_high_reg_dir']}")
-    # ds = xr.open_mfdataset(file_list, parallel=True, engine='netcdf4', autoclose=True, chunks={'time': 50})
-    ds = xr.open_mfdataset(file_list, parallel=True, engine='netcdf4', autoclose=True, chunks={'time': 215, 'ens': 25, 'lat': 1, 'lon': 1})
+    ds = xr.open_mfdataset(file_list, parallel=True, engine='netcdf4', autoclose=True, chunks={'time': 50})
+    # ds = xr.open_mfdataset(file_list, parallel=True, engine='netcdf4', autoclose=True, chunks={'time': 215, 'ens': 25, 'lat': 1, 'lon': 1})
 
     coords = {'time': ds['time'].values, 'ens': ds['ens'].values, 'lat': ds['lat'].values.astype(np.float32),
               'lon': ds['lon'].values.astype(np.float32)}
