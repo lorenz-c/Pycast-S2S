@@ -157,11 +157,11 @@ if __name__ == "__main__":
             logging.warning(f"Rechunk forecasts: Something went wrong during forecast rechunking for year")
 
 
-    elif args.mode == 'calib-frcst':
+    elif args.mode == 'calib_frcst':
         results = []
         syr_calib = domain_config['syr_calib']
         eyr_calib = domain_config['eyr_calib']
-        # print(f"{syr_calib},{eyr_calib}")
+
         for variable in variable_config:
             for month in process_months:
                 month_str = str(month).zfill(2)
@@ -171,13 +171,11 @@ if __name__ == "__main__":
                     fnme_dict = dir_fnme.set_filenames(domain_config, year, month_str, domain_config['raw_forecasts']["merged_variables"], variable)
                     file_list.append(f"{dir_dict['frcst_high_reg_dir']}/{fnme_dict['frcst_high_reg_dir']}")
                     # file_list.append(f"{dir_dict['frcst_high_reg_lnch_dir']}/{fnme_dict['frcst_high_reg_lnch_dir']}")
-                # print(file_list)
-                # year = 1981 #dummy
-                # regional_processing_modules.calib_forecasts(domain_config, variable_config, dir_dict, file_list, month_str, variable)
+
+
                 results.append(regional_processing_modules.calib_forecasts(domain_config, variable_config, dir_dict, file_list, month_str, variable))
-                # print(results)
+
         try:
-            print("try")
             dask.compute(results)
             logging.info(f"Calib Forecast: Calibration period successful")
 
