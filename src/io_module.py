@@ -1,21 +1,37 @@
 # import packages
-import xarray as xr
-import pandas as pd
+
+import dask
 import numpy as np
-import datetime as dt
+import xarray as xr
+
 # import python-files
 # from parameter_file import *
 # from ind2sub import ind2sub
 from bc_module import bc_module
-from write_output import write_output
-import dask.array as da
-import dask
 
-#def slice_and_correct(dayofyear_obs, dayofyear_mdl, ds_obs, ds_mdl, ds_pred, coordinates, queue_out, window_obs, dry_thresh, precip, low_extrapol, up_extrapol, extremes, intermittency, k):
-def slice_and_correct(dayofyear_obs, dayofyear_mdl, ds_obs, ds_mdl, ds_pred, coordinates, window_obs, dry_thresh, precip, low_extrapol, up_extrapol, extremes, intermittency, k):
-    #queue_out["time_step"] = k
+
+# def slice_and_correct(dayofyear_obs, dayofyear_mdl, ds_obs, ds_mdl, ds_pred, coordinates, queue_out, window_obs,
+# dry_thresh, precip, low_extrapol, up_extrapol, extremes, intermittency, k):
+def slice_and_correct(
+    dayofyear_obs,
+    dayofyear_mdl,
+    ds_obs,
+    ds_mdl,
+    ds_pred,
+    coordinates,
+    window_obs,
+    dry_thresh,
+    precip,
+    low_extrapol,
+    up_extrapol,
+    extremes,
+    intermittency,
+    k,
+):
+    # queue_out["time_step"] = k
     # Fill in np.nan for the data
-    #queue_out['data'] = np.full([len(coordinates['nens']), len(coordinates['lat']), len(coordinates['lon'])], np.nan)
+    # queue_out['data'] = np.full([len(coordinates['nens']), len(coordinates['lat']), len(coordinates['lon'])],
+    # np.nan)
 
     day = dayofyear_mdl[k]  # initial day for Month 04
 
@@ -36,30 +52,51 @@ def slice_and_correct(dayofyear_obs, dayofyear_mdl, ds_obs, ds_mdl, ds_pred, coo
     ds_mdl_sub = ds_mdl.loc[dict(time=intersection_day_mdl)]
     # Stack "ens" and "time" dimension
     ds_mdl_sub = ds_mdl_sub.stack(ens_time=("ens", "time"))
-    
+
     print(ds_mdl_sub)
     print(ds_obs_sub)
-    
+
     print(type(ds_mdl_sub.ens_time.values[0]), type(ds_obs_sub.time.values[0]))
 
     # Select pred
     ds_pred_sub = ds_pred.isel(time=k)
-    
+
     print(ds_pred_sub)
 
     # This is where the magic happens:
-    ## apply_u_func apply the function bc_module over each Lat/Lon-Cell, processing the whole time period
-    pred_corr_test = xr.apply_ufunc(bc_module, ds_pred_sub, ds_obs_sub, ds_mdl_sub, extremes, low_extrapol, up_extrapol, precip, intermittency, dry_thresh, input_core_dims=[["ens"], ["time"], ['ens_time'], [], [], [], [], [], []], output_core_dims=[["ens"]], vectorize=True, dask="parallelized", output_dtypes=[np.float64])  # , exclude_dims=set(("ens",)), output_sizes={'dim':0, 'size':51}) #,  exclude_dims=set(("quantile",)))
-    # pred_corr_test = xr.apply_ufunc(bc_module, ds_pred.load(), ds_obs_sub.load(), ds_mdl_sub.load(), extremes, low_extrapol, up_extrapol, precip, intermittency, dry_thresh, input_core_dims=[["ens"], ["time"], ['ens_time'], [], [], [], [], [], []], output_core_dims=[["ens"]], vectorize = True, output_dtypes=[np.float64]).compute() # , exclude_dims=set(("ens",)), output_sizes={'dim':0, 'size':51}) #,  exclude_dims=set(("quantile",)))
+    # apply_u_func apply the function bc_module over each Lat/Lon-Cell, processing the whole time period
+    pred_corr_test = xr.apply_ufunc(
+        bc_module,
+        ds_pred_sub,
+        ds_obs_sub,
+        ds_mdl_sub,
+        extremes,
+        low_extrapol,
+        up_extrapol,
+        precip,
+        intermittency,
+        dry_thresh,
+        input_core_dims=[["ens"], ["time"], ["ens_time"], [], [], [], [], [], []],
+        output_core_dims=[["ens"]],
+        vectorize=True,
+        dask="parallelized",
+        output_dtypes=[np.float64],
+    )  # , exclude_dims=set(("ens",)), output_sizes={'dim':0, 'size':51}) #,  exclude_dims=set(("quantile",)))
+    # pred_corr_test = xr.apply_ufunc(bc_module, ds_pred.load(), ds_obs_sub.load(), ds_mdl_sub.load(), extremes,
+    # low_extrapol, up_extrapol, precip, intermittency, dry_thresh, input_core_dims=[["ens"], ["time"],
+    # ['ens_time'], [], [], [], [], [], []], output_core_dims=[["ens"]], vectorize =
+    # True, output_dtypes=[np.float64]).compute() # , exclude_dims=set(("ens",)), output_sizes={'dim':0, 'size':51})
+    # #,  exclude_dims=set(("quantile",)))
 
     # Fill NaN-Values with corresponding varfill, varscale and varoffset
-    #if varoffset[v] != []:
-    #    pred_corr_test = pred_corr_test.fillna(varfill[v] * varscale[v] + varoffset[v])  # this is needed, because otherwise the conversion of np.NAN to int does not work properly
-   # else:
+    # if varoffset[v] != []:
+    #    pred_corr_test = pred_corr_test.fillna(varfill[v] * varscale[v] + varoffset[v])  # this is needed, because
+    # otherwise the conversion of np.NAN to int does not work properly
+    # else:
     #   pred_corr_test = pred_corr_test.fillna(varfill[v] * varscale[v])
     #    queue_out['data'] = pred_corr_test.values
 
     # Run write_output.ipynb
-    #write_output(queue_out)
+    # write_output(queue_out)
 
     return pred_corr_test

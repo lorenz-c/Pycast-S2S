@@ -48,10 +48,10 @@
 	"west_africa": {
 		"prefix": "west_africa",
 		"bbox": [-12.9, 16.9, 3.2, 24.9],
-		"regroot": "/pd/data/regclim_data/gridded_data/processed/west_africa",
+		"regroot": "/bg/data/NCZarr/s2s_forecasts/west_africa",
 		"syr_calib": 1981,
 		"eyr_calib": 2016,
-		"variables": ["tp", "t2m", "t2min", "t2max"],
+		"variables": ["tp", "t2m"],
 		"raw_forecasts": {"prefix": "SEAS5", "merged_variables": false},
 		"bcsd_forecasts": {"prefix": "SEAS5_BCSD", "merged_variables": true},
 		"reference_history": {"prefix": "ERA5_Land", "merged_variables": false},
