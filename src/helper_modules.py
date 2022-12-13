@@ -8,54 +8,72 @@ from subprocess import PIPE, run
 import dask.array as da
 import numpy as np
 import pandas as pd
+import s3fs
 import xarray as xr
+import zarr
+from dask import config
 from dask.distributed import Client
 from dask_jobqueue import SLURMCluster
-from dask import config
-
-import s3fs
-import zarr
 
 import dir_fnme
 
 # from bc_module import bc_module
 # from write_output import write_output
 
+
 def set_and_make_dirs(domain_config: dict) -> dict:
 
-    # List of Directories 
+    # List of Directories
     reg_dir_dict = {}
     glob_dir_dict = {}
-    
+
     # Set first the root directory
     reg_dir_dict["domain_dir"] = f"{domain_config['regroot']}"
-    
-    # Then the level 1 directories 
+
+    # Then the level 1 directories
     reg_dir_dict["static_dir"] = f"{reg_dir_dict['domain_dir']}/00_static/"
-    reg_dir_dict["raw_forecasts_dir"] = f"{reg_dir_dict['domain_dir']}/01_raw_forecasts/"
+    reg_dir_dict[
+        "raw_forecasts_dir"
+    ] = f"{reg_dir_dict['domain_dir']}/01_raw_forecasts/"
     reg_dir_dict["reference_dir"] = f"{reg_dir_dict['domain_dir']}/02_reference/"
     reg_dir_dict["processed_dir"] = f"{reg_dir_dict['domain_dir']}/03_processed/"
     reg_dir_dict["aggregated_dir"] = f"{reg_dir_dict['domain_dir']}/04_aggregated/"
-    reg_dir_dict["forecast_measure_dir"] = f"{reg_dir_dict['domain_dir']}/05_forecast_measures/"
-    
-    # Then the level 2 directories 
-    reg_dir_dict["raw_forecasts_initial_resolution_dir"] = f"{reg_dir_dict['raw_forecasts_dir']}initial_resolution/"
-    reg_dir_dict["raw_forecasts_target_resolution_dir"] = f"{reg_dir_dict['raw_forecasts_dir']}target_resolution/"
-    reg_dir_dict["raw_forecasts_zarr_dir"] = f"{reg_dir_dict['raw_forecasts_dir']}zarr_stores/"
-    reg_dir_dict["reference_initial_resolution_dir"] = f"{reg_dir_dict['reference_dir']}initial_resolution/"
-    reg_dir_dict["reference_target_resolution_dir"] = f"{reg_dir_dict['reference_dir']}target_resolution/"
+    reg_dir_dict[
+        "forecast_measure_dir"
+    ] = f"{reg_dir_dict['domain_dir']}/05_forecast_measures/"
+
+    # Then the level 2 directories
+    reg_dir_dict[
+        "raw_forecasts_initial_resolution_dir"
+    ] = f"{reg_dir_dict['raw_forecasts_dir']}initial_resolution/"
+    reg_dir_dict[
+        "raw_forecasts_target_resolution_dir"
+    ] = f"{reg_dir_dict['raw_forecasts_dir']}target_resolution/"
+    reg_dir_dict[
+        "raw_forecasts_zarr_dir"
+    ] = f"{reg_dir_dict['raw_forecasts_dir']}zarr_stores/"
+    reg_dir_dict[
+        "reference_initial_resolution_dir"
+    ] = f"{reg_dir_dict['reference_dir']}initial_resolution/"
+    reg_dir_dict[
+        "reference_target_resolution_dir"
+    ] = f"{reg_dir_dict['reference_dir']}target_resolution/"
     reg_dir_dict["reference_zarr_dir"] = f"{reg_dir_dict['reference_dir']}zarr_stores/"
-    
+
     reg_dir_dict["climatology_dir"] = f"{reg_dir_dict['aggregated_dir']}/climatology/"
     reg_dir_dict["monthly_dir"] = f"{reg_dir_dict['aggregated_dir']}/monthly/"
-    
+
     for key in reg_dir_dict:
         if not os.path.isdir(reg_dir_dict[key]):
             print(f"Creating directory {reg_dir_dict[key]}")
             os.makedirs(reg_dir_dict[key])
-            
-    glob_dir_dict["global_forecasts"] = "/pd/data/regclim_data/gridded_data/seasonal_predictions/seas5/daily" # We need to make this more flexible...
-    glob_dir_dict["global_reference"] = "/pd/data/regclim_data/gridded_data/reanalyses/era5_land/daily" # We need to make this more flexible...
+
+    glob_dir_dict[
+        "global_forecasts"
+    ] = "/pd/data/regclim_data/gridded_data/seasonal_predictions/seas5/daily"  # We need to make this more flexible...
+    glob_dir_dict[
+        "global_reference"
+    ] = "/pd/data/regclim_data/gridded_data/reanalyses/era5_land/daily"  # We need to make this more flexible...
 
     return reg_dir_dict, glob_dir_dict
 
@@ -82,32 +100,22 @@ def update_global_attributes(global_config, bc_params, coords, domain):
 
 
 def set_input_files(
-    domain_config: dict,
-    reg_dir_dict: dict,
-    month: int,
-    year: int,
-    variable: str  
+    domain_config: dict, reg_dir_dict: dict, month: int, year: int, variable: str
 ):
-    
+
     raw_file = f"{domain_config['raw_forecasts']['prefix']}_{variable}_{year}{month:02d}_{domain_config['target_resolution']}.nc"
     raw_full = f"{reg_dir_dict['raw_forecasts_target_resolution_dir']}{raw_file}"
-    
+
     pp_file = f"{domain_config['bcsd_forecasts']['prefix']}_v{domain_config['version']}_{variable}_{year}{month:02d}_{domain_config['target_resolution']}.nc"
     pp_full = f"{reg_dir_dict['processed_dir']}{pp_file}"
-    
-    refrcst_zarr = f"{domain_config['raw_forecasts']['prefix']}_{month:02d}_{domain_config['target_resolution']}_reforecast_linechunks.zarr" 
+
+    refrcst_zarr = f"{domain_config['raw_forecasts']['prefix']}_{month:02d}_{domain_config['target_resolution']}_reforecast_linechunks.zarr"
     refrcst_full = f"{reg_dir_dict['raw_forecasts_zarr_dir']}{refrcst_zarr}"
-    
-    ref_zarr = f"{domain_config['reference_history']['prefix']}_{domain_config['target_resolution']}_linechunks.zarr" 
+
+    ref_zarr = f"{domain_config['reference_history']['prefix']}_{domain_config['target_resolution']}_linechunks.zarr"
     ref_full = f"{reg_dir_dict['reference_zarr_dir']}{ref_zarr}"
-    
+
     return raw_full, pp_full, refrcst_full, ref_full
-    
-    
-
-
-
-
 
 
 def set_filenames(
@@ -168,7 +176,7 @@ def set_filenames(
 
 
 def set_encoding(variable_config, coordinates, type="maps"):
-    
+
     encoding = {}
 
     if type == "maps":
@@ -186,28 +194,29 @@ def set_encoding(variable_config, coordinates, type="maps"):
             chunksizes = [len(coordinates["time"]), len(coordinates["ens"]), 1, 1]
         else:
             chunksizes = [len(coordinates["time"]), 1, 1]
-        
+
     for variable in variable_config:
         encoding[variable] = {
-            'zlib': True,
-            'complevel': 4,
+            "zlib": True,
+            "complevel": 4,
             "_FillValue": variable_config[variable]["_FillValue"],
             "scale_factor": variable_config[variable]["scale_factor"],
             "add_offset": variable_config[variable]["scale_factor"],
             "dtype": variable_config[variable]["dtype"],
-            "chunksizes": chunksizes
+            "chunksizes": chunksizes,
         }
 
     return encoding
+
 
 def set_zarr_encoding(variable_config):
-    
+
     encoding = {}
-    
+
     for variable in variable_config:
-        
+
         encoding[variable] = {
-            'compressor': zarr.Blosc(cname='zstd', clevel=3, shuffle=2),
+            "compressor": zarr.Blosc(cname="zstd", clevel=3, shuffle=2),
             "_FillValue": variable_config[variable]["_FillValue"],
             "scale_factor": variable_config[variable]["scale_factor"],
             "add_offset": variable_config[variable]["scale_factor"],
@@ -215,8 +224,6 @@ def set_zarr_encoding(variable_config):
         }
 
     return encoding
-
-
 
 
 def create_4d_netcdf(
@@ -225,7 +232,7 @@ def create_4d_netcdf(
     da_dict = {}
 
     encoding = set_encoding(variable_config, coordinates)
-    
+
     da_dict[variable] = xr.DataArray(
         None,
         dims=["time", "ens", "lat", "lon"],
@@ -263,7 +270,8 @@ def create_4d_netcdf(
             "standard_name": variable_config[variable]["standard_name"],
             "long_name": variable_config[variable]["long_name"],
             "units": variable_config[variable]["units"],
-        })
+        },
+    )
 
     ds = xr.Dataset(
         data_vars={variable: da_dict[variable]},
@@ -300,18 +308,18 @@ def create_4d_netcdf(
         attrs=global_config,
     )
 
-    #ds.to_netcdf(
+    # ds.to_netcdf(
     #    file_out,
     #    mode="w",
     #    engine="netcdf4",
     #    encoding={variable: encoding[variable]},
-    #)
+    # )
 
     return ds
 
 
 def get_coords_from_frcst(filename):
-    
+
     ds = xr.open_dataset(filename)
 
     # return {
@@ -398,14 +406,14 @@ def getCluster(queue, nodes, jobs_per_node):
         cores=cores,
         memory=memory,
         processes=jobs_per_node,
-        local_directory="/scratch/dask_jobs/bcsd",
+        local_directory="/bg/data/NCZarr/temp",
         queue=queue,
         project="dask_test",
         walltime=walltime,
     )
 
-    config.set({'interface': 'lo'})
-    
+    config.set({"interface": "lo"})
+
     client = Client(cluster)
 
     cluster.scale(n=workers)
@@ -468,17 +476,15 @@ def decode_processing_months(months_string):
     return months
 
 
-
-
 def s3_init():
     s3 = s3fs.S3FileSystem(
-         key='YGJDL7QJF6FW6AM1UNEX',
-         secret='EqdyNK0u2aIsxGotQjA0iNdlSlWXSVzC2K8Wvjo6',
-         client_kwargs=dict(
-             region_name='us-east-1',
-             endpoint_url='https://s3.imk-ifu.kit.edu:8082',
-             verify=False
-         ),
+        key="YGJDL7QJF6FW6AM1UNEX",
+        secret="EqdyNK0u2aIsxGotQjA0iNdlSlWXSVzC2K8Wvjo6",
+        client_kwargs=dict(
+            region_name="us-east-1",
+            endpoint_url="https://s3.imk-ifu.kit.edu:8082",
+            verify=False,
+        ),
     )
 
     return s3

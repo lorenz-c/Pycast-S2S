@@ -33,6 +33,9 @@ setup(
     ],
     license_files=("LICENSE.md", "LICENSES/GPL-3.0-or-later.txt"),
     entry_points={
-        "console_scripts": ["mqtt_publish=mqtt_pipeline.fake_publisher:publish", "mqtt_subscribe=mqtt_pipeline.fake_subscriber:subscribe"],
+        "console_scripts": [
+            "mqtt_publish=mqtt_pipeline.fake_publisher:publish",
+            "mqtt_subscribe=mqtt_pipeline.fake_subscriber:subscribe",
+        ],
     },
 )

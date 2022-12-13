@@ -6,13 +6,11 @@ import logging
 import dask
 import numpy as np
 import xarray as xr
-
 from dask.distributed import Client
 
-from bc_module_v2 import bc_module
-import helper_modules
-
 import delayed_module
+import helper_modules
+from bc_module_v2 import bc_module
 
 
 def get_clas():
@@ -23,12 +21,7 @@ def get_clas():
     )
 
     parser.add_argument(
-        "-d",
-        "--domain", 
-        action="store", 
-        type=str, 
-        help="Domain", 
-        required=True
+        "-d", "--domain", action="store", type=str, help="Domain", required=True
     )
 
     parser.add_argument(
@@ -39,7 +32,7 @@ def get_clas():
         help="Years for which the processing should be executed",
         required=True,
     )
-    
+
     parser.add_argument(
         "-M",
         "--Months",
@@ -48,7 +41,7 @@ def get_clas():
         help="Months for which the processing should be executed",
         required=False,
     )
-    
+
     parser.add_argument(
         "-c",
         "--crossval",
@@ -73,7 +66,7 @@ def get_clas():
         help="Number of nodes for running the code",
         required=False,
     )
-    
+
     parser.add_argument(
         "-n",
         "--ntasks",
@@ -82,7 +75,7 @@ def get_clas():
         help="Number of tasks / CPUs",
         required=False,
     )
-    
+
     parser.add_argument(
         "-p",
         "--partition",
@@ -91,7 +84,7 @@ def get_clas():
         help="Partition to which we want to submit the job",
         required=False,
     )
-          
+
     parser.add_argument(
         "-f",
         "--scheduler_file",
@@ -118,8 +111,7 @@ def setup_logger(domain_name):
 if __name__ == "__main__":
 
     args = get_clas()
-    
-    
+
     # Read the command line arguments
     args = get_clas()
 
@@ -151,52 +143,58 @@ if __name__ == "__main__":
     }
 
     reg_dir_dict, glob_dir_dict = helper_modules.set_and_make_dirs(domain_config)
-    
+
     process_years = helper_modules.decode_processing_years(args.Years)
-    
+
     if args.Months is not None:
         process_months = helper_modules.decode_processing_months(args.Months)
-    
 
     syr_calib = domain_config["syr_calib"]
     eyr_calib = domain_config["eyr_calib"]
-    
-    
+
     # Get some ressourcers
     if args.partition is not None:
-        client, cluster = helper_modules.getCluster(args.partition, args.nodes, args.ntasks)
-        
+        client, cluster = helper_modules.getCluster(
+            args.partition, args.nodes, args.ntasks
+        )
+
         client.get_versions(check=True)
         client.amm.start()
-         
+
         print(f"Dask dashboard available at {client.dashboard_link}")
 
     if args.scheduler_file is not None:
         client = Client(scheduler_file=args.scheduler_file)
-        
+
         client.get_versions(check=True)
         client.amm.start()
-         
+
         print(f"Dask dashboard available at {client.dashboard_link}")
-        
-        
+
     # Insert IF-Statement in order to run the bcsd for the historical files
     for year in process_years:
 
         for month in process_months:
-            
+
             for variable in variable_config:
-                
-                raw_full, pp_full, refrcst_full, ref_full = helper_modules.set_input_files(domain_config, reg_dir_dict, month, year, variable)
-                
+
+                (
+                    raw_full,
+                    pp_full,
+                    refrcst_full,
+                    ref_full,
+                ) = helper_modules.set_input_files(
+                    domain_config, reg_dir_dict, month, year, variable
+                )
+
                 coords = helper_modules.get_coords_from_frcst(raw_full)
-                
+
                 global_attributes = helper_modules.update_global_attributes(
                     attribute_config, domain_config["bc_params"], coords, args.domain
                 )
-                
+
                 encoding = helper_modules.set_encoding(variable_config, coords)
-                
+
                 ds = helper_modules.create_4d_netcdf(
                     pp_full,
                     global_attributes,
@@ -205,20 +203,19 @@ if __name__ == "__main__":
                     coords,
                     variable,
                 )
-                
+
                 print(f"Opening {ref_full}")
                 ds_obs = xr.open_zarr(ref_full, consolidated=False)
-                
+
                 ds_obs = xr.open_zarr(
                     ref_full,
-                    #chunks={"time": len(ds_obs.time), "lat": 'auto', "lon": 'auto'},
+                    # chunks={"time": len(ds_obs.time), "lat": 'auto', "lon": 'auto'},
                     consolidated=False
-                    #parallel=True,
-                    #engine="netcdf4",
+                    # parallel=True,
+                    # engine="netcdf4",
                 )
                 da_obs = ds_obs[variable].persist()
-                
-                
+
                 print(f"Opening {refrcst_full}")
                 if args.forecast_structure == "5D":
                     ds_mdl = helper_modules.preprocess_mdl_hist(
@@ -229,18 +226,18 @@ if __name__ == "__main__":
                     ds_mdl = xr.open_zarr(refrcst_full, consolidated=False)
                     ds_mdl = xr.open_zarr(
                         refrcst_full,
-                        #chunks={
+                        # chunks={
                         #   "time": len(ds_mdl.time),
                         #   "ens": len(ds_mdl.ens),
                         #   "lat": 'auto',
                         #   "lon": 'auto'
-                        #},
+                        # },
                         consolidated=False
-                        #parallel=True,
-                        #engine="netcdf4",
+                        # parallel=True,
+                        # engine="netcdf4",
                     )
                     da_mdl = ds_mdl[variable]
-                    
+
                 # Pred (current year for one month and 215 days)
                 ds_pred = xr.open_dataset(raw_full)
                 ds_pred = xr.open_mfdataset(
@@ -248,8 +245,8 @@ if __name__ == "__main__":
                     chunks={
                         "time": 1,
                         "ens": len(ds_pred.ens),
-                        "lat": 'auto',
-                        "lon": 'auto',
+                        "lat": "auto",
+                        "lon": "auto",
                     },
                     parallel=True,
                     engine="netcdf4",
@@ -259,8 +256,7 @@ if __name__ == "__main__":
                 if args.crossval == True:
                     da_mdl = da_mdl.sel(time=~da_pred.time)
                     da_obs = da_obs.sel(time=~da_pred.time)
-                    
-                    
+
                 da_temp = xr.DataArray(
                     None,
                     dims=["time", "lat", "lon", "ens"],
@@ -298,129 +294,123 @@ if __name__ == "__main__":
                         ),
                     },
                 )
-                
-    
+
                 for timestep in range(0, 20):
-                    
+
                     da_temp[timestep, :, :, :] = delayed_module.intersect_and_correct(
                         timestep,
                         variable,
-                        domain_config, 
+                        domain_config,
                         variable_config,
                         da_mdl,
                         da_obs,
-                        da_pred
+                        da_pred,
                     )
-                    
-   
-                   
-                #da_temp = da_temp_delayed.compute() 
-                 
-                #da_temp = da_temp.astype("float64")
+
+                # da_temp = da_temp_delayed.compute()
+
+                # da_temp = da_temp.astype("float64")
 
                 # Select only the actual variable from the output dataset
-                #ds_out_sel = ds[[variable]]
+                # ds_out_sel = ds[[variable]]
 
                 # Fill this variable with some data...
-                #ds[variable].values = da_temp.transpose(
+                # ds[variable].values = da_temp.transpose(
                 #    "time", "ens", "lat", "lon"
-                #).values
+                # ).values
 
                 ## ...and save everything to disk..
                 # ds_out_sel.to_netcdf(bcsd_dict[variable], mode='a', format='NETCDF4_CLASSIC', engine='netcdf4', encoding = {variable: encoding[variable]})
-                #ds.to_netcdf(
+                # ds.to_netcdf(
                 #    pp_full,
                 #    mode="w",
                 #    engine="netcdf4",
                 #    encoding={variable: encoding[variable]},
-                #)
+                # )
 
+                # for timestep in range(82, 83):
 
-                    # for timestep in range(82, 83):
+                # #print(f"Correcting timestep {timestep}...")
+                # #dayofyear_mdl = ds_mdl["time.dayofyear"]
+                # #day = dayofyear_mdl[timestep]##
 
-                    # #print(f"Correcting timestep {timestep}...")
-                    # #dayofyear_mdl = ds_mdl["time.dayofyear"]
-                    # #day = dayofyear_mdl[timestep]##
+                # # Deal with normal and leap years
+                # #for calib_year in range(syr_calib, eyr_calib + 1):
 
-                    # # Deal with normal and leap years
-                    # #for calib_year in range(syr_calib, eyr_calib + 1):
-                        
-                    # #    print(calib_year)
-                    # #    print(year)
+                # #    print(calib_year)
+                # #    print(year)
 
-                    # #    ds_obs_year = ds_obs.sel(time=ds_obs.time.dt.year == calib_year)
-                    # #    ds_mdl_year = ds_mdl.sel(time=ds_mdl.time.dt.year == calib_year)
-                        
-                    # #    dayofyear_obs = ds_obs_year["time.dayofyear"]
-                    # #    dayofyear_mdl = ds_mdl_year["time.dayofyear"]
+                # #    ds_obs_year = ds_obs.sel(time=ds_obs.time.dt.year == calib_year)
+                # #    ds_mdl_year = ds_mdl.sel(time=ds_mdl.time.dt.year == calib_year)
 
-                    # #    # normal years
-                    # #    if len(ds_obs_year.time.values) == 365:
+                # #    dayofyear_obs = ds_obs_year["time.dayofyear"]
+                # #    dayofyear_mdl = ds_mdl_year["time.dayofyear"]
 
-                    #         # day_range = (np.arange(day - domain_config['bc_params']['window'], day + domain_config['bc_params']['window'] + 1) + 365) % 365 + 1
-                    #         day_range = (
-                    #             np.arange(
-                    #                 day - domain_config["bc_params"]["window"] - 1,
-                    #                 day + domain_config["bc_params"]["window"],
-                    #             )
-                    #             + 365
-                    #         ) % 365 + 1
+                # #    # normal years
+                # #    if len(ds_obs_year.time.values) == 365:
 
-                    #         # leap years
-                    #     else:
-                    #         day_range = (
-                    #             np.arange(
-                    #                 day - domain_config["bc_params"]["window"] - 1,
-                    #                 day + domain_config["bc_params"]["window"],
-                    #             )
-                    #             + 366
-                    #         ) % 366 + 1
+                #         # day_range = (np.arange(day - domain_config['bc_params']['window'], day + domain_config['bc_params']['window'] + 1) + 365) % 365 + 1
+                #         day_range = (
+                #             np.arange(
+                #                 day - domain_config["bc_params"]["window"] - 1,
+                #                 day + domain_config["bc_params"]["window"],
+                #             )
+                #             + 365
+                #         ) % 365 + 1
 
-                    #     intersection_day_obs_year = np.in1d(dayofyear_obs, day_range)
-                    #     intersection_day_mdl_year = np.in1d(dayofyear_mdl, day_range)
+                #         # leap years
+                #     else:
+                #         day_range = (
+                #             np.arange(
+                #                 day - domain_config["bc_params"]["window"] - 1,
+                #                 day + domain_config["bc_params"]["window"],
+                #             )
+                #             + 366
+                #         ) % 366 + 1
 
-                    #     if calib_year == syr_calib:
-                    #         intersection_day_obs = intersection_day_obs_year
-                    #         intersection_day_mdl = intersection_day_mdl_year
-                    #     else:
-                    #         intersection_day_obs = np.append(
-                    #             intersection_day_obs, intersection_day_obs_year
-                    #         )
-                    #         intersection_day_mdl = np.append(
-                    #             intersection_day_mdl, intersection_day_mdl_year
-                    #         )
+                #     intersection_day_obs_year = np.in1d(dayofyear_obs, day_range)
+                #     intersection_day_mdl_year = np.in1d(dayofyear_mdl, day_range)
 
+                #     if calib_year == syr_calib:
+                #         intersection_day_obs = intersection_day_obs_year
+                #         intersection_day_mdl = intersection_day_mdl_year
+                #     else:
+                #         intersection_day_obs = np.append(
+                #             intersection_day_obs, intersection_day_obs_year
+                #         )
+                #         intersection_day_mdl = np.append(
+                #             intersection_day_mdl, intersection_day_mdl_year
+                #         )
 
-                    # da_obs_sub = da_obs.loc[dict(time=intersection_day_obs)]
+                # da_obs_sub = da_obs.loc[dict(time=intersection_day_obs)]
 
-                    # with dask.config.set(
-                    #     **{"array.slicing.split_large_chunks": False}
-                    # ):  # --> I really don't know why we need to silence the warning here...
-                    #     da_mdl_sub = da_mdl.loc[dict(time=intersection_day_mdl)]
+                # with dask.config.set(
+                #     **{"array.slicing.split_large_chunks": False}
+                # ):  # --> I really don't know why we need to silence the warning here...
+                #     da_mdl_sub = da_mdl.loc[dict(time=intersection_day_mdl)]
 
-                    # da_mdl_sub = da_mdl_sub.stack(
-                    #     ens_time=("ens", "time"), create_index=True
-                    # )
-                    # da_mdl_sub = da_mdl_sub.drop("time")
+                # da_mdl_sub = da_mdl_sub.stack(
+                #     ens_time=("ens", "time"), create_index=True
+                # )
+                # da_mdl_sub = da_mdl_sub.drop("time")
 
+                # da_pred_sub = da_pred.isel(time=timestep)
 
-                    # da_pred_sub = da_pred.isel(time=timestep)
-
-                    # da_temp[timestep, :, :] = xr.apply_ufunc(
-                    #     bc_module,
-                    #     da_pred_sub,
-                    #     da_obs_sub,
-                    #     da_mdl_sub,
-                    #     kwargs={
-                    #         "bc_params": domain_config["bc_params"],
-                    #         "precip": variable_config[variable]["isprecip"],
-                    #     },
-                    #     input_core_dims=[["ens"], ["time"], ["ens_time"]],
-                    #     output_core_dims=[["ens"]],
-                    #     vectorize=True,
-                    #     dask="parallelized",
-                    #     output_dtypes=[np.float64],
-                    # )
+                # da_temp[timestep, :, :] = xr.apply_ufunc(
+                #     bc_module,
+                #     da_pred_sub,
+                #     da_obs_sub,
+                #     da_mdl_sub,
+                #     kwargs={
+                #         "bc_params": domain_config["bc_params"],
+                #         "precip": variable_config[variable]["isprecip"],
+                #     },
+                #     input_core_dims=[["ens"], ["time"], ["ens_time"]],
+                #     output_core_dims=[["ens"]],
+                #     vectorize=True,
+                #     dask="parallelized",
+                #     output_dtypes=[np.float64],
+                # )
 
                 # Change the datatype from "object" to "float64" --> Can we somehow get around this???
 
@@ -431,165 +421,150 @@ if __name__ == "__main__":
     # if cluster is not None:
     #     cluster.close()
 
-                                
-                                
+    # coords = helper_modules.get_coords_from_frcst(list(raw_dict.values())[0])
 
-                
-                
-                
-                
-                
-                                
-                            
-                
-                #coords = helper_modules.get_coords_from_frcst(list(raw_dict.values())[0])
-            
-            
+    # Update Filenames:
+    # fnme_dict = dir_fnme.set_filenames(domain_config, syr_calib, eyr_calib, year, month_str, domain_config['bcsd_forecasts']['merged_variables'])
 
-    
-            # Update Filenames:
-            # fnme_dict = dir_fnme.set_filenames(domain_config, syr_calib, eyr_calib, year, month_str, domain_config['bcsd_forecasts']['merged_variables'])
+    # Get directories for the corresponding variable
+    # if args.domain == 'germany':
+    # (
+    #    raw_dict,
+    #    bcsd_dict,
+    #    ref_hist_dict,
+    #    mdl_hist_dict,
+    # ) = helper_modules.set_filenames(
+    #    domain_config,
+    #    variable_config,
+    #    dir_dict,
+    #    syr_calib,
+    #    eyr_calib,
+    #    year,
+    #    month_str,
+    #    False,
+    # )
+    # else:
+    #     raw_dict, bcsd_dict, ref_hist_dict, mdl_hist_dict = helper_modules.set_filenames(args.year, args.month, domain_config, variable_config, True)
 
-            # Get directories for the corresponding variable
-            # if args.domain == 'germany':
-            #(
-            #    raw_dict,
-            #    bcsd_dict,
-            #    ref_hist_dict,
-            #    mdl_hist_dict,
-            #) = helper_modules.set_filenames(
-            #    domain_config,
-            #    variable_config,
-            #    dir_dict,
-            #    syr_calib,
-            #    eyr_calib,
-            #    year,
-            #    month_str,
-            #    False,
-            #)
-            # else:
-            #     raw_dict, bcsd_dict, ref_hist_dict, mdl_hist_dict = helper_modules.set_filenames(args.year, args.month, domain_config, variable_config, True)
+    # IMPLEMENT A CHECK IF ALL INPUT FILES ARE AVAILABL!!!!!!
 
-            # IMPLEMENT A CHECK IF ALL INPUT FILES ARE AVAILABL!!!!!!
+    # Read the dimensions for the output file (current prediction)
 
-            # Read the dimensions for the output file (current prediction)
-            
+    # attribute_config = helper_modules.update_global_attributes(
+    #    attribute_config, domain_config["bc_params"], coords, args.domain
+    # )
 
-            #attribute_config = helper_modules.update_global_attributes(
-            #    attribute_config, domain_config["bc_params"], coords, args.domain
-            #)
+    # encoding = helper_modules.set_encoding(variable_config, coords)
 
-            #encoding = helper_modules.set_encoding(variable_config, coords)
+    # Loop over each variable
+    # for variable in variable_config:
+    # Create an empty NetCDF in which we write the BCSD output
+    #    ds = helper_modules.create_4d_netcdf(
+    #        bcsd_dict,
+    #        attribute_config,
+    #        domain_config,
+    #        variable_config,
+    #        coords,
+    #        variable,
+    #    )
 
-            # Loop over each variable
-            #for variable in variable_config:
-                # Create an empty NetCDF in which we write the BCSD output
-            #    ds = helper_modules.create_4d_netcdf(
-            #        bcsd_dict,
-            #        attribute_config,
-            #        domain_config,
-            #        variable_config,
-            #        coords,
-            #        variable,
-            #    )
+    ###### Old IO-Module #####
+    # load data as dask objects
+    # print(f"Opening {ref_hist_dict[variable]}")
+    # ds_obs = xr.open_dataset(ref_hist_dict[variable])
+    # ds_obs = xr.open_mfdataset(
+    #    ref_hist_dict[variable],
+    #    chunks={"time": len(ds_obs.time), "lat": 50, "lon": 50},
+    #    parallel=True,
+    #    engine="netcdf4",
+    # )
+    # da_obs = ds_obs[variable].persist()
 
-                ###### Old IO-Module #####
-                # load data as dask objects
-                #print(f"Opening {ref_hist_dict[variable]}")
-                #ds_obs = xr.open_dataset(ref_hist_dict[variable])
-                #ds_obs = xr.open_mfdataset(
-                #    ref_hist_dict[variable],
-                #    chunks={"time": len(ds_obs.time), "lat": 50, "lon": 50},
-                #    parallel=True,
-                #    engine="netcdf4",
-                #)
-                #da_obs = ds_obs[variable].persist()
+    # Mdl (historical, 1981 - 2016 for one month and 215 days)  215, 36, 25, 1, 1 ;
+    # Preprocess historical mdl-data, create a new time coord, which contain year and day at once and not separate
+    # print(f"Opening {mdl_hist_dict[variable]}")
+    # if args.forecast_structure == "5D":
+    #    ds_mdl = helper_modules.preprocess_mdl_hist(
+    #        mdl_hist_dict[variable], month_str, variable
+    #    )  # chunks={'time': 215, 'year': 36, 'ens': 25, 'lat': 1, 'lon': 1})
+    #    da_mdl = ds_mdl.persist()
+    # elif args.forecast_structure == "4D":
+    #    ds_mdl = xr.open_mfdataset(mdl_hist_dict[variable])
+    #    ds_mdl = xr.open_mfdataset(
+    #        mdl_hist_dict[variable],
+    #        chunks={
+    #            "time": len(ds_mdl.time),
+    #            "ens": len(ds_mdl.ens),
+    #            "lat": 5,
+    #            "lon": 5,
+    #        },
+    #        parallel=True,
+    #        engine="netcdf4",
+    #    )
+    #    da_mdl = ds_mdl[variable].persist()
 
-                # Mdl (historical, 1981 - 2016 for one month and 215 days)  215, 36, 25, 1, 1 ;
-                # Preprocess historical mdl-data, create a new time coord, which contain year and day at once and not separate
-                #print(f"Opening {mdl_hist_dict[variable]}")
-                #if args.forecast_structure == "5D":
-                #    ds_mdl = helper_modules.preprocess_mdl_hist(
-                #        mdl_hist_dict[variable], month_str, variable
-                #    )  # chunks={'time': 215, 'year': 36, 'ens': 25, 'lat': 1, 'lon': 1})
-                #    da_mdl = ds_mdl.persist()
-                #elif args.forecast_structure == "4D":
-                #    ds_mdl = xr.open_mfdataset(mdl_hist_dict[variable])
-                #    ds_mdl = xr.open_mfdataset(
-                #        mdl_hist_dict[variable],
-                #        chunks={
-                #            "time": len(ds_mdl.time),
-                #            "ens": len(ds_mdl.ens),
-                #            "lat": 5,
-                #            "lon": 5,
-                #        },
-                #        parallel=True,
-                #        engine="netcdf4",
-                #    )
-                #    da_mdl = ds_mdl[variable].persist()
+    # IMPLEMENT ELSE-Statement for logging
 
-                # IMPLEMENT ELSE-Statement for logging
+    # Pred (current year for one month and 215 days)
+    # ds_pred = xr.open_dataset(raw_dict[variable])
+    # ds_pred = xr.open_mfdataset(
+    #    raw_dict[variable],
+    #    chunks={
+    #        "time": len(ds_pred.time),
+    #        "ens": len(ds_pred.ens),
+    #        "lat": 50,
+    #        "lon": 50,
+    #    },
+    #    parallel=True,
+    #    engine="netcdf4",
+    # )
+    # da_pred = ds_pred[variable].persist()
 
-                # Pred (current year for one month and 215 days)
-                #ds_pred = xr.open_dataset(raw_dict[variable])
-                #ds_pred = xr.open_mfdataset(
-                #    raw_dict[variable],
-                #    chunks={
-                #        "time": len(ds_pred.time),
-                #        "ens": len(ds_pred.ens),
-                #        "lat": 50,
-                #        "lon": 50,
-                #    },
-                #    parallel=True,
-                #    engine="netcdf4",
-                #)
-                #da_pred = ds_pred[variable].persist()
+    # IF ABFAGE OB AKTUELLE VORHERSAGE AUS HISTORIE ENTFERNT WERDEN SOLL
+    # if args.crossval == True:
+    #    da_mdl = da_mdl.sel(time=~da_pred.time)
+    #    da_obs = da_obs.sel(time=~da_pred.time)#
 
-                # IF ABFAGE OB AKTUELLE VORHERSAGE AUS HISTORIE ENTFERNT WERDEN SOLL
-                #if args.crossval == True:
-                #    da_mdl = da_mdl.sel(time=~da_pred.time)
-                #    da_obs = da_obs.sel(time=~da_pred.time)#
+    # Change data type of latidude and longitude, otherwise apply_u_func does not work
+    # da_pred = da_pred.assign_coords(lon=ds_pred.lon.values.astype(np.float32), lat=ds_pred.lat.values.astype(np.float32))
 
-                # Change data type of latidude and longitude, otherwise apply_u_func does not work
-                # da_pred = da_pred.assign_coords(lon=ds_pred.lon.values.astype(np.float32), lat=ds_pred.lat.values.astype(np.float32))
+    # Calculate day of the year from time variable
+    # dayofyear_obs = ds_obs['time.dayofyear']
+    # dayofyear_mdl = ds_mdl['time.dayofyear']
 
-                # Calculate day of the year from time variable
-                # dayofyear_obs = ds_obs['time.dayofyear']
-                # dayofyear_mdl = ds_mdl['time.dayofyear']
-
-                #da_temp = xr.DataArray(
-                #    None,
-                #    dims=["time", "lat", "lon", "ens"],
-                #    coords={
-                #        "time": (
-                #            "time",
-                #            coords["time"],
-                #            {"standard_name": "time", "long_name": "time"},
-                #        ),
-                #        "ens": (
-                #            "ens",
-                #            coords["ens"],
-                #            {
-                #                "standard_name": "realization",
-                #                "long_name": "ensemble_member",
-                #            },
-                #        ),
-                #        "lat": (
-                #            "lat",
-                #            coords["lat"],
-                #            {
-                #                "standard_name": "latitude",
-                #                "long_name": "latitude",
-                #                "units": "degrees_north",
-                #            },
-                #        ),
-                #        "lon": (
-                #            "lon",
-                #            coords["lon"],
-                #            {
-                #                "standard_name": "longitude",
-                #                "long_name": "longitude",
-                #                "units": "degrees_east",
+    # da_temp = xr.DataArray(
+    #    None,
+    #    dims=["time", "lat", "lon", "ens"],
+    #    coords={
+    #        "time": (
+    #            "time",
+    #            coords["time"],
+    #            {"standard_name": "time", "long_name": "time"},
+    #        ),
+    #        "ens": (
+    #            "ens",
+    #            coords["ens"],
+    #            {
+    #                "standard_name": "realization",
+    #                "long_name": "ensemble_member",
+    #            },
+    #        ),
+    #        "lat": (
+    #            "lat",
+    #            coords["lat"],
+    #            {
+    #                "standard_name": "latitude",
+    #                "long_name": "latitude",
+    #                "units": "degrees_north",
+    #            },
+    #        ),
+    #        "lon": (
+    #            "lon",
+    #            coords["lon"],
+    #            {
+    #                "standard_name": "longitude",
+    #                "long_name": "longitude",
+    #                "units": "degrees_east",
     #             #            },
     #             #        ),
     #             #    },

@@ -57,12 +57,11 @@ def set_and_make_dirs(domain_config):
 # Change this function and add some history filenames with syr_calib and eyr_calib
 # def set_filenames(domain_config, syr = None, eyr = None, year = None, month_str = None, merge = None, variable = None):
 
-def set_gridfile(
-    domain_config: dict
-) -> str:
+
+def set_gridfile(domain_config: dict) -> str:
 
     return f"{domain_config['regroot']}/05_static/{domain_config['prefix']}_{domain_config['target_resolution']}_grd.txt"
-    
+
 
 def set_filenames(
     domain_config: dict, year: int, month: int, merge=None, variable=None
@@ -110,7 +109,7 @@ def set_filenames(
             "frcst_low_reg_dir": f"{frcst_var_prefix}_{year}{month:02d}_O320_{domain_config['prefix']}.nc",
             "frcst_high_reg_dir": f"{frcst_var_prefix}_{year}{month:02d}_{target_res}_{domain}.nc",
             "frcst_high_reg_lnch_dir": f"{frcst_var_prefix}_{year}_{month:02d}_{target_res}_{domain}_lns.nc",
-            #"frcst_high_reg_lnch_dir": f"{frcst_var_prefix}_{month:02d}_{target_res}_{domain}_lns.zarr",
+            # "frcst_high_reg_lnch_dir": f"{frcst_var_prefix}_{month:02d}_{target_res}_{domain}_lns.zarr",
             "frcst_high_reg_lnch_calib_dir": f"{frcst_var_prefix}_{calib_period}_{month:02d}_{target_res}_{domain}_lns.nc",
             "frcst_high_reg_bcsd_daily_dir": f"{pp_var_prefix}_daily_{year}{month:02d}_{target_res}_{domain}.nc",
             "frcst_high_reg_bcsd_daily_lnch_dir": f"{pp_var_prefix}_daily_{year}{month:02d}_{target_res}_{domain}.nc",
@@ -125,7 +124,11 @@ def set_filenames(
             "ref_climatology": f"{ref_prefix}_climatology_{variable}_{calib_period}_{domain}.nc",
         }
 
-    fnme_dict['frcst_high_zarr'] = f"{frcst_prefix}_{month:02d}_{target_res}_{domain}.zarr"
-    fnme_dict['frcst_high_lns_zarr'] = f"{frcst_prefix}_{month:02d}_{target_res}_{domain}_lns.zarr"
+    fnme_dict[
+        "frcst_high_zarr"
+    ] = f"{frcst_prefix}_{month:02d}_{target_res}_{domain}.zarr"
+    fnme_dict[
+        "frcst_high_lns_zarr"
+    ] = f"{frcst_prefix}_{month:02d}_{target_res}_{domain}_lns.zarr"
 
     return fnme_dict

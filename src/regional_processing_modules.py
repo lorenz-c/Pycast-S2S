@@ -3,9 +3,7 @@
 # Packages
 import logging
 import os
-
 from os.path import exists
-
 
 # import zarrimpo
 import dask
@@ -16,10 +14,10 @@ import pandas as pd
 # cdo = Cdo()
 import xarray as xr
 import zarr
-
-#import dir_fnme
-from helper_modules import run_cmd, set_encoding
 from rechunker import rechunk
+
+# import dir_fnme
+from helper_modules import run_cmd, set_encoding
 
 # Open Points
 # 1. Paths are local, change them (pd/data)
@@ -54,7 +52,7 @@ def create_grd_file(domain_config: dict, grid_file: str) -> str:
     lon_range = int((max_lon - min_lon) / grd_res) + 1
     grd_size = lat_range * lon_range
 
-    #grd_flne = f"{dir_dict['grd_dir']}/{fnme_dict['grd_dir']}"
+    # grd_flne = f"{dir_dict['grd_dir']}/{fnme_dict['grd_dir']}"
 
     # if file does not exist, create regional text file for domain with desired resolution
     # --> Can be implemented and outsourced as function !!!!!
@@ -107,12 +105,12 @@ def preprocess(ds):
 
 @dask.delayed
 def truncate_forecasts(
-    domain_config: dict, 
-    variable_config: dict, 
-    reg_dir_dict: dict, 
-    glob_dir_dict: str, 
-    year: int, 
-    month: int
+    domain_config: dict,
+    variable_config: dict,
+    reg_dir_dict: dict,
+    glob_dir_dict: str,
+    year: int,
+    month: int,
 ):
 
     bbox = domain_config["bbox"]
@@ -123,8 +121,8 @@ def truncate_forecasts(
     min_lat = bbox[2] - 1
     max_lat = bbox[3] + 1
 
-    fle_string = f"{glob_dir_dict['global_forecasts']}/{year}/{month:02d}/ECMWF_SEAS5_*_{year}{month:02d}.nc" # TBA...
-    
+    fle_string = f"{glob_dir_dict['global_forecasts']}/{year}/{month:02d}/ECMWF_SEAS5_*_{year}{month:02d}.nc"  # TBA...
+
     ds = xr.open_mfdataset(
         fle_string,
         concat_dim="ens",
@@ -146,18 +144,22 @@ def truncate_forecasts(
     ds = ds.transpose("time", "ens", "lat", "lon")
 
     encoding = set_encoding(variable_config, coords)
-    
+
     for variable in variable_config:
-        
-        fle_out  = f"{domain_config['raw_forecasts']['prefix']}_{variable}_{year}{month:02d}.nc"
+
+        fle_out = f"{domain_config['raw_forecasts']['prefix']}_{variable}_{year}{month:02d}.nc"
         full_out = f"{reg_dir_dict['raw_forecasts_initial_resolution_dir']}/{fle_out}"
-        
+
         try:
             ds[variable].to_netcdf(full_out, encoding={variable: encoding[variable]})
-            logging.info(f"Truncate forecasts: succesful for month {month:02d} and year {year}")
+            logging.info(
+                f"Truncate forecasts: succesful for month {month:02d} and year {year}"
+            )
         except:
-            logging.error(f"Something went wrong during slicing for month {month:02d} and year {year}")
-            
+            logging.error(
+                f"Something went wrong during slicing for month {month:02d} and year {year}"
+            )
+
 
 @dask.delayed
 def remap_forecasts(
@@ -168,13 +170,15 @@ def remap_forecasts(
     grd_fle: str,
     variable: str,
 ):
-    
-    fle_in  = f"{domain_config['raw_forecasts']['prefix']}_{variable}_{year}{month:02d}.nc"
+
+    fle_in = (
+        f"{domain_config['raw_forecasts']['prefix']}_{variable}_{year}{month:02d}.nc"
+    )
     full_in = f"{reg_dir_dict['raw_forecasts_initial_resolution_dir']}/{fle_in}"
-    
+
     print(full_in)
-    
-    fle_out  = f"{domain_config['raw_forecasts']['prefix']}_{variable}_{year}{month:02d}_{domain_config['target_resolution']}.nc"
+
+    fle_out = f"{domain_config['raw_forecasts']['prefix']}_{variable}_{year}{month:02d}_{domain_config['target_resolution']}.nc"
     full_out = f"{reg_dir_dict['raw_forecasts_target_resolution_dir']}/{fle_out}"
 
     cmd = (
@@ -194,8 +198,7 @@ def remap_forecasts(
         run_cmd(cmd)
     except:
         logging.error(f"Remap_forecast: file {full_in} not available")
-        
-        
+
 
 def rechunker_forecasts(
     domain_config: dict,
@@ -215,9 +218,9 @@ def rechunker_forecasts(
     )
 
     fle_string = f"{dir_dict['frcst_high_reg_dir']}/{fnme_dict['frcst_high_reg_dir']}"
-    
+
     return fle_string
-    
+
 
 @dask.delayed
 def rechunk_forecasts(
@@ -268,14 +271,14 @@ def rechunk_forecasts(
     ds = xr.open_mfdataset(
         fle_string,
         parallel=True,
-        #chunks={"time": 'auto', 'ens': 'auto', 'lat': -1, 'lon': -1},
+        # chunks={"time": 'auto', 'ens': 'auto', 'lat': -1, 'lon': -1},
         chunks={"time": 50},
         engine="netcdf4",
         autoclose=True,
     )
-    
-    #ds = ds.chunk({"time": -1, 'ens': -1, 'lat': 1, 'lon': 1})
-    
+
+    # ds = ds.chunk({"time": -1, 'ens': -1, 'lat': 1, 'lon': 1})
+
     coords = {
         "time": ds["time"].values,
         "ens": ds["ens"].values,
@@ -284,39 +287,40 @@ def rechunk_forecasts(
     }
 
     encoding = set_encoding(variable_config, coords, "lines")
-    
+
     # Delete the chunksizes-attribute as we want to keep the chunks from above..
-    #del encoding[variable]["chunksizes"]
-    #del encoding[variable]["zlib"]
-    #del encoding[variable]["complevel"]
-    
-    #compressor = zarr.Blosc(cname="zstd", clevel=3, shuffle=2)
-    
-    #encoding[variable]["compressor"] = compressor
-    
+    # del encoding[variable]["chunksizes"]
+    # del encoding[variable]["zlib"]
+    # del encoding[variable]["complevel"]
+
+    # compressor = zarr.Blosc(cname="zstd", clevel=3, shuffle=2)
+
+    # encoding[variable]["compressor"] = compressor
+
     final_file = (
         f"{dir_dict['frcst_high_reg_lnch_dir']}/{fnme_dict['frcst_high_reg_lnch_dir']}"
     )
 
     try:
         ds.to_netcdf(final_file, encoding={variable: encoding[variable]})
-        logging.info(f"rechunk_forecasts: Rechunking forecast for {year}-{month:02d} successful")
+        logging.info(
+            f"rechunk_forecasts: Rechunking forecast for {year}-{month:02d} successful"
+        )
     except:
         logging.info(f"rechunk_forecasts: Something went wrong for {year}-{month:02d}")
-    
-    #if exists(f"/bg/data/NCZarr/temp/SEAS5_{month:02d}.zarr"):
+
+    # if exists(f"/bg/data/NCZarr/temp/SEAS5_{month:02d}.zarr"):
     #    if exists(f"/bg/data/NCZarr/temp/SEAS5_{month:02d}.zarr/{variable}"):
     #        out = ds.to_zarr(f"/bg/data/NCZarr/temp/SEAS5_{month:02d}.zarr", mode='a', append_dim="time")
     #    else:
     #        out = ds.to_zarr(f"/bg/data/NCZarr/temp/SEAS5_{month:02d}.zarr", mode='a', append_dim="time", encoding={variable: encoding[variable]})
-    #else:
+    # else:
     #    out = ds.to_zarr(f"/bg/data/NCZarr/temp/SEAS5_{month:02d}.zarr", mode='w', encoding={variable: encoding[variable]})
-    # 
+    #
     # return ds, encoding
-        
-        
-    #   
-    #except:
+
+    #
+    # except:
     #    logging.error(f"Something went wrong during writing of forecast linechunks")
 
 
@@ -463,11 +467,13 @@ def truncate_reference(
     max_lon = bbox[1] + 1
     min_lat = bbox[2] - 1
     max_lat = bbox[3] + 1
-    
-    file_in = f"{glob_dir_dict['global_reference']}/ERA5_Land_daily_{variable}_{year}.nc"
+
+    file_in = (
+        f"{glob_dir_dict['global_reference']}/ERA5_Land_daily_{variable}_{year}.nc"
+    )
     file_out = f"{domain_config['reference_history']['prefix']}_{variable}_{year}.nc"
     full_out = f"{reg_dir_dict['reference_initial_resolution_dir']}/{file_out}"
-    
+
     ds = xr.open_mfdataset(
         file_in,
         parallel=True,
@@ -486,19 +492,20 @@ def truncate_reference(
     }
 
     encoding = set_encoding(variable_config, coords)
-    
+
     try:
-        ds.to_netcdf(full_out,  encoding={variable: encoding[variable]})
-        logging.info(f"Truncate reference: succesful for variable {variable} and year {year}")
+        ds.to_netcdf(full_out, encoding={variable: encoding[variable]})
+        logging.info(
+            f"Truncate reference: succesful for variable {variable} and year {year}"
+        )
     except:
-        logging.info(f"Truncate reference: something went wrong for variable {variable} and year {year}")
+        logging.info(
+            f"Truncate reference: something went wrong for variable {variable} and year {year}"
+        )
     #            f"{dir_dict['ref_low_reg_dir']}/{fnme_dict['ref_low_reg_dir']}",
     #            encoding=encoding,
-        
-    
-    
 
-    #try:
+    # try:
     #    if domain_config["reference_history"]["merged_variables"]:
     #        ds.to_netcdf(
     #            f"{dir_dict['ref_low_reg_dir']}/{fnme_dict['ref_low_reg_dir']}",
@@ -510,7 +517,7 @@ def truncate_reference(
     #            encoding={variable: encoding[variable]},
     #        )
 
-    #except:
+    # except:
     #    logging.error(
     #        f"Truncate reference: Something went wrong during truncation for variable {variable}!"
     #    )
@@ -524,10 +531,10 @@ def remap_reference(
     grd_fle: str,
     variable: str,
 ):
-    
+
     file_in = f"{domain_config['reference_history']['prefix']}_{variable}_{year}.nc"
     full_in = f"{reg_dir_dict['reference_initial_resolution_dir']}/{file_in}"
-    
+
     file_out = f"{domain_config['reference_history']['prefix']}_{variable}_{year}_{domain_config['target_resolution']}.nc"
     full_out = f"{reg_dir_dict['reference_target_resolution_dir']}/{file_out}"
 
@@ -548,7 +555,6 @@ def remap_reference(
         run_cmd(cmd)
     except:
         logging.error(f"Remap_forecast: file {full_in} not available")
-        
 
 
 @dask.delayed

@@ -2,22 +2,18 @@
 import argparse
 import json
 import logging
-import sys
-
-from os.path import exists
 import os
+import sys
+from os.path import exists
 
 import dask
-from dask.distributed import Client
-from dask.diagnostics import ProgressBar
-
+import numpy as np
 import xarray as xr
-
+from dask.diagnostics import ProgressBar
+from dask.distributed import Client
 from rechunker import rechunk
 
-import numpy as np
-
-#import dir_fnme_v2 as dir_fnme
+# import dir_fnme_v2 as dir_fnme
 import helper_modules
 import regional_processing_modules
 
@@ -50,7 +46,7 @@ def get_clas():
         help="Years for which the processing should be executed",
         required=True,
     )
-    
+
     parser.add_argument(
         "-M",
         "--Months",
@@ -59,7 +55,7 @@ def get_clas():
         help="Months for which the processing should be executed",
         required=False,
     )
-    
+
     parser.add_argument(
         "-N",
         "--nodes",
@@ -68,7 +64,7 @@ def get_clas():
         help="Number of nodes for running the code",
         required=False,
     )
-    
+
     parser.add_argument(
         "-n",
         "--ntasks",
@@ -77,7 +73,7 @@ def get_clas():
         help="Number of tasks / CPUs",
         required=False,
     )
-    
+
     parser.add_argument(
         "-p",
         "--partition",
@@ -86,7 +82,7 @@ def get_clas():
         help="Partition to which we want to submit the job",
         required=False,
     )
-          
+
     parser.add_argument(
         "-f",
         "--scheduler_file",
@@ -146,36 +142,35 @@ if __name__ == "__main__":
     # get filename of grid-File
     grid_file = f"{reg_dir_dict['static_dir']}/domain_grid.txt"
 
-    grid_file  = regional_processing_modules.create_grd_file(
-        domain_config, grid_file
-    )
+    grid_file = regional_processing_modules.create_grd_file(domain_config, grid_file)
 
     process_years = helper_modules.decode_processing_years(args.Years)
-    
+
     if args.Months is not None:
         process_months = helper_modules.decode_processing_months(args.Months)
 
     # Get some ressourcers
     if args.partition is not None:
-        client, cluster = helper_modules.getCluster(args.partition, args.nodes, args.ntasks)
-        
+        client, cluster = helper_modules.getCluster(
+            args.partition, args.nodes, args.ntasks
+        )
+
         client.get_versions(check=True)
         client.amm.start()
-         
+
         print(f"Dask dashboard available at {client.dashboard_link}")
 
     if args.scheduler_file is not None:
         client = Client(scheduler_file=args.scheduler_file)
-        
+
         client.get_versions(check=True)
         client.amm.start()
-         
+
         print(f"Dask dashboard available at {client.dashboard_link}")
 
-    
     # Create some code for calculation of history files for period syr_calib to eyr_calib
     if args.mode == "truncate_forecasts":
-        
+
         results = []
 
         for year in process_years:
@@ -184,7 +179,12 @@ if __name__ == "__main__":
 
                 results.append(
                     regional_processing_modules.truncate_forecasts(
-                        domain_config, variable_config, reg_dir_dict, glob_dir_dict, year, month
+                        domain_config,
+                        variable_config,
+                        reg_dir_dict,
+                        glob_dir_dict,
+                        year,
+                        month,
                     )
                 )
         try:
@@ -192,7 +192,6 @@ if __name__ == "__main__":
             logging.info("Truncate forecasts: successful")
         except:
             logging.warning("Truncate forecasts: Something went wrong")
-            
 
     elif args.mode == "remap_forecasts":
 
@@ -224,142 +223,142 @@ if __name__ == "__main__":
             logging.error("Remap forecasts: Something went wrong")
 
     #
-    
+
     elif args.mode == "concat_forecasts":
-        
+
         flenms = []
-        
+
         # Loop over variables, years, and months and save filenames of all selected forecasts in a list
         for month in process_months:
-            
+
             for variable in variable_config:
-            
+
                 for year in process_years:
-                    
-                    fle_in  = f"{domain_config['raw_forecasts']['prefix']}_{variable}_{year}{month:02d}_{domain_config['target_resolution']}.nc"
+
+                    fle_in = f"{domain_config['raw_forecasts']['prefix']}_{variable}_{year}{month:02d}_{domain_config['target_resolution']}.nc"
                     full_in = f"{reg_dir_dict['raw_forecasts_target_resolution_dir']}/{fle_in}"
-                    
+
                     flenms.append(full_in)
-        
+
             # Now, let's open all files and concat along the time-dimensions
             ds = xr.open_mfdataset(
                 flenms,
                 parallel=True,
-                chunks={'time': 5, 'ens': 25, 'lat': 'auto', 'lon': 'auto'},
+                chunks={"time": 5, "ens": 25, "lat": "auto", "lon": "auto"},
                 engine="netcdf4",
                 autoclose=True,
             )
-            
+
             if process_years[-1] < 2017:
-                zarr_out = f"{domain_config['raw_forecasts']['prefix']}_{month:02d}_{domain_config['target_resolution']}_reforecasts.zarr" 
-            else:       
+                zarr_out = f"{domain_config['raw_forecasts']['prefix']}_{month:02d}_{domain_config['target_resolution']}_reforecasts.zarr"
+            else:
                 zarr_out = f"{domain_config['raw_forecasts']['prefix']}_{month:02d}_{domain_config['target_resolution']}.zarr"
-            
+
             full_out = f"{reg_dir_dict['raw_forecasts_zarr_dir']}{zarr_out}"
-            
-            
+
             # First, let's check if a ZARR-file exists
             if exists(full_out):
                 try:
-                    ds.to_zarr(full_out, mode='a', append_dim='time')
+                    ds.to_zarr(full_out, mode="a", append_dim="time")
                     logging.info("Concat forecast: appending succesful")
                 except:
-                    logging.error("Concat forecast: something went wrong during appending")
-                    
+                    logging.error(
+                        "Concat forecast: something went wrong during appending"
+                    )
+
             else:
                 coords = {
-                    'time': ds['time'].values, 
-                    'ens': ds['ens'].values, 
-                    'lat': ds['lat'].values.astype(np.float32), 
-                    'lon': ds['lon'].values.astype(np.float32)
+                    "time": ds["time"].values,
+                    "ens": ds["ens"].values,
+                    "lat": ds["lat"].values.astype(np.float32),
+                    "lon": ds["lon"].values.astype(np.float32),
                 }
-                
+
                 encoding = helper_modules.set_zarr_encoding(variable_config)
-                
+
                 try:
                     ds.to_zarr(full_out, encoding=encoding)
                     logging.info("Concat forecast: writing to new file succesful")
                 except:
                     logging.error("Concat forecast: writing to new file failed")
-                
-                
+
     elif args.mode == "rechunk_forecasts":
-        
-        
+
         for month in process_months:
-            
+
             if process_years[-1] < 2017:
-                zarr_in = f"{domain_config['raw_forecasts']['prefix']}_{month:02d}_{domain_config['target_resolution']}_reforecasts.zarr" 
-            else:       
+                zarr_in = f"{domain_config['raw_forecasts']['prefix']}_{month:02d}_{domain_config['target_resolution']}_reforecasts.zarr"
+            else:
                 zarr_in = f"{domain_config['raw_forecasts']['prefix']}_{month:02d}_{domain_config['target_resolution']}.zarr"
-                
+
             full_in = f"{reg_dir_dict['raw_forecasts_zarr_dir']}{zarr_in}"
-            
+
             if process_years[-1] < 2017:
-                zarr_out = f"{domain_config['raw_forecasts']['prefix']}_{month:02d}_{domain_config['target_resolution']}_reforecast_linechunks.zarr" 
-            else:       
+                zarr_out = f"{domain_config['raw_forecasts']['prefix']}_{month:02d}_{domain_config['target_resolution']}_reforecast_linechunks.zarr"
+            else:
                 zarr_out = f"{domain_config['raw_forecasts']['prefix']}_{month:02d}_{domain_config['target_resolution']}_linechunks.zarr"
-                
+
             full_out = f"{reg_dir_dict['raw_forecasts_zarr_dir']}{zarr_out}"
-            
+
             intermed = f"{reg_dir_dict['raw_forecasts_zarr_dir']}intermed.zarr"
-            
+
             # Delete the directory of the intermediate files
             if exists(intermed):
                 os.rmdir(intermed)
-            
+
             # This needs to be changed as we might want to add more data to the ZARR stores
             if exists(full_out):
                 os.rmdir(full_out)
-            
-            
-            ds = xr.open_zarr(full_in, chunks={'time': 5, 'ens': 25, 'lat': 'auto', 'lon': 'auto'})
-            
-            encoding = helper_modules.set_zarr_encoding(variable_config)        
+
+            ds = xr.open_zarr(
+                full_in, chunks={"time": 5, "ens": 25, "lat": "auto", "lon": "auto"}
+            )
+
+            encoding = helper_modules.set_zarr_encoding(variable_config)
 
             rechunked = rechunk(
-                ds, 
+                ds,
                 target_chunks={
-                    'time': len(ds.time), 
-                    'ens': len(ds.ens), 
-                    'lat': 1, 
-                    'lon': 1}, 
+                    "time": len(ds.time),
+                    "ens": len(ds.ens),
+                    "lat": 1,
+                    "lon": 1,
+                },
                 target_store=full_out,
-                max_mem='2000MB', 
-                temp_store=intermed, 
-                target_options=encoding)
-            
-        
+                max_mem="2000MB",
+                temp_store=intermed,
+                target_options=encoding,
+            )
+
         with ProgressBar():
             rechunked.execute()
-    
 
     elif args.mode == "truncate_reference":
-        
+
         results = []
-        
+
         for variable in variable_config:
-    #    
-            for year in process_years:    
+            #
+            for year in process_years:
                 results.append(
-                        regional_processing_modules.truncate_reference(
-                            domain_config,
-                            variable_config,
-                            reg_dir_dict,
-                            glob_dir_dict,
-                            year,
-                            variable
-                        )
+                    regional_processing_modules.truncate_reference(
+                        domain_config,
+                        variable_config,
+                        reg_dir_dict,
+                        glob_dir_dict,
+                        year,
+                        variable,
                     )
-        
-        try:      
+                )
+
+        try:
             dask.compute(results)
             logging.info("Truncate reference: successful")
         except:
             logging.warning("Truncate reference: Something went wrong")
-    
+
     elif args.mode == "remap_reference":
-        
+
         results = []
 
         for variable in variable_config:
@@ -383,58 +382,58 @@ if __name__ == "__main__":
 
         except:
             logging.error("Remap forecasts: Something went wrong")
-        
-        
+
     elif args.mode == "concat_reference":
-        
+
         filenames = []
-        
+
         # Loop over variables, years, and months and save filenames of all selected forecasts in a list
         for variable in variable_config:
-            
+
             for year in process_years:
-                    
+
                 file_out = f"{domain_config['reference_history']['prefix']}_{variable}_{year}_{domain_config['target_resolution']}.nc"
-                full_out = f"{reg_dir_dict['reference_target_resolution_dir']}/{file_out}"
-                    
+                full_out = (
+                    f"{reg_dir_dict['reference_target_resolution_dir']}/{file_out}"
+                )
+
                 filenames.append(full_out)
-        
+
         # Now, let's open all files and concat along the time-dimensions
         ds = xr.open_mfdataset(
             filenames,
             parallel=True,
-            #chunks={'time': 5, 'lat': 'auto', 'lon': 'auto'},
+            # chunks={'time': 5, 'lat': 'auto', 'lon': 'auto'},
             engine="netcdf4",
             autoclose=True,
         )
-        
-        zarr_out = f"{domain_config['reference_history']['prefix']}_{domain_config['target_resolution']}.zarr" 
+
+        zarr_out = f"{domain_config['reference_history']['prefix']}_{domain_config['target_resolution']}.zarr"
         full_out = f"{reg_dir_dict['reference_zarr_dir']}{zarr_out}"
-            
-        ds = ds.chunk({'time': 50})
-          
+
+        ds = ds.chunk({"time": 50})
+
         # First, let's check if a ZARR-file exists
         if exists(full_out):
             try:
-                ds.to_zarr(full_out, mode='a', append_dim='time')
+                ds.to_zarr(full_out, mode="a", append_dim="time")
                 logging.info("Concat forecast: appending succesful")
             except:
                 logging.error("Concat forecast: something went wrong during appending")
-                    
+
         else:
             coords = {
-                'time': ds['time'].values, 
-                'lat': ds['lat'].values.astype(np.float32), 
-                'lon': ds['lon'].values.astype(np.float32)
+                "time": ds["time"].values,
+                "lat": ds["lat"].values.astype(np.float32),
+                "lon": ds["lon"].values.astype(np.float32),
             }
-                 
+
             encoding = helper_modules.set_zarr_encoding(variable_config)
             try:
                 ds.to_zarr(full_out, encoding=encoding)
                 logging.info("Concat forecast: writing to new file succesful")
             except:
                 logging.error("Concat forecast: writing to new file failed")
-
 
     #            if domain_config["reference_history"]["merged_variables"]:
     #                month_str = "01"  # dummy
@@ -462,53 +461,50 @@ if __name__ == "__main__":
     #                        variable,
     #                    )
     #                )#
-#
+    #
     #        if domain_config["reference_history"]["merged_variables"]:
- #               results.append(
- #                   regional_processing_modules.truncate_reference(
- #                       domain_config,
- #                       variable_config,
- #                       dir_dict,
- #                       fnme_dict,
- #                       fle_string,
-  #                      variable,
-  #                  )
-  #              )
-#
+    #               results.append(
+    #                   regional_processing_modules.truncate_reference(
+    #                       domain_config,
+    #                       variable_config,
+    #                       dir_dict,
+    #                       fnme_dict,
+    #                       fle_string,
+    #                      variable,
+    #                  )
+    #              )
+    #
     elif args.mode == "rechunk_reference":
-        
-        zarr_in = f"{domain_config['reference_history']['prefix']}_{domain_config['target_resolution']}.zarr" 
+
+        zarr_in = f"{domain_config['reference_history']['prefix']}_{domain_config['target_resolution']}.zarr"
         full_in = f"{reg_dir_dict['reference_zarr_dir']}{zarr_in}"
-        
-        zarr_out = f"{domain_config['reference_history']['prefix']}_{domain_config['target_resolution']}_linechunks.zarr" 
+
+        zarr_out = f"{domain_config['reference_history']['prefix']}_{domain_config['target_resolution']}_linechunks.zarr"
         full_out = f"{reg_dir_dict['reference_zarr_dir']}{zarr_out}"
-        
+
         intermed = f"{reg_dir_dict['reference_zarr_dir']}intermed.zarr"
-        
+
         # Delete the directory of the intermediate files
         if exists(intermed):
             os.rmdir(intermed)
-            
+
         # This needs to be changed as we might want to add more data to the ZARR stores
         if exists(full_out):
             os.rmdir(full_out)
-                
-        ds = xr.open_zarr(full_in, chunks={'time': 50, 'lat': 'auto', 'lon': 'auto'})
-            
-        encoding = helper_modules.set_zarr_encoding(variable_config)        
+
+        ds = xr.open_zarr(full_in, chunks={"time": 50, "lat": "auto", "lon": "auto"})
+
+        encoding = helper_modules.set_zarr_encoding(variable_config)
 
         rechunked = rechunk(
-            ds, 
-            target_chunks={
-                'time': len(ds.time), 
-                'lat': 1, 
-                'lon': 1}, 
+            ds,
+            target_chunks={"time": len(ds.time), "lat": 1, "lon": 1},
             target_store=full_out,
-            max_mem='2000MB', 
-            temp_store=intermed, 
-            target_options=encoding)
-            
-        
+            max_mem="2000MB",
+            temp_store=intermed,
+            target_options=encoding,
+        )
+
         with ProgressBar():
             rechunked.execute()
 
