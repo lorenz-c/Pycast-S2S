@@ -179,7 +179,7 @@ def remap_forecasts(
     print(full_in)
 
     fle_out = f"{domain_config['raw_forecasts']['prefix']}_{variable}_{year}{month:02d}_{domain_config['target_resolution']}.nc"
-    full_out = f"{reg_dir_dict['raw_forecasts_target_resolution_dir']}/{fle_out}"
+    full_out = f"{reg_dir_dict['raw_forecasts_target_resolution_dir']}{fle_out}"
 
     cmd = (
         "cdo",
