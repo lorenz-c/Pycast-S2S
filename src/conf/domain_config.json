@@ -48,7 +48,7 @@
 	"west_africa": {
 		"prefix": "west_africa",
 		"bbox": [-12.9, 16.9, 3.2, 24.9],
-		"regroot": "/pd/data/regclim_data/gridded_data/processed/west_africa_test",
+		"regroot": "/bg/data/NCZarr/s2s_forecasts/west_africa_test",
 		"syr_calib": 1981,
 		"eyr_calib": 2016,
 		"variables": ["tp", "t2m"],
