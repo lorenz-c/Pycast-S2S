@@ -2,7 +2,7 @@ import dask
 import numpy as np
 import xarray as xr
 
-from bc_module_v2 import bc_module
+#from bc_module_v3 import bc_module
 
 
 def get_intersect_days(timestep, domain_config: dict, da_obs, da_mdl, da_pred):
@@ -108,18 +108,18 @@ def intersect_and_correct(
     # --> I really don't know why we need to silence the warning here...
     #
 
-    return xr.apply_ufunc(
-        bc_module,
-        da_pred_sub,
-        da_obs_sub,
-        da_mdl_sub,
-        kwargs={
-            "bc_params": domain_config["bc_params"],
-            "precip": variable_config[variable]["isprecip"],
-        },
-        input_core_dims=[["ens"], ["time"], ["ens_time"]],
-        output_core_dims=[["ens"]],
-        vectorize=True,
-        dask="parallelized",
-        output_dtypes=[np.float64],
-    )
+    #return xr.apply_ufunc(
+    #    bc_module,
+    #    da_pred_sub,
+    #    da_obs_sub,
+    #    da_mdl_sub,
+    #    kwargs={
+    #        "bc_params": domain_config["bc_params"],
+    #        "precip": variable_config[variable]["isprecip"],
+    #    },
+    #    input_core_dims=[["ens"], ["time"], ["ens_time"]],
+    #    output_core_dims=[["ens"]],
+    #    vectorize=True,
+    #    dask="parallelized",
+    #    output_dtypes=[np.float64],
+    #)
