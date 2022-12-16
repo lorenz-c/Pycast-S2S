@@ -179,9 +179,6 @@ def remap_forecasts(
     fle_out = f"{domain_config['raw_forecasts']['prefix']}_{variable}_{year}{month:02d}_{domain_config['target_resolution']}.nc"
     full_out = f"{reg_dir_dict['raw_forecasts_target_resolution_dir']}{fle_out}"
 
-    # print(grd_fle)
-    # print(full_out)
-    # print(full_in)
 
 
     cmd = (
@@ -196,7 +193,6 @@ def remap_forecasts(
         str(full_out),
     )
 
-    run_cmd(cmd)
     try:
         os.path.isfile(full_in)
         run_cmd(cmd)
