@@ -202,7 +202,7 @@ if __name__ == "__main__":
             for year in process_years:
 
                 for month in process_months:
-
+                    print(reg_dir_dict)
                     results.append(
                         regional_processing_modules.remap_forecasts(
                             domain_config,
