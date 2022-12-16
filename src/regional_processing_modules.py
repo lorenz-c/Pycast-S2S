@@ -170,7 +170,7 @@ def remap_forecasts(
     grd_fle: str,
     variable: str,
 ):
-
+    print("test")
     fle_in = f"{domain_config['raw_forecasts']['prefix']}_{variable}_{year}{month:02d}.nc"
     full_in = f"{reg_dir_dict['raw_forecasts_initial_resolution_dir']}{fle_in}"
 
