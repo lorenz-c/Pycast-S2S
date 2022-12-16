@@ -196,6 +196,7 @@ def remap_forecasts(
         str(full_out),
     )
 
+    run_cmd(cmd)
     try:
         os.path.isfile(full_in)
         run_cmd(cmd)
