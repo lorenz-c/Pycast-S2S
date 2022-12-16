@@ -215,8 +215,8 @@ if __name__ == "__main__":
                     )
 
         try:
-            with ProgressBar():
-                dask.compute(results)
+            # with ProgressBar():
+            dask.compute(results)
             logging.info("Remap forecasts: successful")
 
         except:
