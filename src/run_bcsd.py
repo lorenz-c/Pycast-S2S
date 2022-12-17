@@ -172,7 +172,7 @@ if __name__ == "__main__":
 
     # Insert IF-Statement in order to run the bcsd for the historical files
     for year in process_years:
-
+        print(f"Year: {year}")
         for month in process_months:
 
             for variable in variable_config:
@@ -304,8 +304,8 @@ if __name__ == "__main__":
                     # Deal with normal and leap years
                     for calib_year in range(syr_calib, eyr_calib + 1):
 
-                        print(calib_year)
-                        print(year)
+                        # print(calib_year)
+                        # print(year)
 
                         ds_obs_year = ds_obs.sel(time=ds_obs.time.dt.year == calib_year)
                         ds_mdl_year = ds_mdl.sel(time=ds_mdl.time.dt.year == calib_year)
