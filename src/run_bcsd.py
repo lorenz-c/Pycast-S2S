@@ -208,7 +208,7 @@ if __name__ == "__main__":
 
                 ds_obs = xr.open_zarr(
                     ref_full,
-                    chunks={"time": len(ds_obs.time), "lat": "auto", "lon": "auto"},
+                    chunks={"time": len(ds_obs.time), "lat": 10, "lon": 10},
                     consolidated=False
                     # parallel=True,
                     # engine="netcdf4",
@@ -228,8 +228,8 @@ if __name__ == "__main__":
                         chunks={
                             "time": len(ds_mdl.time),
                             "ens": len(ds_mdl.ens),
-                            "lat": "auto",
-                            "lon": "auto",
+                            "lat": 10,
+                            "lon": 10,
                         },
                         consolidated=False
                         # parallel=True,
@@ -244,8 +244,8 @@ if __name__ == "__main__":
                     chunks={
                         "time": len(ds_pred.time),
                         "ens": len(ds_pred.ens),
-                        "lat": "auto",
-                        "lon": "auto",
+                        "lat": 10,
+                        "lon": 10,
                     },
                     parallel=True,
                     engine="netcdf4",
