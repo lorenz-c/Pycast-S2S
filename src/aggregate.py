@@ -274,35 +274,11 @@ if __name__ == "__main__":
                 # parallel=True,
                 # engine="netcdf4",
             )
-            # Calculate climatogloy (mean)
+            # Calculate monthly mean for each year
             ds = ds.resample(time="1MS").mean()
 
-            print(ds)
-            print(ds.time)
-
-
-
-            # Get Filename of Monthly ERA5-Dates
-            fle_in = f"{domain_config['reference_history']['prefix']}_clim_{syr_calib}_{eyr_calib}_{domain_config['target_resolution']}.nc"
-            full_in = f"{reg_dir_dict['climatology_dir']}/{fle_in}"
-
-            # Open files
-            ds = xr.open_mfdataset(
-                full_in,
-                parallel=True,
-                chunks={"time": -1, "ens": 25, "lat": "auto", "lon": "auto"},
-                engine="netcdf4",
-                autoclose=True,
-            )
-
-
-
-            print(ds)
-            print(ds.time)
-            print(ds.dims)
             # Calculate quantile, tercile and extremes on a monthly basis
-            # ds_quintiles = ds.quantile(q=[0.2, 0.4, 0.6, 0.8], dim=["time"])
-            ds_quintiles = ds.quantile(q=[0.2, 0.4, 0.6, 0.8], dim=[])
+            ds_quintiles = ds.grouppy("time.month").quantile(q=[0.2, 0.4, 0.6, 0.8]) # , dim=["time"])
             ds_tercile = ds.quantile(q=[0.33, 0.66], dim=["time"])
             ds_extreme = ds.quantile(q=[0.1, 0.9], dim=["time"])
             print(ds_quintiles)
