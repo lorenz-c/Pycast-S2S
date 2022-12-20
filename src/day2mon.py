@@ -136,9 +136,11 @@ if __name__ == "__main__":
 
     process_years = helper_modules.decode_processing_years(args.Years)
 
+
     if args.Months is not None:
         process_months = helper_modules.decode_processing_months(args.Months)
-
+    print("process_year")
+    print("process_months")
     # Get some ressourcers
     if args.partition is not None:
         client, cluster = helper_modules.getCluster(
