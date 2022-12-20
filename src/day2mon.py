@@ -191,10 +191,10 @@ if __name__ == "__main__":
                 )
 
                 # results.append(run_cmd(cmd))
-                run_cmd(cmd)
+                results.append(dask.delayed(run_cmd)(cmd))
 
 
-    # print(results)
+    print(results)
     # try:
     #    dask.compute(results)
     #    logging.info("Day to month: successful")
