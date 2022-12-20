@@ -4,10 +4,11 @@ import json
 import logging
 
 # from cdo import *
+import dask
 from dask.distributed import Client
 import helper_modules
 import regional_processing_modules
-
+from helper_modules import run_cmd
 
 # cdo = Cdo()
 
@@ -157,13 +158,14 @@ if __name__ == "__main__":
 
         print(f"Dask dashboard available at {client.dashboard_link}")
 
-    for variable in variable_config:
-        for year in process_years:
-            for month in process_months:
 
+    results = []
+
+    for year in process_years:
+        for month in process_months:
+            for variable in variable_config:
                 # Get BCSD-Filename pp_full
                 (raw_full, pp_full, refrcst_full, ref_full,) = helper_modules.set_input_files(domain_config, reg_dir_dict, month, year, variable)
-
 
                 # set input files
                 full_in = pp_full
@@ -187,3 +189,11 @@ if __name__ == "__main__":
                     str(full_in),
                     str(full_out),
                 )
+
+                results.append(run_cmd(cmd))
+
+    try:
+        dask.compute(results)
+        logging.info("Day to month: successful")
+    except:
+        logging.warning("Day to month: Something went wrong")
