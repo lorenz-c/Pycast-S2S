@@ -22,14 +22,14 @@ def get_clas():
     parser.add_argument(
         "-d", "--domain", action="store", type=str, help="Domain", required=True
     )
-    # parser.add_argument(
-    #     "-m",
-    #     "--mode",
-    #    action="store",
-    #    type=str,
-    #     help="Selected mode for setup",
-    #    required=True,
-    #)
+    parser.add_argument(
+         "-m",
+         "--mode",
+        action="store",
+        type=str,
+         help="Selected mode for setup",
+        required=True,
+    )
 
     parser.add_argument(
         "-Y",
@@ -91,7 +91,7 @@ def get_clas():
 
 def setup_logger(domain_name):
     logging.basicConfig(
-        filename=f"logs/{domain_name}_day2mon.log",
+        filename=f"logs/{domain_name}_aggregate.log",
         level=logging.INFO,
         format="%(asctime)s:%(levelname)s:%(message)s",
     )
@@ -139,8 +139,8 @@ if __name__ == "__main__":
 
     if args.Months is not None:
         process_months = helper_modules.decode_processing_months(args.Months)
-    print(process_years)
-    print(process_months)
+    #print(process_years)
+    #print(process_months)
     # Get some ressourcers
     if args.partition is not None:
         client, cluster = helper_modules.getCluster(
@@ -160,20 +160,37 @@ if __name__ == "__main__":
 
         print(f"Dask dashboard available at {client.dashboard_link}")
 
+    if args.mode == "day2mon":
+        results = []
+        for variable in variable_config:
 
-    results = []
-    for variable in variable_config:
+            for year in process_years:
 
-        for year in process_years:
+                for month in process_months:
 
-            for month in process_months:
-
-                results.append(helper_modules.day2mon(domain_config,variable_config, reg_dir_dict, year, month, variable))
+                    results.append(helper_modules.day2mon(domain_config,variable_config, reg_dir_dict, year, month, variable))
 
 
-    # print(results)
-    try:
-        dask.compute(results)
-        logging.info("Day to month: successful")
-    except:
-        logging.warning("Day to month: Something went wrong")
+        # print(results)
+        try:
+            dask.compute(results)
+            logging.info("Day to month: successful")
+        except:
+            logging.warning("Day to month: Something went wrong")
+
+    elif args.mode == "clim_seas5":
+        results = []
+        syr_calib = domain_config["syr_calib"]
+        eyr_calib = domain_config["eyr_calib"]
+
+        for variable in variable_config:
+                for month in process_months:
+                    results.append(helper_modules.create_climatology("seas5", domain_config, variable_config, reg_dir_dict, syr_calib, eyr_calib, month, variable))
+
+        # print(results)
+        try:
+            dask.compute(results)
+            logging.info("SEAS5 climatology: successful")
+        except:
+            logging.warning("SEAS5 climatology: Something went wrong")
+
