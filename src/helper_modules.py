@@ -485,10 +485,11 @@ def day2mon(domain_config: dict,variable_config: dict, reg_dir_dict: dict, year:
     full_in = pp_full
 
     # open-File
+    ds = xr.open_dataset(full_in)
     ds = xr.open_mfdataset(
         full_in,
         parallel=True,
-        chunks={"time": 215, 'ens': 25, 'lat': "auto", 'lon': "auto"},
+        chunks={"time": len(ds.time), 'ens': len(ds.ens), 'lat': "auto", 'lon': "auto"},
         # chunks={"time": 50},
         engine="netcdf4",
         autoclose=True,
