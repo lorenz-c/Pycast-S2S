@@ -160,6 +160,7 @@ if __name__ == "__main__":
 
         print(f"Dask dashboard available at {client.dashboard_link}")
 
+    # Convert BCSD daily data to monthly data
     if args.mode == "day2mon":
         results = []
         for variable in variable_config:
@@ -195,6 +196,7 @@ if __name__ == "__main__":
             logging.warning("REF climatology: Something went wrong")
 
 
+    # Create Climatology for all BCSD-Files
     # not working properly, low performance when opening chunked BCSD-corrected SEAS5-Files...
     # Dont know how to load all files with high performacne (change chunks, e.g.???)
     # We do not need SEAS5-BCSD-Climatology at the moment
@@ -254,6 +256,8 @@ if __name__ == "__main__":
             except:
                 logging.info(f"SEAS5 Climatology: Something went wrong for {year}-{month:02d}")
 
+
+    # Concat all BCSD-Files on daily basis
     elif args.mode == "concat_BCSD":
         syr_calib = domain_config["syr_calib"]
         eyr_calib = domain_config["eyr_calib"]
@@ -321,7 +325,7 @@ if __name__ == "__main__":
 
 
 
-    # Calc quantile for REF-Product (ERA5-Land)
+    # Calc quantile for REF-Product (ERA5-Land) --> Input: ERA5 on daily basis
     elif args.mode == "quantile":
         syr_calib = domain_config["syr_calib"]
         eyr_calib = domain_config["eyr_calib"]
