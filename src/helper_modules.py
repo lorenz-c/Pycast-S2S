@@ -601,12 +601,7 @@ def create_climatology(dataset: str, domain_config: dict, variable_config: dict,
         ds = xr.open_zarr(full_in, consolidated=False)
         ds = xr.open_zarr(
             full_in,
-            chunks={
-                "time": len(ds.time),
-                "ens": len(ds.ens),
-                "lat": "auto",
-                "lon": "auto",
-            },
+            chunks={"time": len(ds.time), "lat": 10, "lon": 10},
             consolidated=False
             # parallel=True,
             # engine="netcdf4",
