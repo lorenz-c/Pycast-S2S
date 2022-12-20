@@ -260,6 +260,28 @@ if __name__ == "__main__":
         eyr_calib = domain_config["eyr_calib"]
         # Loop over variables
         for variable in variable_config:
+
+            # Set input File
+            fle_in = f"{domain_config['reference_history']['prefix']}_{domain_config['target_resolution']}_linechunks.zarr"
+            full_in = f"{reg_dir_dict['reference_zarr_dir']}{fle_in}"
+
+            # Open dataset
+            ds = xr.open_zarr(full_in, consolidated=False)
+            ds = xr.open_zarr(
+                full_in,
+                chunks={"time": len(ds.time), "lat": 10, "lon": 10},
+                consolidated=False
+                # parallel=True,
+                # engine="netcdf4",
+            )
+            # Calculate climatogloy (mean)
+            ds = ds.resample("1MS").mean()
+
+            print(ds)
+            print(ds.time)
+
+
+
             # Get Filename of Monthly ERA5-Dates
             fle_in = f"{domain_config['reference_history']['prefix']}_clim_{syr_calib}_{eyr_calib}_{domain_config['target_resolution']}.nc"
             full_in = f"{reg_dir_dict['climatology_dir']}/{fle_in}"
