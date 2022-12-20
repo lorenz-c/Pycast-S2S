@@ -190,10 +190,13 @@ if __name__ == "__main__":
                     str(full_out),
                 )
 
-                results.append(run_cmd(cmd))
-    print(results)
-    try:
-        dask.compute(results)
-        logging.info("Day to month: successful")
-    except:
-        logging.warning("Day to month: Something went wrong")
+                # results.append(run_cmd(cmd))
+                run_cmd(cmd)
+
+
+    # print(results)
+    # try:
+    #    dask.compute(results)
+    #    logging.info("Day to month: successful")
+    #except:
+    #    logging.warning("Day to month: Something went wrong")
