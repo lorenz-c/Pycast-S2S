@@ -221,7 +221,7 @@ if __name__ == "__main__":
             )
 
             # Monthly mean
-            ds = ds.resample(time="1MS").mean(dim="time")
+            # ds = ds.resample(time="1MS").mean(dim="time")
 
             coords = {
                 "time": ds["time"].values,
