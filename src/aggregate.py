@@ -275,7 +275,7 @@ if __name__ == "__main__":
                 # engine="netcdf4",
             )
             # Calculate climatogloy (mean)
-            ds = ds.resample("1MS").mean()
+            ds = ds.resample(time="1MS").mean()
 
             print(ds)
             print(ds.time)
