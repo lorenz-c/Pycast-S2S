@@ -556,10 +556,20 @@ def create_climatology(dataset: str, domain_config: dict, variable_config: dict,
             fle_list.append(full_out)
 
         # load nc-Files for each month over all years
-        ds = xr.open_mfdataset(fle_list, parallel=True, engine="netcdf4")
+        # open-File
+        ds = xr.open_dataset(fle_list[0])
+        ds = xr.open_mfdataset(
+            fle_list,
+            parallel=True,
+            chunks={"time": len(ds.time), 'ens': len(ds.ens), 'lat': "auto", 'lon': "auto"},
+            # chunks={"time": 50},
+            engine="netcdf4",
+            autoclose=True,
+        )
         # Calculate climatology (mean) for each lead month
-        ds_clim = ds.groupby("time.month").mean("time")
-        ds_clim = ds_clim.rename({"month": "time"})
+        ds_clim = ds
+        # ds_clim = ds.groupby("time.month").mean("time")
+        # ds_clim = ds_clim.rename({"month": "time"})
         # set encoding
         coords = {
             "time": ds_clim["time"].values,

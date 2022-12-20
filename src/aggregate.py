@@ -184,8 +184,8 @@ if __name__ == "__main__":
         eyr_calib = domain_config["eyr_calib"]
 
         for variable in variable_config:
-                for month in process_months:
-                    results.append(helper_modules.create_climatology("seas5", domain_config, variable_config, reg_dir_dict, syr_calib, eyr_calib, month, variable))
+            for month in process_months:
+                results.append(helper_modules.create_climatology("seas5", domain_config, variable_config, reg_dir_dict, syr_calib, eyr_calib, month, variable))
 
         # print(results)
         try:
