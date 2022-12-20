@@ -179,14 +179,15 @@ if __name__ == "__main__":
         except:
             logging.warning("Day to month: Something went wrong")
 
+    # Create Climatology for ERA5-Land
     elif args.mode == "climatology":
         results = []
         syr_calib = domain_config["syr_calib"]
         eyr_calib = domain_config["eyr_calib"]
 
         for variable in variable_config:
-            for month in process_months:
-                results.append(helper_modules.create_climatology(domain_config, variable_config, reg_dir_dict, syr_calib, eyr_calib, month, variable))
+
+            results.append(helper_modules.create_climatology(domain_config, variable_config, reg_dir_dict, syr_calib, eyr_calib, variable))
 
         # print(results)
         try:
@@ -287,8 +288,6 @@ if __name__ == "__main__":
                 engine="netcdf4",
                 autoclose=True,
             )
-
-
 
             if eyr_calib < 2017:
                 zarr_out = f"{domain_config['bcsd_forecasts']['prefix']}_v{domain_config['version']}_{variable}_{syr_calib}_{eyr_calib}_{month:02d}_{domain_config['target_resolution']}_reforecasts.zarr"

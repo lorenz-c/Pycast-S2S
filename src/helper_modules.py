@@ -542,7 +542,7 @@ def day2mon(domain_config: dict,variable_config: dict, reg_dir_dict: dict, year:
     #    logging.error(f"Day to month: file {full_in} not available")
 
 @dask.delayed
-def create_climatology(domain_config: dict, variable_config: dict, reg_dir_dict: dict, syr_calib: int, eyr_calib: int, month: int, variable: str):
+def create_climatology(domain_config: dict, variable_config: dict, reg_dir_dict: dict, syr_calib: int, eyr_calib: int, variable: str):
 
     # Set input File
     fle_in = f"{domain_config['reference_history']['prefix']}_{domain_config['target_resolution']}_linechunks.zarr"
@@ -558,7 +558,7 @@ def create_climatology(domain_config: dict, variable_config: dict, reg_dir_dict:
         # engine="netcdf4",
     )
     # Calculate climatogloy (mean)
-    ds_clim = ds.groupby("time.month").mean("time")
+    ds_clim = ds[variable].groupby("time.month").mean("time")
     ds_clim = ds_clim.rename({"month": "time"})
     # set encoding
     coords = {
@@ -568,12 +568,12 @@ def create_climatology(domain_config: dict, variable_config: dict, reg_dir_dict:
     }
     encoding = set_encoding(variable_config, coords, "lines")
 
-    fle_out  = f"{domain_config['reference_history']['prefix']}_clim_{syr_calib}_{eyr_calib}_{domain_config['target_resolution']}.nc"
+    fle_out  = f"{domain_config['reference_history']['prefix']}_clim_{variable}_{syr_calib}_{eyr_calib}_{domain_config['target_resolution']}.nc"
     full_out = f"{reg_dir_dict['climatology_dir']}/{fle_out}"
 
     # Save NC-File
     try:
-        ds_clim.to_netcdf(full_out, encoding=encoding,)
+        ds_clim.to_netcdf(full_out, encoding={variable: encoding[variable]},)
         logging.info(
             f"Calculate climatology of Ref: Climatology for variable suceeded!")
     except:
