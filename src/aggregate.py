@@ -291,6 +291,7 @@ if __name__ == "__main__":
             # Calculate monthly data
             ds_mon = ds.resample(time="1MS").mean()
             print(ds_mon)
+
             if eyr_calib < 2017:
                 zarr_out = f"{domain_config['bcsd_forecasts']['prefix']}_v{domain_config['version']}_{variable}_{syr_calib}_{eyr_calib}_{month:02d}_{domain_config['target_resolution']}_reforecasts.zarr"
                 zarr_out_mon = f"{domain_config['bcsd_forecasts']['prefix']}_v{domain_config['version']}_mon_{variable}_{syr_calib}_{eyr_calib}_{month:02d}_{domain_config['target_resolution']}_reforecasts.zarr"
@@ -323,7 +324,7 @@ if __name__ == "__main__":
 
             try:
                 ds.to_zarr(full_out, encoding=encoding)
-                ds_mon.to_zarr(full_out_mon, encoding=encoding)
+                # ds_mon.to_zarr(full_out_mon, encoding=encoding)
                 logging.info("Concat forecast: writing to new file succesful")
             except:
                 logging.error("Concat forecast: writing to new file failed")
