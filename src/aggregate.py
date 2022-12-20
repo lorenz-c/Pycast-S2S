@@ -273,6 +273,8 @@ if __name__ == "__main__":
                 autoclose=True,
             )
             print(ds)
+            print(ds.time)
+            print(ds.dims)
             # Calculate quantile, tercile and extremes on a monthly basis
             ds_quintiles = ds.groupby("time.month").quantile(q=[0.2, 0.4, 0.6, 0.8], dim=["time", "ens"])
             ds_tercile = ds.groupby("time.month").quantile(q=[0.33, 0.66], dim=["time", "ens"])
