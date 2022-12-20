@@ -477,34 +477,65 @@ def decode_processing_months(months_string):
 
 
 @dask.delayed
-def day2mon(domain_config: dict, reg_dir_dict: dict, year: int, month: int, variable: str):
+def day2mon(domain_config: dict,variable_config: dict, reg_dir_dict: dict, year: int, month: int, variable: str):
     # Get BCSD-Filename pp_full
     (raw_full, pp_full, refrcst_full, ref_full,) = set_input_files(domain_config, reg_dir_dict, month, year, variable)
     print(pp_full)
     # set input files
     full_in = pp_full
 
+    # open-File
+    ds = xr.open_mfdataset(
+        full_in,
+        parallel=True,
+        # chunks={"time": 'auto', 'ens': 'auto', 'lat': -1, 'lon': -1},
+        chunks={"time": 50},
+        engine="netcdf4",
+        autoclose=True,
+    )
+
+    # Monthly mean
+    ds = ds.resample(time="1MS").mean(dim="time")
+
+    coords = {
+        "time": ds["time"].values,
+        "ens": ds["ens"].values,
+        "lat": ds["lat"].values.astype(np.float32),
+        "lon": ds["lon"].values.astype(np.float32),
+    }
+
+    encoding = set_encoding(variable_config, coords, "lines")
+
     # set output files
     fle_out = f"{domain_config['bcsd_forecasts']['prefix']}_v{domain_config['version']}_mon_{variable}_{year}{month:02d}_{domain_config['target_resolution']}.nc"
     full_out = f"{reg_dir_dict['monthly_dir']}/{fle_out}"
 
-    # monthly mean by using cdo
-    cmd = (
-        "cdo",
-        "-O",
-        "-f",
-        "nc4c",
-        "-z",
-        "zip_6",
-        "monmean",
-        str(full_in),
-        str(full_out),
-    )
     try:
-        os.path.isfile(full_in)
-        run_cmd(cmd)
+        ds.to_netcdf(full_out, encoding={variable: encoding[variable]})
+        logging.info(
+            f"Day to month: Convert day to month for {year}-{month:02d} successful"
+        )
     except:
-        logging.error(f"Day to month: file {full_in} not available")
+        logging.info(f"Day to month: Something went wrong for {year}-{month:02d}")
+
+
+    # monthly mean by using cdo
+    # cmd = (
+    #    "cdo",
+    #    "-O",
+    #    "-f",
+    #    "nc4c",
+    #    "-z",
+    #    "zip_6",
+    #    "monmean",
+    #    str(full_in),
+    #    str(full_out),
+    #)
+    #try:
+    #    os.path.isfile(full_in)
+    #    run_cmd(cmd)
+    #except:
+    #    logging.error(f"Day to month: file {full_in} not available")
 
 
 

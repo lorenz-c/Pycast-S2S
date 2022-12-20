@@ -168,7 +168,7 @@ if __name__ == "__main__":
 
             for month in process_months:
 
-                results.append(helper_modules.day2mon(domain_config, reg_dir_dict, year, month, variable))
+                results.append(helper_modules.day2mon(domain_config,variable_config, reg_dir_dict, year, month, variable))
 
 
     # print(results)
