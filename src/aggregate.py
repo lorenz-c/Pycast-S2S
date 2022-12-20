@@ -194,3 +194,21 @@ if __name__ == "__main__":
         except:
             logging.warning("SEAS5 climatology: Something went wrong")
 
+
+    elif args.mode == "clim_ref":
+        results = []
+        syr_calib = domain_config["syr_calib"]
+        eyr_calib = domain_config["eyr_calib"]
+
+        for variable in variable_config:
+            for month in process_months:
+                results.append(helper_modules.create_climatology("ref", domain_config, variable_config, reg_dir_dict, syr_calib, eyr_calib, month, variable))
+
+        # print(results)
+        try:
+            dask.compute(results)
+            logging.info("REF climatology: successful")
+        except:
+            logging.warning("REF climatology: Something went wrong")
+
+

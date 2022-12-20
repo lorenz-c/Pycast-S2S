@@ -596,16 +596,24 @@ def create_climatology(dataset: str, domain_config: dict, variable_config: dict,
         # Select period of time
         fle_list = []
         for variable in variable_config:
-            for year in range(syr_calib, eyr_calib + 1):
-                # Update Filename
-
-                fle_in = f"{domain_config['reference_history']['prefix']}_{variable}_{year}_{domain_config['target_resolution']}.nc"
-                full_in = (f"{reg_dir_dict['reference_target_resolution_dir']}/{fle_in}")
-
-                fle_list.append(full_in)
+            # Update Filename
+            fle_in = f"{domain_config['reference_history']['prefix']}_{domain_config['target_resolution']}_linechunks.zarr"
+            full_in = f"{reg_dir_dict['reference_zarr_dir']}{fle_in}"
 
             # Open dataset
-            ds = xr.open_mfdataset(fle_list, parallel=True, engine="netcdf4")
+            ds = xr.open_zarr(full_in, consolidated=False)
+            ds = xr.open_zarr(
+                full_in,
+                chunks={
+                    "time": len(ds.time),
+                    "ens": len(ds.ens),
+                    "lat": "auto",
+                    "lon": "auto",
+                },
+                consolidated=False
+                # parallel=True,
+                # engine="netcdf4",
+            )
             # Calculate climatogloy (mean)
             ds_clim = ds.groupby("time.month").mean("time")
             ds_clim = ds_clim.rename({"month": "time"})
@@ -617,7 +625,7 @@ def create_climatology(dataset: str, domain_config: dict, variable_config: dict,
             }
             encoding = set_encoding(variable_config, coords, "lines")
 
-            fle_out  = f"{domain_config['reference_history']['prefix']}_clim_{variable}_{year}_{domain_config['target_resolution']}.nc"
+            fle_out  = f"{domain_config['reference_history']['prefix']}_clim_{variable}_{syr_calib}{eyr_calib}_{domain_config['target_resolution']}.nc"
             full_out = f"{reg_dir_dict['reference_target_resolution_dir']}/{fle_out}"
 
             # Save NC-File
