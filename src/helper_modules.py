@@ -14,7 +14,7 @@ import zarr
 from dask import config
 from dask.distributed import Client
 from dask_jobqueue import SLURMCluster
-
+import dask
 import dir_fnme
 
 # from bc_module import bc_module
