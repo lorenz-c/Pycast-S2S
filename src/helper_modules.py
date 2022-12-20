@@ -56,6 +56,9 @@ def set_and_make_dirs(domain_config: dict) -> dict:
         "reference_initial_resolution_dir"
     ] = f"{reg_dir_dict['reference_dir']}initial_resolution/"
     reg_dir_dict[
+        "bcsd_forecast_zarr_dir"
+    ] = f"{reg_dir_dict['processed_dir']}zarr_stores/"
+    reg_dir_dict[
         "reference_target_resolution_dir"
     ] = f"{reg_dir_dict['reference_dir']}target_resolution/"
     reg_dir_dict["reference_zarr_dir"] = f"{reg_dir_dict['reference_dir']}zarr_stores/"
