@@ -279,11 +279,11 @@ if __name__ == "__main__":
 
             # Calculate quantile, tercile and extremes on a monthly basis
             ds_quintiles = ds.groupby("time.month").quantile(q=[0.2, 0.4, 0.6, 0.8]) # , dim=["time"])
-            ds_tercile = ds.quantile(q=[0.33, 0.66], dim=["time"])
-            ds_extreme = ds.quantile(q=[0.1, 0.9], dim=["time"])
+            ds_tercile = ds.groupby("time.month").quantile(q=[0.33, 0.66])
+            ds_extreme = ds.groupby("time.month").quantile(q=[0.1, 0.9])
             print(ds_quintiles)
-            print(ds_quintiles.time)
-            print(ds_quintiles.dims)
+            print(ds_tercile)
+            print(ds_extreme)
             # Set Filenames
             fle_out_quin = f"{domain_config['reference_history']['prefix']}_quintile_{syr_calib}_{eyr_calib}_{domain_config['target_resolution']}.nc"
             full_out_quin = f"{reg_dir_dict['monthly_dir']}/{fle_out_quin}"
@@ -291,7 +291,6 @@ if __name__ == "__main__":
             full_out_ter = f"{reg_dir_dict['monthly_dir']}/{fle_out_ter}"
             fle_out_ext = f"{domain_config['reference_history']['prefix']}_extreme_{syr_calib}_{eyr_calib}_{domain_config['target_resolution']}.nc"
             full_out_ext = f"{reg_dir_dict['monthly_dir']}/{fle_out_ext}"
-
 
             # Save NC-File
             # ENCODING?!
