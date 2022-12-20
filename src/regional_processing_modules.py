@@ -84,6 +84,7 @@ def create_grd_file(domain_config: dict, grid_file: str) -> str:
 
     return grid_file
 
+### SEAS5 ###
 
 def preprocess(ds):
     # ADD SOME CHECKS HERE THAT THIS STUFF IS ONLY APPLIED WHEN LATITUDES ARE REVERSED AND LONGITUDES GO FROM 0 TO 360
@@ -199,216 +200,7 @@ def remap_forecasts(
     except:
         logging.error(f"Remap_forecast: file {full_in} not available")
 
-
-def rechunker_forecasts(
-    domain_config: dict,
-    variable_config: dict,
-    dir_dict: dict,
-    year: int,
-    month: int,
-    variable: str,
-):
-
-    fnme_dict = dir_fnme.set_filenames(
-        domain_config,
-        year,
-        month,
-        domain_config["raw_forecasts"]["merged_variables"],
-        variable,
-    )
-
-    fle_string = f"{dir_dict['frcst_high_reg_dir']}/{fnme_dict['frcst_high_reg_dir']}"
-
-    return fle_string
-
-
-@dask.delayed
-def rechunk_forecasts(
-    domain_config: dict,
-    variable_config: dict,
-    dir_dict: dict,
-    year: int,
-    month: int,
-    variable: str,
-):
-
-    month_str = str(month).zfill(2)
-
-    # if domain_config['reference_history']['merged_variables'] == True:
-    #    # Update Filenames
-    #    fnme_dict = dir_fnme.set_filenames(domain_config, year, month_str,
-    # domain_config['raw_forecasts']["merged_variables"])
-
-    #    fle_string = f"{dir_dict['frcst_high_reg_dir']}/{fnme_dict['frcst_high_reg_dir']}"
-
-    #    ds = xr.open_mfdataset(fle_string, parallel=True, engine='netcdf4', autoclose=True, chunks={'time': 50})
-
-    #    coords = {'time': ds['time'].values, 'ens': ds['ens'].values, 'lat': ds['lat'].values.astype(np.float32),
-    #              'lon': ds['lon'].values.astype(np.float32)}
-
-    #    encoding = set_encoding(variable_config, coords, 'lines')
-
-    #    final_file = f"{dir_dict['frcst_high_reg_lnch_dir']}/{fnme_dict['frcst_high_reg_lnch_dir']}"
-
-    #    try:
-    #        ds.to_netcdf(final_file, encoding=encoding)
-    #        logging.info(f"Rechunking forecast for {month_str} successful")
-    #    except:
-    #        logging.error(f"Something went wrong during writing of forecast linechunks")
-    # else:
-    #    for variable in variable_config:
-    # Update Filenames
-    fnme_dict = dir_fnme.set_filenames(
-        domain_config,
-        year,
-        month,
-        domain_config["raw_forecasts"]["merged_variables"],
-        variable,
-    )
-
-    fle_string = f"{dir_dict['frcst_high_reg_dir']}/{fnme_dict['frcst_high_reg_dir']}"
-
-    ds = xr.open_mfdataset(
-        fle_string,
-        parallel=True,
-        # chunks={"time": 'auto', 'ens': 'auto', 'lat': -1, 'lon': -1},
-        chunks={"time": 50},
-        engine="netcdf4",
-        autoclose=True,
-    )
-
-    # ds = ds.chunk({"time": -1, 'ens': -1, 'lat': 1, 'lon': 1})
-
-    coords = {
-        "time": ds["time"].values,
-        "ens": ds["ens"].values,
-        "lat": ds["lat"].values.astype(np.float32),
-        "lon": ds["lon"].values.astype(np.float32),
-    }
-
-    encoding = set_encoding(variable_config, coords, "lines")
-
-    # Delete the chunksizes-attribute as we want to keep the chunks from above..
-    # del encoding[variable]["chunksizes"]
-    # del encoding[variable]["zlib"]
-    # del encoding[variable]["complevel"]
-
-    # compressor = zarr.Blosc(cname="zstd", clevel=3, shuffle=2)
-
-    # encoding[variable]["compressor"] = compressor
-
-    final_file = (
-        f"{dir_dict['frcst_high_reg_lnch_dir']}/{fnme_dict['frcst_high_reg_lnch_dir']}"
-    )
-
-    try:
-        ds.to_netcdf(final_file, encoding={variable: encoding[variable]})
-        logging.info(
-            f"rechunk_forecasts: Rechunking forecast for {year}-{month:02d} successful"
-        )
-    except:
-        logging.info(f"rechunk_forecasts: Something went wrong for {year}-{month:02d}")
-
-    # if exists(f"/bg/data/NCZarr/temp/SEAS5_{month:02d}.zarr"):
-    #    if exists(f"/bg/data/NCZarr/temp/SEAS5_{month:02d}.zarr/{variable}"):
-    #        out = ds.to_zarr(f"/bg/data/NCZarr/temp/SEAS5_{month:02d}.zarr", mode='a', append_dim="time")
-    #    else:
-    #        out = ds.to_zarr(f"/bg/data/NCZarr/temp/SEAS5_{month:02d}.zarr", mode='a', append_dim="time", encoding={variable: encoding[variable]})
-    # else:
-    #    out = ds.to_zarr(f"/bg/data/NCZarr/temp/SEAS5_{month:02d}.zarr", mode='w', encoding={variable: encoding[variable]})
-    #
-    # return ds, encoding
-
-    #
-    # except:
-    #    logging.error(f"Something went wrong during writing of forecast linechunks")
-
-
-def calib_forecasts(domain_config, variable_config, dir_dict, syr, eyr, month_str):
-    file_list = []
-    if domain_config["reference_history"]["merged_variables"]:
-        for year in range(syr, eyr + 1):
-            # Update Filenames
-            fnme_dict = dir_fnme.set_filenames(
-                domain_config,
-                syr,
-                eyr,
-                year,
-                month_str,
-                domain_config["raw_forecasts"]["merged_variables"],
-            )
-
-            file_list.append(
-                f"{dir_dict['frcst_high_reg_dir']}/{fnme_dict['frcst_high_reg_dir']}"
-            )
-
-        ds = xr.open_mfdataset(
-            file_list,
-            parallel=True,
-            engine="netcdf4",
-            autoclose=True,
-            chunks={"time": 50},
-        )
-
-        coords = {
-            "time": ds["time"].values,
-            "ens": ds["ens"].values,
-            "lat": ds["lat"].values.astype(np.float32),
-            "lon": ds["lon"].values.astype(np.float32),
-        }
-
-        encoding = set_encoding(variable_config, coords, "lines")
-
-        final_file = f"{dir_dict['frcst_high_reg_lnch_calib_dir']}/{fnme_dict['frcst_high_reg_lnch_calib_dir']}"
-
-        try:
-            ds.to_netcdf(final_file, encoding=encoding)
-            logging.info("Calibrate forecast: successful")
-        except:
-            logging.error("Calibrate forecast: Something went wrong")
-    else:
-        for variable in variable_config:
-            for year in range(syr, eyr + 1):
-                # Update Filenames
-                fnme_dict = dir_fnme.set_filenames(
-                    domain_config,
-                    syr,
-                    eyr,
-                    year,
-                    month_str,
-                    domain_config["raw_forecasts"]["merged_variables"],
-                    variable,
-                )
-
-                file_list.append(
-                    f"{dir_dict['frcst_high_reg_dir']}/{fnme_dict['frcst_high_reg_dir']}"
-                )
-
-            ds = xr.open_mfdataset(
-                file_list,
-                parallel=True,
-                engine="netcdf4",
-                autoclose=True,
-                chunks={"time": 50},
-            )
-
-            coords = {
-                "time": ds["time"].values,
-                "ens": ds["ens"].values,
-                "lat": ds["lat"].values.astype(np.float32),
-                "lon": ds["lon"].values.astype(np.float32),
-            }
-
-            encoding = set_encoding(variable_config, coords, "lines")
-
-            final_file = f"{dir_dict['frcst_high_reg_lnch_calib_dir']}/{fnme_dict['frcst_high_reg_lnch_calib_dir']}"
-
-            try:
-                ds.to_netcdf(final_file, encoding={variable: encoding[variable]})
-                logging.info("Calibrate forecast: successful")
-            except:
-                logging.error("Calibrate forecast: Something went wrong")
-
+### REF ####
 
 def preprocess_reference(ds):
     # Create new and unique time values
@@ -555,6 +347,225 @@ def remap_reference(
         run_cmd(cmd)
     except:
         logging.error(f"Remap_forecast: file {full_in} not available")
+
+######### Old Crap #########
+
+def rechunker_forecasts(
+    domain_config: dict,
+    variable_config: dict,
+    dir_dict: dict,
+    year: int,
+    month: int,
+    variable: str,
+):
+
+    fnme_dict = dir_fnme.set_filenames(
+        domain_config,
+        year,
+        month,
+        domain_config["raw_forecasts"]["merged_variables"],
+        variable,
+    )
+
+    fle_string = f"{dir_dict['frcst_high_reg_dir']}/{fnme_dict['frcst_high_reg_dir']}"
+
+    return fle_string
+
+
+@dask.delayed
+def rechunk_forecasts(
+    domain_config: dict,
+    variable_config: dict,
+    dir_dict: dict,
+    year: int,
+    month: int,
+    variable: str,
+):
+
+    month_str = str(month).zfill(2)
+
+    # if domain_config['reference_history']['merged_variables'] == True:
+    #    # Update Filenames
+    #    fnme_dict = dir_fnme.set_filenames(domain_config, year, month_str,
+    # domain_config['raw_forecasts']["merged_variables"])
+
+    #    fle_string = f"{dir_dict['frcst_high_reg_dir']}/{fnme_dict['frcst_high_reg_dir']}"
+
+    #    ds = xr.open_mfdataset(fle_string, parallel=True, engine='netcdf4', autoclose=True, chunks={'time': 50})
+
+    #    coords = {'time': ds['time'].values, 'ens': ds['ens'].values, 'lat': ds['lat'].values.astype(np.float32),
+    #              'lon': ds['lon'].values.astype(np.float32)}
+
+    #    encoding = set_encoding(variable_config, coords, 'lines')
+
+    #    final_file = f"{dir_dict['frcst_high_reg_lnch_dir']}/{fnme_dict['frcst_high_reg_lnch_dir']}"
+
+    #    try:
+    #        ds.to_netcdf(final_file, encoding=encoding)
+    #        logging.info(f"Rechunking forecast for {month_str} successful")
+    #    except:
+    #        logging.error(f"Something went wrong during writing of forecast linechunks")
+    # else:
+    #    for variable in variable_config:
+    # Update Filenames
+    fnme_dict = dir_fnme.set_filenames(
+        domain_config,
+        year,
+        month,
+        domain_config["raw_forecasts"]["merged_variables"],
+        variable,
+    )
+
+    fle_string = f"{dir_dict['frcst_high_reg_dir']}/{fnme_dict['frcst_high_reg_dir']}"
+
+    ds = xr.open_mfdataset(
+        fle_string,
+        parallel=True,
+        # chunks={"time": 'auto', 'ens': 'auto', 'lat': -1, 'lon': -1},
+        chunks={"time": 50},
+        engine="netcdf4",
+        autoclose=True,
+    )
+
+    # ds = ds.chunk({"time": -1, 'ens': -1, 'lat': 1, 'lon': 1})
+
+    coords = {
+        "time": ds["time"].values,
+        "ens": ds["ens"].values,
+        "lat": ds["lat"].values.astype(np.float32),
+        "lon": ds["lon"].values.astype(np.float32),
+    }
+
+    encoding = set_encoding(variable_config, coords, "lines")
+
+    # Delete the chunksizes-attribute as we want to keep the chunks from above..
+    # del encoding[variable]["chunksizes"]
+    # del encoding[variable]["zlib"]
+    # del encoding[variable]["complevel"]
+
+    # compressor = zarr.Blosc(cname="zstd", clevel=3, shuffle=2)
+
+    # encoding[variable]["compressor"] = compressor
+
+    final_file = (
+        f"{dir_dict['frcst_high_reg_lnch_dir']}/{fnme_dict['frcst_high_reg_lnch_dir']}"
+    )
+
+    try:
+        ds.to_netcdf(final_file, encoding={variable: encoding[variable]})
+        logging.info(
+            f"rechunk_forecasts: Rechunking forecast for {year}-{month:02d} successful"
+        )
+    except:
+        logging.info(f"rechunk_forecasts: Something went wrong for {year}-{month:02d}")
+
+    # if exists(f"/bg/data/NCZarr/temp/SEAS5_{month:02d}.zarr"):
+    #    if exists(f"/bg/data/NCZarr/temp/SEAS5_{month:02d}.zarr/{variable}"):
+    #        out = ds.to_zarr(f"/bg/data/NCZarr/temp/SEAS5_{month:02d}.zarr", mode='a', append_dim="time")
+    #    else:
+    #        out = ds.to_zarr(f"/bg/data/NCZarr/temp/SEAS5_{month:02d}.zarr", mode='a', append_dim="time", encoding={variable: encoding[variable]})
+    # else:
+    #    out = ds.to_zarr(f"/bg/data/NCZarr/temp/SEAS5_{month:02d}.zarr", mode='w', encoding={variable: encoding[variable]})
+    #
+    # return ds, encoding
+
+    #
+    # except:
+    #    logging.error(f"Something went wrong during writing of forecast linechunks")
+
+
+
+def calib_forecasts(domain_config, variable_config, dir_dict, syr, eyr, month_str):
+    file_list = []
+    if domain_config["reference_history"]["merged_variables"]:
+        for year in range(syr, eyr + 1):
+            # Update Filenames
+            fnme_dict = dir_fnme.set_filenames(
+                domain_config,
+                syr,
+                eyr,
+                year,
+                month_str,
+                domain_config["raw_forecasts"]["merged_variables"],
+            )
+
+            file_list.append(
+                f"{dir_dict['frcst_high_reg_dir']}/{fnme_dict['frcst_high_reg_dir']}"
+            )
+
+        ds = xr.open_mfdataset(
+            file_list,
+            parallel=True,
+            engine="netcdf4",
+            autoclose=True,
+            chunks={"time": 50},
+        )
+
+        coords = {
+            "time": ds["time"].values,
+            "ens": ds["ens"].values,
+            "lat": ds["lat"].values.astype(np.float32),
+            "lon": ds["lon"].values.astype(np.float32),
+        }
+
+        encoding = set_encoding(variable_config, coords, "lines")
+
+        final_file = f"{dir_dict['frcst_high_reg_lnch_calib_dir']}/{fnme_dict['frcst_high_reg_lnch_calib_dir']}"
+
+        try:
+            ds.to_netcdf(final_file, encoding=encoding)
+            logging.info("Calibrate forecast: successful")
+        except:
+            logging.error("Calibrate forecast: Something went wrong")
+    else:
+        for variable in variable_config:
+            for year in range(syr, eyr + 1):
+                # Update Filenames
+                fnme_dict = dir_fnme.set_filenames(
+                    domain_config,
+                    syr,
+                    eyr,
+                    year,
+                    month_str,
+                    domain_config["raw_forecasts"]["merged_variables"],
+                    variable,
+                )
+
+                file_list.append(
+                    f"{dir_dict['frcst_high_reg_dir']}/{fnme_dict['frcst_high_reg_dir']}"
+                )
+
+            ds = xr.open_mfdataset(
+                file_list,
+                parallel=True,
+                engine="netcdf4",
+                autoclose=True,
+                chunks={"time": 50},
+            )
+
+            coords = {
+                "time": ds["time"].values,
+                "ens": ds["ens"].values,
+                "lat": ds["lat"].values.astype(np.float32),
+                "lon": ds["lon"].values.astype(np.float32),
+            }
+
+            encoding = set_encoding(variable_config, coords, "lines")
+
+            final_file = f"{dir_dict['frcst_high_reg_lnch_calib_dir']}/{fnme_dict['frcst_high_reg_lnch_calib_dir']}"
+
+            try:
+                ds.to_netcdf(final_file, encoding={variable: encoding[variable]})
+                logging.info("Calibrate forecast: successful")
+            except:
+                logging.error("Calibrate forecast: Something went wrong")
+
+
+
+
+
+
+
 
 
 @dask.delayed
@@ -710,191 +721,6 @@ def calib_reference(
         logging.error(
             f"Rechunk reference: Rechunking of reference data failed for variable {variable}!"
         )
-
-
-def create_climatology(
-    dataset, domain_config, variable_config, dir_dict, syr_calib, eyr_calib, month_str
-):
-    # Open Points:
-    # --> Prefix and Directories does not match (era5_land / ERA5_Land) --> Issue
-    # --> Alles einheitlich bennen für die Funktionen --> Issue
-    # --> Encoding while writing netcdf????
-    # --> Loop over months for SEAS5???
-    # --> Write one function and choose ref or seas5 product???
-    # --> Choose baseline period with start and end year (up to now, all files in the folder
-    #   are selected and opened)
-    # set up encoding for netcdf-file later
-
-    # SEAS5
-    if dataset == "seas5":
-        fle_list = []
-        if domain_config["reference_history"]["merged_variables"]:
-            # Select period of time
-            for year in range(syr_calib, eyr_calib + 1):
-                # Update filenames
-                fnme_dict = dir_fnme.set_filenames(
-                    domain_config,
-                    syr_calib,
-                    eyr_calib,
-                    year,
-                    month_str,
-                    domain_config["reference_history"]["merged_variables"],
-                )
-
-                fle_list.append(
-                    f"{dir_dict['frcst_low_reg_dir']}/{fnme_dict['frcst_low_reg_dir']}"
-                )
-
-            # load nc-Files for each month over all years
-            ds = xr.open_mfdataset(fle_list, parallel=True, engine="netcdf4")
-            # Calculate climatogloy (mean) for each lead month
-            ds_clim = ds.groupby("time.month").mean("time")
-            ds_clim = ds_clim.rename({"month": "time"})
-            # set encoding
-            coords = {
-                "time": ds_clim["time"].values,
-                "ens": ds_clim["ens"].values,
-                "lat": ds_clim["lat"].values.astype(np.float32),
-                "lon": ds_clim["lon"].values.astype(np.float32),
-            }
-            encoding = set_encoding(variable_config, coords, "lines")
-
-            # Save NC-File
-            try:
-                ds_clim.to_netcdf(
-                    f"{dir_dict['frcst_climatology']}/{fnme_dict['frcst_climatology']}",
-                    encoding=encoding,
-                )
-            except:
-                logging.error(
-                    f"Calculate climatology of SEAS5: Climatology for month {month_str} failed!"
-                )
-        else:
-            for variable in variable_config:
-                # Select period of time
-                for year in range(syr_calib, eyr_calib + 1):
-                    # Update filenames
-                    fnme_dict = dir_fnme.set_filenames(
-                        domain_config,
-                        syr_calib,
-                        eyr_calib,
-                        year,
-                        month_str,
-                        domain_config["reference_history"]["merged_variables"],
-                        variable,
-                    )
-
-                    fle_list.append(
-                        f"{dir_dict['frcst_low_reg_dir']}/{fnme_dict['frcst_low_reg_dir']}"
-                    )
-
-                # load nc-Files for each month over all years
-                ds = xr.open_mfdataset(fle_list, parallel=True, engine="netcdf4")
-                # Calculate climatogloy (mean) for each lead month
-                ds_clim = ds.groupby("time.month").mean("time")
-                ds_clim = ds_clim.rename({"month": "time"})
-                # set encoding
-                coords = {
-                    "time": ds_clim["time"].values,
-                    "ens": ds_clim["ens"].values,
-                    "lat": ds_clim["lat"].values.astype(np.float32),
-                    "lon": ds_clim["lon"].values.astype(np.float32),
-                }
-                encoding = set_encoding(variable_config, coords, "lines")
-
-                # Save NC-File
-                try:
-                    ds_clim.to_netcdf(
-                        f"{dir_dict['frcst_climatology']}/{fnme_dict['frcst_climatology']}",
-                        encoding={variable: encoding[variable]},
-                    )
-                except:
-                    logging.error(
-                        f"Calculate climatology of SEAS5: Climatology for month {month_str} failed!"
-                    )
-
-    #### Ref - ERA5
-    else:
-        # Select period of time
-        fle_list = []
-        if domain_config["reference_history"]["merged_variables"]:
-            for year in range(syr_calib, eyr_calib + 1):
-                # Update filenames
-                fnme_dict = dir_fnme.set_filenames(
-                    domain_config,
-                    syr_calib,
-                    eyr_calib,
-                    year,
-                    month_str,
-                    domain_config["reference_history"]["merged_variables"],
-                )
-
-                fle_list.append(
-                    f"{dir_dict['ref_low_reg_dir']}/{fnme_dict['ref_low_reg_dir']}"
-                )
-
-            # Open dataset
-            ds = xr.open_mfdataset(fle_list, parallel=True, engine="netcdf4")
-            # Calculate climatogloy (mean)
-            ds_clim = ds.groupby("time.month").mean("time")
-            ds_clim = ds_clim.rename({"month": "time"})
-            # set encoding
-            coords = {
-                "time": ds_clim["time"].values,
-                "lat": ds_clim["lat"].values.astype(np.float32),
-                "lon": ds_clim["lon"].values.astype(np.float32),
-            }
-            encoding = set_encoding(variable_config, coords, "lines")
-            # Save NC-File
-            try:
-                ds_clim.to_netcdf(
-                    f"{dir_dict['ref_climatology']}/{fnme_dict['ref_climatology']}",
-                    encoding=encoding,
-                )
-            except:
-                logging.error(
-                    f"Calculate climatology of Ref: Climatology for variable failed!"
-                )
-        else:
-            for variable in variable_config:
-                for year in range(syr_calib, eyr_calib + 1):
-                    # Update filenames
-                    fnme_dict = dir_fnme.set_filenames(
-                        domain_config,
-                        syr_calib,
-                        eyr_calib,
-                        year,
-                        month_str,
-                        domain_config["reference_history"]["merged_variables"],
-                        variable,
-                    )
-
-                    fle_list.append(
-                        f"{dir_dict['ref_low_reg_dir']}/{fnme_dict['ref_low_reg_dir']}"
-                    )
-
-                # Open dataset
-                ds = xr.open_mfdataset(fle_list, parallel=True, engine="netcdf4")
-                # Calculate climatogloy (mean)
-                ds_clim = ds.groupby("time.month").mean("time")
-                ds_clim = ds_clim.rename({"month": "time"})
-                # set encoding
-                coords = {
-                    "time": ds_clim["time"].values,
-                    "lat": ds_clim["lat"].values.astype(np.float32),
-                    "lon": ds_clim["lon"].values.astype(np.float32),
-                }
-                encoding = set_encoding(variable_config, coords, "lines")
-                # Save NC-File
-                try:
-                    ds_clim.to_netcdf(
-                        f"{dir_dict['ref_climatology']}/{fnme_dict['ref_climatology']}",
-                        encoding={variable: encoding[variable]},
-                    )
-                except:
-                    logging.error(
-                        f"Calculate climatology of Ref: Climatology for variable {variable} failed!"
-                    )
 
 
 def calc_quantile_thresh(domain_config, dir_dict, syr_calib, eyr_calib, month_str):
