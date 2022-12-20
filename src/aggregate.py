@@ -215,7 +215,7 @@ if __name__ == "__main__":
             ds = xr.open_mfdataset(
                 flenms,
                 parallel=True,
-                chunks={"time": -1, "ens": 25, "lat": "auto", "lon": "auto"},
+                chunks={"time": 215, "ens": 25, "lat": "auto", "lon": "auto"},
                 engine="netcdf4",
                 autoclose=True,
             )
