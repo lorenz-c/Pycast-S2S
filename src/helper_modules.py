@@ -488,8 +488,8 @@ def day2mon(domain_config: dict,variable_config: dict, reg_dir_dict: dict, year:
     ds = xr.open_mfdataset(
         full_in,
         parallel=True,
-        # chunks={"time": 'auto', 'ens': 'auto', 'lat': -1, 'lon': -1},
-        chunks={"time": 50},
+        chunks={"time": 215, 'ens': 25, 'lat': "auto", 'lon': "auto"},
+        # chunks={"time": 50},
         engine="netcdf4",
         autoclose=True,
     )
