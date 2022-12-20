@@ -194,6 +194,8 @@ if __name__ == "__main__":
         except:
             logging.warning("REF climatology: Something went wrong")
 
+
+    # not working properly, low performance when opening chunked BCSD-corrected SEAS5-Files...
     elif args.mode == "climatology_seas5_bcsd":
         flenms = []
         syr_calib = domain_config["syr_calib"]
@@ -215,7 +217,7 @@ if __name__ == "__main__":
             ds = xr.open_mfdataset(
                 flenms,
                 parallel=True,
-                chunks={"time": -1, "ens": 25, "lat": "auto", "lon": "auto"},
+                chunks={"time": 215, "ens": 25, "lat": 1, "lon": 1},
                 engine="netcdf4",
                 autoclose=True,
             )
