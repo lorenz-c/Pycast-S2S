@@ -240,7 +240,7 @@ if __name__ == "__main__":
             # set output files
             # fle_out = f"{domain_config['bcsd_forecasts']['prefix']}_v{domain_config['version']}_clim_{variable}_{syr_calib}_{eyr_calib}_{month:02d}_{domain_config['target_resolution']}.nc"
             zarr_out = f"{domain_config['raw_forecasts']['prefix']}_clim_{month:02d}_{domain_config['target_resolution']}_reforecasts.zarr"
-            full_out = f"{reg_dir_dict['monthly_dir']}/{zarr_out}"
+            full_out = f"{reg_dir_dict['climatology_dir']}/{zarr_out}"
 
             try:
                 ds.to_zarr(full_out, encoding=encoding)
