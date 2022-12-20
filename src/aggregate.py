@@ -198,6 +198,7 @@ if __name__ == "__main__":
     # not working properly, low performance when opening chunked BCSD-corrected SEAS5-Files...
     # Dont know how to load all files with high performacne (change chunks, e.g.???)
     # We do not need SEAS5-BCSD-Climatology at the moment
+    # Solution: enable zlib, comp and chunks within the encoding function (this makes the difference in performance)
     elif args.mode == "climatology_seas5_bcsd":
         flenms = []
         syr_calib = domain_config["syr_calib"]
