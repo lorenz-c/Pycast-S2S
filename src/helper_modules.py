@@ -577,8 +577,6 @@ def create_climatology(domain_config: dict, variable_config: dict, reg_dir_dict:
         logging.error(
             f"Calculate climatology of Ref: Climatology for variable failed!")
 
-
-
 def s3_init():
     s3 = s3fs.S3FileSystem(
         key="YGJDL7QJF6FW6AM1UNEX",

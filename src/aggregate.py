@@ -226,7 +226,7 @@ if __name__ == "__main__":
             )
 
             # Monthly mean
-            # ds = ds.resample(time="1MS").mean(dim="time")
+            ds = ds.resample(time="1MS").mean(dim="time")
 
             coords = {
                 "time": ds["time"].values,
@@ -253,3 +253,53 @@ if __name__ == "__main__":
                 )
             except:
                 logging.info(f"SEAS5 Climatology: Something went wrong for {year}-{month:02d}")
+
+    # Calc quantile for REF-Product (ERA5-Land)
+    elif args.mode == "quantile":
+        syr_calib = domain_config["syr_calib"]
+        eyr_calib = domain_config["eyr_calib"]
+        # Loop over variables, years, and months and save filenames of all selected forecasts in a list
+        for variable in variable_config:
+            # Get Filename of Monthly ERA5-Dates
+            fle_in = f"{domain_config['reference_history']['prefix']}_clim_{syr_calib}_{eyr_calib}_{domain_config['target_resolution']}.nc"
+            full_in = f"{reg_dir_dict['climatology_dir']}/{fle_in}"
+
+            # Open files
+            ds = xr.open_mfdataset(
+                full_in,
+                parallel=True,
+                chunks={"time": 5, "ens": 25, "lat": "auto", "lon": "auto"},
+                engine="netcdf4",
+                autoclose=True,
+            )
+
+            # Calculate quantile, tercile and extremes on a monthly basis
+            ds_quintiles = ds.groupby("time.month").quantile(q=[0.2, 0.4, 0.6, 0.8], dim=["time", "ens"])
+            ds_tercile = ds.groupby("time.month").quantile(q=[0.33, 0.66], dim=["time", "ens"])
+            ds_extreme = ds.groupby("time.month").quantile(q=[0.1, 0.9], dim=["time", "ens"])
+
+            # Set Filenames
+            fle_out_quin = f"{domain_config['reference_history']['prefix']}_quintile_{syr_calib}_{eyr_calib}_{domain_config['target_resolution']}.nc"
+            full_out_quin = f"{reg_dir_dict['monthly_dir']}/{fle_out_quin}"
+            fle_out_ter = f"{domain_config['reference_history']['prefix']}_tercile_{syr_calib}_{eyr_calib}_{domain_config['target_resolution']}.nc"
+            full_out_ter = f"{reg_dir_dict['monthly_dir']}/{fle_out_ter}"
+            fle_out_ext = f"{domain_config['reference_history']['prefix']}_extreme_{syr_calib}_{eyr_calib}_{domain_config['target_resolution']}.nc"
+            full_out_ext = f"{reg_dir_dict['monthly_dir']}/{fle_out_ext}"
+
+
+            # Save NC-File
+            # ENCODING?!
+            try:
+                ds_quintiles.to_netcdf(full_out_quin)
+            except:
+                logging.error("Error: Create NC-File for quantiles")
+
+            try:
+                ds_quintiles.to_netcdf(full_out_ter)
+            except:
+                logging.error("Error: Create NC-File for tercile")
+
+            try:
+                ds_quintiles.to_netcdf(full_out_ext)
+            except:
+                logging.error("Error: Create NC-File for extreme")
