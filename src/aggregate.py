@@ -202,7 +202,7 @@ if __name__ == "__main__":
 
         for variable in variable_config:
             for month in process_months:
-                results.append(helper_modules.create_climatology("ref", domain_config, variable_config, reg_dir_dict, syr_calib, eyr_calib, month, variable))
+                results.append(helper_modules.create_climatology(domain_config, variable_config, reg_dir_dict, syr_calib, eyr_calib, month, variable))
 
         # print(results)
         try:
