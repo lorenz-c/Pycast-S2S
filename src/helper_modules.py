@@ -66,6 +66,14 @@ def set_and_make_dirs(domain_config: dict) -> dict:
     reg_dir_dict["climatology_dir"] = f"{reg_dir_dict['aggregated_dir']}/climatology/"
     reg_dir_dict["monthly_dir"] = f"{reg_dir_dict['aggregated_dir']}/monthly/"
 
+
+    # Then the level 3 directories
+    reg_dir_dict[
+        "bcsd_forecast_mon_zarr_dir"
+    ] = f"{reg_dir_dict['monthly_dir']}zarr_stores/"
+
+
+
     for key in reg_dir_dict:
         if not os.path.isdir(reg_dir_dict[key]):
             print(f"Creating directory {reg_dir_dict[key]}")
