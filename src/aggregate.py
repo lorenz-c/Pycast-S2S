@@ -196,6 +196,8 @@ if __name__ == "__main__":
 
 
     # not working properly, low performance when opening chunked BCSD-corrected SEAS5-Files...
+    # Dont know how to load all files with high performacne (change chunks, e.g.???)
+    # We do not need SEAS5-BCSD-Climatology at the moment
     elif args.mode == "climatology_seas5_bcsd":
         flenms = []
         syr_calib = domain_config["syr_calib"]
@@ -223,7 +225,7 @@ if __name__ == "__main__":
             )
 
             # Monthly mean
-            # ds = ds.resample(time="1MS").mean(dim="time")
+            ds = ds.resample(time="1MS").mean(dim="time")
 
             coords = {
                 "time": ds["time"].values,
