@@ -219,13 +219,13 @@ if __name__ == "__main__":
             ds = xr.open_mfdataset(
                 flenms,
                 parallel=True,
-                chunks={"time": 215, "ens": 25, "lat": 1, "lon": 1},
+                chunks={"time": 5, "ens": 25, "lat": "auto", "lon": "auto"},
                 engine="netcdf4",
                 autoclose=True,
             )
 
             # Monthly mean
-            ds = ds.resample(time="1MS").mean(dim="time")
+            # ds = ds.resample(time="1MS").mean(dim="time")
 
             coords = {
                 "time": ds["time"].values,
@@ -234,14 +234,16 @@ if __name__ == "__main__":
                 "lon": ds["lon"].values.astype(np.float32),
             }
 
-            encoding = helper_modules.set_encoding(variable_config, coords, "lines")
+            # encoding = helper_modules.set_encoding(variable_config, coords, "lines")
+            encoding = helper_modules.set_zarr_encoding(variable_config)
 
             # set output files
-            fle_out = f"{domain_config['bcsd_forecasts']['prefix']}_v{domain_config['version']}_clim_{variable}_{syr_calib}_{eyr_calib}_{month:02d}_{domain_config['target_resolution']}.nc"
-            full_out = f"{reg_dir_dict['monthly_dir']}/{fle_out}"
+            # fle_out = f"{domain_config['bcsd_forecasts']['prefix']}_v{domain_config['version']}_clim_{variable}_{syr_calib}_{eyr_calib}_{month:02d}_{domain_config['target_resolution']}.nc"
+            zarr_out = f"{domain_config['raw_forecasts']['prefix']}_clim_{month:02d}_{domain_config['target_resolution']}_reforecasts.zarr"
+            full_out = f"{reg_dir_dict['monthly_dir']}/{zarr_out}"
 
             try:
-                ds.to_netcdf(full_out, encoding={variable: encoding[variable]})
+                ds.to_zarr(full_out, encoding=encoding)
                 logging.info(
                     f"SEAS5 Clim: SEAS5 Climatology {year}-{month:02d} successful"
                 )
