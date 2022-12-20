@@ -321,7 +321,8 @@ if __name__ == "__main__":
 
             encoding = helper_modules.set_zarr_encoding(variable_config)
 
-
+            print(full_out)
+            print(full_out_mon)
             try:
                 ds.to_zarr(full_out, encoding=encoding)
                 # ds_mon.to_zarr(full_out_mon, encoding=encoding)
