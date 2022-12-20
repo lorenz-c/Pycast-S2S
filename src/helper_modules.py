@@ -565,12 +565,14 @@ def create_climatology(domain_config: dict, variable_config: dict, reg_dir_dict:
     }
     encoding = set_encoding(variable_config, coords, "lines")
 
-    fle_out  = f"{domain_config['reference_history']['prefix']}_clim_{syr_calib}{eyr_calib}_{domain_config['target_resolution']}.nc"
+    fle_out  = f"{domain_config['reference_history']['prefix']}_clim_{syr_calib}_{eyr_calib}_{domain_config['target_resolution']}.nc"
     full_out = f"{reg_dir_dict['climatology_dir']}/{fle_out}"
 
     # Save NC-File
     try:
         ds_clim.to_netcdf(full_out, encoding=encoding,)
+        logging.info(
+            f"Calculate climatology of Ref: Climatology for variable suceeded!")
     except:
         logging.error(
             f"Calculate climatology of Ref: Climatology for variable failed!")

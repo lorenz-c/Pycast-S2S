@@ -9,9 +9,9 @@ from dask.distributed import Client
 import helper_modules
 import regional_processing_modules
 from helper_modules import run_cmd
-
+import xarray as xr
 # cdo = Cdo()
-
+import numpy as np
 
 def get_clas():
     parser = argparse.ArgumentParser(
@@ -194,4 +194,53 @@ if __name__ == "__main__":
         except:
             logging.warning("REF climatology: Something went wrong")
 
+    elif args.mode == "concat_clim":
+        flenms = []
+        syr_calib = domain_config["syr_calib"]
+        eyr_calib = domain_config["eyr_calib"]
+        # Loop over variables, years, and months and save filenames of all selected forecasts in a list
+        for month in process_months:
 
+            for variable in variable_config:
+
+                for year in range(syr_calib,eyr_calib+1):
+
+                    # Get BCSD-Filename pp_full
+                    (raw_full, pp_full, refrcst_full, ref_full,) = helper_modules.set_input_files(domain_config, reg_dir_dict, month, year, variable)
+                    print(pp_full)
+                    # set input files
+                    full_in = pp_full
+                    flenms.append(full_in)
+
+            # Now, let's open all files and concat along the time-dimensions
+            ds = xr.open_mfdataset(
+                flenms,
+                parallel=True,
+                chunks={"time": 5, "ens": 25, "lat": "auto", "lon": "auto"},
+                engine="netcdf4",
+                autoclose=True,
+            )
+
+            # Monthly mean
+            ds = ds.resample(time="1MS").mean(dim="time")
+
+            coords = {
+                "time": ds["time"].values,
+                "ens": ds["ens"].values,
+                "lat": ds["lat"].values.astype(np.float32),
+                "lon": ds["lon"].values.astype(np.float32),
+            }
+
+            encoding = helper_modules.set_encoding(variable_config, coords, "lines")
+
+            # set output files
+            fle_out = f"{domain_config['bcsd_forecasts']['prefix']}_v{domain_config['version']}_clim_{variable}_{syr_calib}_{eyr_calib}_{month:02d}_{domain_config['target_resolution']}.nc"
+            full_out = f"{reg_dir_dict['monthly_dir']}/{fle_out}"
+
+            try:
+                ds.to_netcdf(full_out, encoding={variable: encoding[variable]})
+                logging.info(
+                    f"SEAS5 Clim: SEAS5 Climatology {year}-{month:02d} successful"
+                )
+            except:
+                logging.info(f"SEAS5 Climatology: Something went wrong for {year}-{month:02d}")
