@@ -195,8 +195,8 @@ if __name__ == "__main__":
 
 
     print(results)
-    # try:
-    #    dask.compute(results)
-    #    logging.info("Day to month: successful")
-    #except:
-    #    logging.warning("Day to month: Something went wrong")
+    try:
+        dask.compute(results)
+        logging.info("Day to month: successful")
+    except:
+        logging.warning("Day to month: Something went wrong")
