@@ -258,7 +258,7 @@ if __name__ == "__main__":
     elif args.mode == "quantile":
         syr_calib = domain_config["syr_calib"]
         eyr_calib = domain_config["eyr_calib"]
-        # Loop over variables, years, and months and save filenames of all selected forecasts in a list
+        # Loop over variables
         for variable in variable_config:
             # Get Filename of Monthly ERA5-Dates
             fle_in = f"{domain_config['reference_history']['prefix']}_clim_{syr_calib}_{eyr_calib}_{domain_config['target_resolution']}.nc"
