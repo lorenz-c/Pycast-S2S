@@ -593,47 +593,44 @@ def create_climatology(dataset: str, domain_config: dict, variable_config: dict,
 
     #### Ref - ERA5
     else:
-        # Select period of time
-        fle_list = []
-        for variable in variable_config:
-            # Update Filename
-            fle_in = f"{domain_config['reference_history']['prefix']}_{domain_config['target_resolution']}_linechunks.zarr"
-            full_in = f"{reg_dir_dict['reference_zarr_dir']}{fle_in}"
+        # Update Filename
+        fle_in = f"{domain_config['reference_history']['prefix']}_{domain_config['target_resolution']}_linechunks.zarr"
+        full_in = f"{reg_dir_dict['reference_zarr_dir']}{fle_in}"
 
-            # Open dataset
-            ds = xr.open_zarr(full_in, consolidated=False)
-            ds = xr.open_zarr(
-                full_in,
-                chunks={
-                    "time": len(ds.time),
-                    "ens": len(ds.ens),
-                    "lat": "auto",
-                    "lon": "auto",
-                },
-                consolidated=False
-                # parallel=True,
-                # engine="netcdf4",
-            )
-            # Calculate climatogloy (mean)
-            ds_clim = ds.groupby("time.month").mean("time")
-            ds_clim = ds_clim.rename({"month": "time"})
-            # set encoding
-            coords = {
-                "time": ds_clim["time"].values,
-                "lat": ds_clim["lat"].values.astype(np.float32),
-                "lon": ds_clim["lon"].values.astype(np.float32),
-            }
-            encoding = set_encoding(variable_config, coords, "lines")
+        # Open dataset
+        ds = xr.open_zarr(full_in, consolidated=False)
+        ds = xr.open_zarr(
+            full_in,
+            chunks={
+                "time": len(ds.time),
+                "ens": len(ds.ens),
+                "lat": "auto",
+                "lon": "auto",
+            },
+            consolidated=False
+            # parallel=True,
+            # engine="netcdf4",
+        )
+        # Calculate climatogloy (mean)
+        ds_clim = ds.groupby("time.month").mean("time")
+        ds_clim = ds_clim.rename({"month": "time"})
+        # set encoding
+        coords = {
+            "time": ds_clim["time"].values,
+            "lat": ds_clim["lat"].values.astype(np.float32),
+            "lon": ds_clim["lon"].values.astype(np.float32),
+        }
+        encoding = set_encoding(variable_config, coords, "lines")
 
-            fle_out  = f"{domain_config['reference_history']['prefix']}_clim_{variable}_{syr_calib}{eyr_calib}_{domain_config['target_resolution']}.nc"
-            full_out = f"{reg_dir_dict['reference_target_resolution_dir']}/{fle_out}"
+        fle_out  = f"{domain_config['reference_history']['prefix']}_clim_{variable}_{syr_calib}{eyr_calib}_{domain_config['target_resolution']}.nc"
+        full_out = f"{reg_dir_dict['reference_target_resolution_dir']}/{fle_out}"
 
-            # Save NC-File
-            try:
-                ds_clim.to_netcdf(full_out, encoding=encoding,)
-            except:
-                logging.error(
-                    f"Calculate climatology of Ref: Climatology for variable failed!")
+        # Save NC-File
+        try:
+            ds_clim.to_netcdf(full_out, encoding=encoding,)
+        except:
+            logging.error(
+                f"Calculate climatology of Ref: Climatology for variable failed!")
 
 
 
