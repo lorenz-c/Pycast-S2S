@@ -168,7 +168,7 @@ if __name__ == "__main__":
             for variable in variable_config:
                 # Get BCSD-Filename pp_full
                 (raw_full, pp_full, refrcst_full, ref_full,) = helper_modules.set_input_files(domain_config, reg_dir_dict, month, year, variable)
-
+                print(pp_full)
                 # set input files
                 full_in = pp_full
 
@@ -176,8 +176,6 @@ if __name__ == "__main__":
                 fle_out = f"{domain_config['bcsd_forecasts']['prefix']}_v{domain_config['version']}_mon_{variable}_{year}{month:02d}_{domain_config['target_resolution']}.nc"
                 full_out = f"{reg_dir_dict['monthly_dir']}/{fle_out}"
 
-                # Raw file
-                raw_in = reg_dir_dict["processed_dir"]
 
                 # monthly mean by using cdo
                 cmd = (
@@ -193,7 +191,7 @@ if __name__ == "__main__":
                 )
 
                 results.append(run_cmd(cmd))
-
+    print(results)
     try:
         dask.compute(results)
         logging.info("Day to month: successful")
