@@ -290,7 +290,7 @@ if __name__ == "__main__":
             )
             # Calculate monthly data
             ds_mon = ds.resample(time="1MS").mean()
-
+            print(ds_mon)
             if eyr_calib < 2017:
                 zarr_out = f"{domain_config['bcsd_forecasts']['prefix']}_v{domain_config['version']}_{variable}_{syr_calib}_{eyr_calib}_{month:02d}_{domain_config['target_resolution']}_reforecasts.zarr"
                 zarr_out_mon = f"{domain_config['bcsd_forecasts']['prefix']}_v{domain_config['version']}_mon_{variable}_{syr_calib}_{eyr_calib}_{month:02d}_{domain_config['target_resolution']}_reforecasts.zarr"
