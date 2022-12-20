@@ -162,39 +162,16 @@ if __name__ == "__main__":
 
 
     results = []
+    for variable in variable_config:
 
-    for year in process_years:
-        for month in process_months:
-            for variable in variable_config:
-                # Get BCSD-Filename pp_full
-                (raw_full, pp_full, refrcst_full, ref_full,) = helper_modules.set_input_files(domain_config, reg_dir_dict, month, year, variable)
-                print(pp_full)
-                # set input files
-                full_in = pp_full
+        for year in process_years:
 
-                # set output files
-                fle_out = f"{domain_config['bcsd_forecasts']['prefix']}_v{domain_config['version']}_mon_{variable}_{year}{month:02d}_{domain_config['target_resolution']}.nc"
-                full_out = f"{reg_dir_dict['monthly_dir']}/{fle_out}"
+            for month in process_months:
+
+                results.append(helper_modules.day2mon(domain_config, reg_dir_dict, year, month, variable))
 
 
-                # monthly mean by using cdo
-                cmd = (
-                    "cdo",
-                    "-O",
-                    "-f",
-                    "nc4c",
-                    "-z",
-                    "zip_6",
-                    "monmean",
-                    str(full_in),
-                    str(full_out),
-                )
-
-                # results.append(run_cmd(cmd))
-                results.append(dask.delayed(run_cmd)(cmd))
-
-
-    print(results)
+    # print(results)
     try:
         dask.compute(results)
         logging.info("Day to month: successful")
