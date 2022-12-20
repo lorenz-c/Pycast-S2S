@@ -21,14 +21,14 @@ def get_clas():
     parser.add_argument(
         "-d", "--domain", action="store", type=str, help="Domain", required=True
     )
-    parser.add_argument(
-        "-m",
-        "--mode",
-        action="store",
-        type=str,
-        help="Selected mode for setup",
-        required=True,
-    )
+    # parser.add_argument(
+    #     "-m",
+    #     "--mode",
+    #    action="store",
+    #    type=str,
+    #     help="Selected mode for setup",
+    #    required=True,
+    #)
 
     parser.add_argument(
         "-Y",
