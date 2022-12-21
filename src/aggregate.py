@@ -300,7 +300,7 @@ if __name__ == "__main__":
                 zarr_out_mon = f"{domain_config['bcsd_forecasts']['prefix']}_v{domain_config['version']}_mon_{variable}_{syr_calib}_{eyr_calib}_{month:02d}_{domain_config['target_resolution']}.zarr"
 
             full_out = f"{reg_dir_dict['bcsd_forecast_zarr_dir']}{zarr_out}"
-            full_out_mon = f"{reg_dir_dict['bcsd_forecast_mon_zarr_dir']}{zarr_out}"
+            full_out_mon = f"{reg_dir_dict['bcsd_forecast_mon_zarr_dir']}{zarr_out_mon}"
             # First, let's check if a ZARR-file exists
             # if exists(full_out):
             #     try:
@@ -324,7 +324,7 @@ if __name__ == "__main__":
             # print(full_out)
             # print(full_out_mon)
             try:
-                ds.to_zarr(full_out, encoding=encoding)
+                # ds.to_zarr(full_out, encoding=encoding)
                 ds_mon.to_zarr(full_out_mon, encoding=encoding)
                 logging.info("Concat forecast: writing to new file succesful")
             except:
