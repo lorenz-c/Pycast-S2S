@@ -365,7 +365,6 @@ if __name__ == "__main__":
 
             coords = {
                 "time": ds["time"].values,
-                "ens": ds["ens"].values,
                 "lat": ds["lat"].values.astype(np.float32),
                 "lon": ds["lon"].values.astype(np.float32),
             }
