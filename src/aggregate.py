@@ -324,11 +324,61 @@ if __name__ == "__main__":
             # print(full_out)
             # print(full_out_mon)
             try:
-                # ds.to_zarr(full_out, encoding=encoding)
+                ds.to_zarr(full_out, encoding=encoding)
                 ds_mon.to_zarr(full_out_mon, encoding=encoding)
                 logging.info("Concat forecast: writing to new file succesful")
             except:
                 logging.error("Concat forecast: writing to new file failed")
+
+
+    # Calc quantile for REF-Product (ERA5-Land) --> Input: ERA5 on daily basis
+    elif args.mode == "quantile":
+        syr_calib = domain_config["syr_calib"]
+        eyr_calib = domain_config["eyr_calib"]
+        # Loop over variables
+        for variable in variable_config:
+
+            # Set input File
+            fle_in = f"{domain_config['reference_history']['prefix']}_{domain_config['target_resolution']}_linechunks.zarr"
+            full_in = f"{reg_dir_dict['reference_zarr_dir']}{fle_in}"
+
+            # Open dataset
+            ds = xr.open_zarr(full_in, consolidated=False)
+            ds = xr.open_zarr(
+                full_in,
+                chunks={"time": 215, "lat": "auto", "lon": "auto"},
+                consolidated=False
+                # parallel=True,
+                # engine="netcdf4",
+            )
+            # Calculate monthly mean for each year
+            ds_mon = ds[variable].resample(time="1MS").mean()
+
+            # Set Filenames
+
+            if eyr_calib < 2017:
+                zarr_out_mon = f"{domain_config['reference_history']['prefix']}_mon_{variable}_{syr_calib}_{eyr_calib}_{domain_config['target_resolution']}_reforecasts.zarr"
+            else:
+                zarr_out_mon = f"{domain_config['reference_history']['prefix']}_mon_{variable}_{syr_calib}_{eyr_calib}_{domain_config['target_resolution']}.zarr"
+
+            full_out_mon = f"{reg_dir_dict['bcsd_forecast_mon_zarr_dir']}{zarr_out_mon}"
+
+            coords = {
+                "time": ds["time"].values,
+                "ens": ds["ens"].values,
+                "lat": ds["lat"].values.astype(np.float32),
+                "lon": ds["lon"].values.astype(np.float32),
+            }
+
+            encoding = helper_modules.set_zarr_encoding(variable_config)
+
+            # print(full_out)
+            # print(full_out_mon)
+            try:
+                ds_mon.to_zarr(full_out_mon, encoding=encoding)
+                logging.info("Concat REF: writing to new file succesful")
+            except:
+                logging.error("Concat REF: writing to new file failed")
 
 
 
@@ -359,16 +409,19 @@ if __name__ == "__main__":
             ds_quintiles = ds.groupby("time.month").quantile(q=[0.2, 0.4, 0.6, 0.8]) # , dim=["time"])
             ds_tercile = ds.groupby("time.month").quantile(q=[0.33, 0.66])
             ds_extreme = ds.groupby("time.month").quantile(q=[0.1, 0.9])
-            print(ds_quintiles)
-            print(ds_tercile)
-            print(ds_extreme)
+            # print(ds_quintiles)
+            # print(ds_tercile)
+            # print(ds_extreme)
             # Set Filenames
+
             fle_out_quin = f"{domain_config['reference_history']['prefix']}_quintile_{variable}_{syr_calib}_{eyr_calib}_{domain_config['target_resolution']}.nc"
             full_out_quin = f"{reg_dir_dict['monthly_dir']}/{fle_out_quin}"
             fle_out_ter = f"{domain_config['reference_history']['prefix']}_tercile_{variable}_{syr_calib}_{eyr_calib}_{domain_config['target_resolution']}.nc"
             full_out_ter = f"{reg_dir_dict['monthly_dir']}/{fle_out_ter}"
             fle_out_ext = f"{domain_config['reference_history']['prefix']}_extreme_{variable}_{syr_calib}_{eyr_calib}_{domain_config['target_resolution']}.nc"
             full_out_ext = f"{reg_dir_dict['monthly_dir']}/{fle_out_ext}"
+
+
 
             # Save NC-File
             # ENCODING?!
