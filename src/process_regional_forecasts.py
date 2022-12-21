@@ -224,6 +224,7 @@ if __name__ == "__main__":
 
     #
 
+    #
     elif args.mode == "concat_forecasts":
 
         flenms = []
@@ -383,7 +384,7 @@ if __name__ == "__main__":
         except:
             logging.error("Remap forecasts: Something went wrong")
 
-    # Concat reference for selected time period within a zarr store
+    # Concat reference for BCSD (for calibration period) or for any desired period (daily-data)
     elif args.mode == "concat_reference":
         syr_calib = domain_config["syr_calib"]
         eyr_calib = domain_config["eyr_calib"]
@@ -416,7 +417,7 @@ if __name__ == "__main__":
             zarr_out = f"{domain_config['reference_history']['prefix']}_{variable}_{process_years[0]}_{process_years[-1]}_{domain_config['target_resolution']}.zarr"
 
         full_out = f"{reg_dir_dict['reference_zarr_dir']}{zarr_out}"
-        print(full_out)
+
         ds = ds.chunk({"time": 50})
 
         # First, let's check if a ZARR-file exists
@@ -433,7 +434,7 @@ if __name__ == "__main__":
                 "lat": ds["lat"].values.astype(np.float32),
                 "lon": ds["lon"].values.astype(np.float32),
             }
-            print("test")
+
             encoding = helper_modules.set_zarr_encoding(variable_config)
             try:
                 ds.to_zarr(full_out, encoding=encoding)
@@ -481,35 +482,48 @@ if __name__ == "__main__":
     #              )
     #
     elif args.mode == "rechunk_reference":
+        syr_calib = domain_config["syr_calib"]
+        eyr_calib = domain_config["eyr_calib"]
+        for variable in variable_config:
+            # set input files
+            if process_years[0] == syr_calib and process_years[-1] == eyr_calib:
+                zarr_in = f"{domain_config['reference_history']['prefix']}_{variable}_{domain_config['target_resolution']}_calib.zarr"
+            else:
+                zarr_in = f"{domain_config['reference_history']['prefix']}_{variable}_{process_years[0]}_{process_years[-1]}_{domain_config['target_resolution']}.zarr"
 
-        zarr_in = f"{domain_config['reference_history']['prefix']}_{domain_config['target_resolution']}.zarr"
-        full_in = f"{reg_dir_dict['reference_zarr_dir']}{zarr_in}"
+            full_in = f"{reg_dir_dict['reference_zarr_dir']}{zarr_in}"
 
-        zarr_out = f"{domain_config['reference_history']['prefix']}_{domain_config['target_resolution']}_linechunks.zarr"
-        full_out = f"{reg_dir_dict['reference_zarr_dir']}{zarr_out}"
+            # set output files
 
-        intermed = f"{reg_dir_dict['reference_zarr_dir']}intermed.zarr"
+            if process_years[0] == syr_calib and process_years[-1] == eyr_calib:
+                zarr_out = f"{domain_config['reference_history']['prefix']}_{variable}_{domain_config['target_resolution']}_calib_linechunks.zarr"
+            else:
+                zarr_out = f"{domain_config['reference_history']['prefix']}_{variable}_{process_years[0]}_{process_years[-1]}_{domain_config['target_resolution']}_linechunks.zarr"
 
-        # Delete the directory of the intermediate files
-        if exists(intermed):
-            os.rmdir(intermed)
+            full_out = f"{reg_dir_dict['reference_zarr_dir']}{zarr_out}"
 
-        # This needs to be changed as we might want to add more data to the ZARR stores
-        if exists(full_out):
-            os.rmdir(full_out)
+            intermed = f"{reg_dir_dict['reference_zarr_dir']}intermed.zarr"
 
-        ds = xr.open_zarr(full_in, chunks={"time": 50, "lat": "auto", "lon": "auto"})
+            # Delete the directory of the intermediate files
+            if exists(intermed):
+                os.rmdir(intermed)
 
-        encoding = helper_modules.set_zarr_encoding(variable_config)
+            # This needs to be changed as we might want to add more data to the ZARR stores
+            if exists(full_out):
+                os.rmdir(full_out)
 
-        rechunked = rechunk(
-            ds,
-            target_chunks={"time": len(ds.time), "lat": 1, "lon": 1},
-            target_store=full_out,
-            max_mem="2000MB",
-            temp_store=intermed,
-            target_options=encoding,
-        )
+            ds = xr.open_zarr(full_in, chunks={"time": 50, "lat": "auto", "lon": "auto"})
 
-        with ProgressBar():
-            rechunked.execute()
+            encoding = helper_modules.set_zarr_encoding(variable_config)
+
+            rechunked = rechunk(
+                ds,
+                target_chunks={"time": len(ds.time), "lat": 1, "lon": 1},
+                target_store=full_out,
+                max_mem="2000MB",
+                temp_store=intermed,
+                target_options=encoding,
+            )
+
+            with ProgressBar():
+                rechunked.execute()
