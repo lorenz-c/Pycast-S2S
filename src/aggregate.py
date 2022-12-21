@@ -331,8 +331,8 @@ if __name__ == "__main__":
                 logging.error("Concat forecast: writing to new file failed")
 
 
-    # Calc quantile for REF-Product (ERA5-Land) --> Input: ERA5 on daily basis
-    elif args.mode == "quantile":
+    # Concat all ERA5-Land Files for 1981 to 2016 on monthly basis
+    elif args.mode == "concat_REF":
         syr_calib = domain_config["syr_calib"]
         eyr_calib = domain_config["eyr_calib"]
         # Loop over variables
