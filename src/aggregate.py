@@ -346,7 +346,7 @@ if __name__ == "__main__":
             ds = xr.open_zarr(full_in, consolidated=False)
             ds = xr.open_zarr(
                 full_in,
-                chunks={"time": 215, "lat": "auto", "lon": "auto"},
+                chunks={"time": len(ds.time), "lat": "auto", "lon": "auto"},
                 consolidated=False
                 # parallel=True,
                 # engine="netcdf4",
