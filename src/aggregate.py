@@ -362,7 +362,10 @@ if __name__ == "__main__":
             else:
                 zarr_out_mon = f"{domain_config['reference_history']['prefix']}_mon_{variable}_{syr_calib}_{eyr_calib}_{domain_config['target_resolution']}.zarr"
 
+            print(zarr_out_mon)
+
             full_out_mon = f"{reg_dir_dict['bcsd_forecast_mon_zarr_dir']}{zarr_out_mon}"
+            print(full_out_mon)
 
             coords = {
                 "time": ds["time"].values,
