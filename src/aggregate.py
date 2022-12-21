@@ -364,7 +364,7 @@ if __name__ == "__main__":
 
             print(zarr_out_mon)
 
-            full_out_mon = f"{reg_dir_dict['bcsd_forecast_mon_zarr_dir']}{zarr_out_mon}"
+            full_out_mon = f"{reg_dir_dict['ref_forecast_mon_zarr_dir']}{zarr_out_mon}"
             print(full_out_mon)
 
             coords = {
