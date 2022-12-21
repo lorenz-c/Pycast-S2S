@@ -507,7 +507,7 @@ def day2mon_ref(domain_config: dict,variable_config: dict, reg_dir_dict: dict, y
     )
 
     # Monthly mean
-    ds = ds.resample(time="1MS").mean()
+    ds = ds.resample(time="1MS").mean(dim="time")
     # ds = ds.groupby("time.month").mean()
 
     coords = {
