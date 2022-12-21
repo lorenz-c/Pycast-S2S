@@ -410,15 +410,13 @@ if __name__ == "__main__":
             autoclose=True,
         )
 
-        print(ds)
-
         if process_years[0] == syr_calib and process_years[-1] == eyr_calib:
-            zarr_out = f"{domain_config['reference_history']['prefix']}_{domain_config['target_resolution']}_calib.zarr"
+            zarr_out = f"{domain_config['reference_history']['prefix']}_{variable}_{domain_config['target_resolution']}_calib.zarr"
         else:
-            zarr_out = f"{domain_config['reference_history']['prefix']}_{process_years[0]}_{process_years[-1]}_{domain_config['target_resolution']}.zarr"
+            zarr_out = f"{domain_config['reference_history']['prefix']}_{variable}_{process_years[0]}_{process_years[-1]}_{domain_config['target_resolution']}.zarr"
 
         full_out = f"{reg_dir_dict['reference_zarr_dir']}{zarr_out}"
-
+        print(full_out)
         ds = ds.chunk({"time": 50})
 
         # First, let's check if a ZARR-file exists
@@ -435,7 +433,7 @@ if __name__ == "__main__":
                 "lat": ds["lat"].values.astype(np.float32),
                 "lon": ds["lon"].values.astype(np.float32),
             }
-
+            print("test")
             encoding = helper_modules.set_zarr_encoding(variable_config)
             try:
                 ds.to_zarr(full_out, encoding=encoding)
