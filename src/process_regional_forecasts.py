@@ -409,6 +409,9 @@ if __name__ == "__main__":
             engine="netcdf4",
             autoclose=True,
         )
+
+        print(ds)
+
         if process_years[0] == syr_calib and process_years[-1] == eyr_calib:
             zarr_out = f"{domain_config['reference_history']['prefix']}_{domain_config['target_resolution']}_calib.zarr"
         else:
