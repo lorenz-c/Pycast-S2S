@@ -351,6 +351,7 @@ if __name__ == "__main__":
                 # parallel=True,
                 # engine="netcdf4",
             )
+            print(ds)
             # Calculate monthly mean for each year
             ds_mon = ds[variable].resample(time="1MS").mean()
 
