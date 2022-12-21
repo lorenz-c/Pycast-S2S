@@ -160,6 +160,31 @@ if __name__ == "__main__":
 
         print(f"Dask dashboard available at {client.dashboard_link}")
 
+# Process steps:
+    # 1. Process Ref (ERA5-Land)
+        # a) Calculate daily to monthly data
+    # 1. Calculate daily to monthly BCSD-files for period 1981 to 2016
+    # 2. Calculate daily to monthly files ERA5-Land
+
+    # Ref
+
+    # Convert REF from daily to monthly data:
+    if args.mode == "day2mon_ref":
+        results = []
+        for variable in variable_config:
+
+            for year in process_years:
+
+                results.append(helper_modules.day2mon_ref(domain_config, variable_config, reg_dir_dict, year, variable))
+
+        try:
+            dask.compute(results)
+            logging.info("Day to month ref: successful")
+        except:
+            logging.warning("Day to month ref: Something went wrong")
+
+
+
     # Convert BCSD daily data to monthly data
     if args.mode == "day2mon":
         results = []
@@ -171,13 +196,84 @@ if __name__ == "__main__":
 
                     results.append(helper_modules.day2mon(domain_config,variable_config, reg_dir_dict, year, month, variable))
 
-
-        # print(results)
         try:
             dask.compute(results)
             logging.info("Day to month: successful")
         except:
             logging.warning("Day to month: Something went wrong")
+
+
+    # Concat all BCSD-Files on daily and monthly basis
+    elif args.mode == "concat_BCSD":
+        syr_calib = domain_config["syr_calib"]
+        eyr_calib = domain_config["eyr_calib"]
+
+        flenms = []
+
+        # Loop over variables, years, and months and save filenames of all selected forecasts in a list
+        for month in process_months:
+
+            for variable in variable_config:
+
+                for year in range(syr_calib, eyr_calib + 1):
+                    # Get BCSD-Filename pp_full
+                    (raw_full, pp_full, refrcst_full, ref_full,) = helper_modules.set_input_files(domain_config,
+                                                                                                  reg_dir_dict, month,
+                                                                                                  year, variable)
+                    # set input files
+                    full_in = pp_full
+                    flenms.append(full_in)
+
+            # Now, let's open all files and concat along the time-dimensions
+            ds = xr.open_mfdataset(
+                flenms,
+                parallel=True,
+                chunks={"time": 215, "ens": 25, "lat": "auto", "lon": "auto"},
+                engine="netcdf4",
+                autoclose=True,
+            )
+            # Calculate monthly data
+            ds_mon = ds.resample(time="1MS").mean()
+            # print(ds_mon)
+
+            if eyr_calib < 2017:
+                zarr_out = f"{domain_config['bcsd_forecasts']['prefix']}_v{domain_config['version']}_{variable}_{syr_calib}_{eyr_calib}_{month:02d}_{domain_config['target_resolution']}_reforecasts.zarr"
+                zarr_out_mon = f"{domain_config['bcsd_forecasts']['prefix']}_v{domain_config['version']}_mon_{variable}_{syr_calib}_{eyr_calib}_{month:02d}_{domain_config['target_resolution']}_reforecasts.zarr"
+            else:
+                zarr_out = f"{domain_config['bcsd_forecasts']['prefix']}_v{domain_config['version']}_{variable}_{syr_calib}_{eyr_calib}_{month:02d}_{domain_config['target_resolution']}.zarr"
+                zarr_out_mon = f"{domain_config['bcsd_forecasts']['prefix']}_v{domain_config['version']}_mon_{variable}_{syr_calib}_{eyr_calib}_{month:02d}_{domain_config['target_resolution']}.zarr"
+
+            full_out = f"{reg_dir_dict['bcsd_forecast_zarr_dir']}{zarr_out}"
+            full_out_mon = f"{reg_dir_dict['bcsd_forecast_mon_zarr_dir']}{zarr_out_mon}"
+            # First, let's check if a ZARR-file exists
+            # if exists(full_out):
+            #     try:
+            #         ds.to_zarr(full_out, mode="a", append_dim="time")
+            #         logging.info("Concat forecast: appending succesful")
+            #     except:
+            #         logging.error(
+            #             "Concat forecast: something went wrong during appending"
+            #         )
+
+            # else:
+            coords = {
+                "time": ds["time"].values,
+                "ens": ds["ens"].values,
+                "lat": ds["lat"].values.astype(np.float32),
+                "lon": ds["lon"].values.astype(np.float32),
+            }
+
+            encoding = helper_modules.set_zarr_encoding(variable_config)
+
+            # print(full_out)
+            # print(full_out_mon)
+            try:
+                ds.to_zarr(full_out, encoding=encoding)
+                ds_mon.to_zarr(full_out_mon, encoding=encoding)
+                logging.info("Concat forecast: writing to new file succesful")
+            except:
+                logging.error("Concat forecast: writing to new file failed")
+
 
     # Create Climatology for ERA5-Land
     elif args.mode == "climatology":
@@ -257,78 +353,6 @@ if __name__ == "__main__":
             except:
                 logging.info(f"SEAS5 Climatology: Something went wrong for {year}-{month:02d}")
 
-
-    # Concat all BCSD-Files on daily basis
-    elif args.mode == "concat_BCSD":
-        syr_calib = domain_config["syr_calib"]
-        eyr_calib = domain_config["eyr_calib"]
-
-        flenms = []
-
-        # Loop over variables, years, and months and save filenames of all selected forecasts in a list
-        for month in process_months:
-
-            for variable in variable_config:
-
-                for year in range(syr_calib, eyr_calib+1):
-
-                    # Get BCSD-Filename pp_full
-                    (raw_full, pp_full, refrcst_full, ref_full,) = helper_modules.set_input_files(domain_config,
-                                                                                                  reg_dir_dict, month,
-                                                                                                  year, variable)
-                    # set input files
-                    full_in = pp_full
-                    flenms.append(full_in)
-
-            # Now, let's open all files and concat along the time-dimensions
-            ds = xr.open_mfdataset(
-                flenms,
-                parallel=True,
-                chunks={"time": 215, "ens": 25, "lat": "auto", "lon": "auto"},
-                engine="netcdf4",
-                autoclose=True,
-            )
-            # Calculate monthly data
-            ds_mon = ds.resample(time="1MS").mean()
-            # print(ds_mon)
-
-            if eyr_calib < 2017:
-                zarr_out = f"{domain_config['bcsd_forecasts']['prefix']}_v{domain_config['version']}_{variable}_{syr_calib}_{eyr_calib}_{month:02d}_{domain_config['target_resolution']}_reforecasts.zarr"
-                zarr_out_mon = f"{domain_config['bcsd_forecasts']['prefix']}_v{domain_config['version']}_mon_{variable}_{syr_calib}_{eyr_calib}_{month:02d}_{domain_config['target_resolution']}_reforecasts.zarr"
-            else:
-                zarr_out = f"{domain_config['bcsd_forecasts']['prefix']}_v{domain_config['version']}_{variable}_{syr_calib}_{eyr_calib}_{month:02d}_{domain_config['target_resolution']}.zarr"
-                zarr_out_mon = f"{domain_config['bcsd_forecasts']['prefix']}_v{domain_config['version']}_mon_{variable}_{syr_calib}_{eyr_calib}_{month:02d}_{domain_config['target_resolution']}.zarr"
-
-            full_out = f"{reg_dir_dict['bcsd_forecast_zarr_dir']}{zarr_out}"
-            full_out_mon = f"{reg_dir_dict['bcsd_forecast_mon_zarr_dir']}{zarr_out_mon}"
-            # First, let's check if a ZARR-file exists
-            # if exists(full_out):
-            #     try:
-            #         ds.to_zarr(full_out, mode="a", append_dim="time")
-            #         logging.info("Concat forecast: appending succesful")
-            #     except:
-            #         logging.error(
-            #             "Concat forecast: something went wrong during appending"
-            #         )
-
-            # else:
-            coords = {
-                "time": ds["time"].values,
-                "ens": ds["ens"].values,
-                "lat": ds["lat"].values.astype(np.float32),
-                "lon": ds["lon"].values.astype(np.float32),
-            }
-
-            encoding = helper_modules.set_zarr_encoding(variable_config)
-
-            # print(full_out)
-            # print(full_out_mon)
-            try:
-                ds.to_zarr(full_out, encoding=encoding)
-                ds_mon.to_zarr(full_out_mon, encoding=encoding)
-                logging.info("Concat forecast: writing to new file succesful")
-            except:
-                logging.error("Concat forecast: writing to new file failed")
 
 
     # Concat all ERA5-Land Files for 1981 to 2016 on monthly basis
