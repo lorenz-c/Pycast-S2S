@@ -294,6 +294,8 @@ if __name__ == "__main__":
                     },
                 ).persist()
 
+                print(ds_mdl)
+
                 for timestep in range(0, len(ds_pred.time)):
                     # for timestep in range(82, 83):
 
@@ -312,6 +314,9 @@ if __name__ == "__main__":
 
                         dayofyear_obs = ds_obs_year["time.dayofyear"]
                         dayofyear_mdl = ds_mdl_year["time.dayofyear"]
+
+                        print(dayofyear_mdl)
+                        print(len(dayofyear_mdl))
 
                         # normal years
                         if len(ds_obs_year.time.values) == 365:
@@ -348,6 +353,8 @@ if __name__ == "__main__":
                             intersection_day_mdl = np.append(
                                 intersection_day_mdl, intersection_day_mdl_year
                             )
+
+                    print(intersection_day_mdl)
 
                     da_obs_sub = da_obs.loc[dict(time=intersection_day_obs)]
 
