@@ -166,6 +166,25 @@ if __name__ == "__main__":
     # 1. Calculate daily to monthly BCSD-files for period 1981 to 2016
     # 2. Calculate daily to monthly files ERA5-Land
 
+    # Convert SEAS5 raw daily data to monthly data (store in seperate files)
+    if args.mode == "day2mon_seas":
+        results = []
+        for variable in variable_config:
+
+            for year in process_years:
+
+                for month in process_months:
+                    results.append(
+                        helper_modules.day2mon_seas(domain_config, variable_config, reg_dir_dict, year, month,
+                                                    variable))
+
+        try:
+            dask.compute(results)
+            logging.info("Day to month: successful")
+        except:
+            logging.warning("Day to month: Something went wrong")
+
+
     # Ref
 
     # Convert REF from daily to monthly data (separate files):
@@ -185,8 +204,8 @@ if __name__ == "__main__":
 
 
 
-    # Convert BCSD daily data to monthly data
-    if args.mode == "day2mon_seas5":
+    # Convert BCSD daily data to monthly data (store in seperate files)
+    if args.mode == "day2mon_bcsd":
         results = []
         for variable in variable_config:
 
@@ -194,7 +213,7 @@ if __name__ == "__main__":
 
                 for month in process_months:
 
-                    results.append(helper_modules.day2mon_seas(domain_config,variable_config, reg_dir_dict, year, month, variable))
+                    results.append(helper_modules.day2mon_bcsd(domain_config,variable_config, reg_dir_dict, year, month, variable))
 
         try:
             dask.compute(results)
