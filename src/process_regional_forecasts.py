@@ -342,9 +342,11 @@ if __name__ == "__main__":
                 encoding = helper_modules.set_zarr_encoding(variable_config)
 
                 try:
+                    print("test3")
                     ds_mon.to_zarr(full_out, encoding=encoding)
                     logging.info("Concat forecast: writing to new file succesful")
                 except:
+                    print("test4")
                     logging.error("Concat forecast: writing to new file failed")
 
     elif args.mode == "rechunk_forecasts":
