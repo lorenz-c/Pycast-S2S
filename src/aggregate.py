@@ -256,7 +256,7 @@ if __name__ == "__main__":
             else:
                 zarr_out = f"{domain_config['bcsd_forecasts']['prefix']}_v{domain_config['version']}_{variable}_{process_years[0]}_{process_years[-1]}_{month:02d}_{domain_config['target_resolution']}.zarr"
 
-            full_out = f"{reg_dir_dict['bcsd_forecast_mon_zarr_dir']}{zarr_out}"
+            full_out = f"{reg_dir_dict['bcsd_forecast_zarr_dir']}{zarr_out}"
 
             # First, let's check if a ZARR-file exists
             if exists(full_out):
