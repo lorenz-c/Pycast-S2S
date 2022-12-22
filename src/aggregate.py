@@ -464,7 +464,7 @@ if __name__ == "__main__":
                 # ds = ds[variable].resample(time="1MS").mean()
 
                 # Calculate quantile, tercile and extremes on a monthly basis
-                ds_quintiles = ds.groupby("time.month").quantile(q=[0.2, 0.4, 0.6, 0.8] ) # ), dim=["ens"])
+                ds_quintiles = ds.groupby("time.month").quantile(q=[0.2, 0.4, 0.6, 0.8], dim=["ens", "month"])
                 ds_tercile = ds.groupby("time.month").quantile(q=[0.33, 0.66]) # , dim=["ens"])
                 ds_extreme = ds.groupby("time.month").quantile(q=[0.1, 0.9]) # , dim=["ens"])
                 print(ds_quintiles)
