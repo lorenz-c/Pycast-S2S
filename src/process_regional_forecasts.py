@@ -353,55 +353,55 @@ if __name__ == "__main__":
                     logging.error("Concat forecast: writing to new file failed")
 
     elif args.mode == "rechunk_forecasts":
+        for variable in variable_config:
+            for month in process_months:
 
-        for month in process_months:
+                if process_years[-1] < 2017:
+                    zarr_in = f"{domain_config['raw_forecasts']['prefix']}_{variable}_{month:02d}_{domain_config['target_resolution']}_calib.zarr"
+                else:
+                    zarr_in = f"{domain_config['raw_forecasts']['prefix']}_{variable}_{process_years[0]}_{process_years[-1]}_{month:02d}_{domain_config['target_resolution']}.zarr"
 
-            if process_years[-1] < 2017:
-                zarr_in = f"{domain_config['raw_forecasts']['prefix']}_{month:02d}_{domain_config['target_resolution']}_reforecasts.zarr"
-            else:
-                zarr_in = f"{domain_config['raw_forecasts']['prefix']}_{month:02d}_{domain_config['target_resolution']}.zarr"
+                full_in = f"{reg_dir_dict['raw_forecasts_zarr_dir']}{zarr_in}"
 
-            full_in = f"{reg_dir_dict['raw_forecasts_zarr_dir']}{zarr_in}"
+                if process_years[-1] < 2017:
+                    zarr_out = f"{domain_config['raw_forecasts']['prefix']}_{variable}_{month:02d}_{domain_config['target_resolution']}_calib_linechunks.zarr"
+                else:
+                    zarr_out = f"{domain_config['raw_forecasts']['prefix']}_{variable}_{process_years[0]}_{process_years[-1]}_{month:02d}_{domain_config['target_resolution']}_linechunks.zarr"
 
-            if process_years[-1] < 2017:
-                zarr_out = f"{domain_config['raw_forecasts']['prefix']}_{month:02d}_{domain_config['target_resolution']}_reforecast_linechunks.zarr"
-            else:
-                zarr_out = f"{domain_config['raw_forecasts']['prefix']}_{month:02d}_{domain_config['target_resolution']}_linechunks.zarr"
+                full_out = f"{reg_dir_dict['raw_forecasts_zarr_dir']}{zarr_out}"
 
-            full_out = f"{reg_dir_dict['raw_forecasts_zarr_dir']}{zarr_out}"
+                intermed = f"{reg_dir_dict['raw_forecasts_zarr_dir']}intermed.zarr"
 
-            intermed = f"{reg_dir_dict['raw_forecasts_zarr_dir']}intermed.zarr"
+                # Delete the directory of the intermediate files
+                if exists(intermed):
+                    os.rmdir(intermed)
 
-            # Delete the directory of the intermediate files
-            if exists(intermed):
-                os.rmdir(intermed)
+                # This needs to be changed as we might want to add more data to the ZARR stores
+                if exists(full_out):
+                    os.rmdir(full_out)
 
-            # This needs to be changed as we might want to add more data to the ZARR stores
-            if exists(full_out):
-                os.rmdir(full_out)
+                ds = xr.open_zarr(
+                    full_in, chunks={"time": 5, "ens": 25, "lat": "auto", "lon": "auto"}
+                )
 
-            ds = xr.open_zarr(
-                full_in, chunks={"time": 5, "ens": 25, "lat": "auto", "lon": "auto"}
-            )
+                encoding = helper_modules.set_zarr_encoding(variable_config)
 
-            encoding = helper_modules.set_zarr_encoding(variable_config)
+                rechunked = rechunk(
+                    ds,
+                    target_chunks={
+                        "time": len(ds.time),
+                        "ens": len(ds.ens),
+                        "lat": 1,
+                        "lon": 1,
+                    },
+                    target_store=full_out,
+                    max_mem="2000MB",
+                    temp_store=intermed,
+                    target_options=encoding,
+                )
 
-            rechunked = rechunk(
-                ds,
-                target_chunks={
-                    "time": len(ds.time),
-                    "ens": len(ds.ens),
-                    "lat": 1,
-                    "lon": 1,
-                },
-                target_store=full_out,
-                max_mem="2000MB",
-                temp_store=intermed,
-                target_options=encoding,
-            )
-
-        with ProgressBar():
-            rechunked.execute()
+            with ProgressBar():
+                rechunked.execute()
 
     elif args.mode == "truncate_reference":
 
