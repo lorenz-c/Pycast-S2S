@@ -380,6 +380,8 @@ if __name__ == "__main__":
             # fle_in = f"{domain_config['reference_history']['prefix']}_{variable}_{domain_config['target_resolution']}_calib_linechunks.zarr"
             # full_in = f"{reg_dir_dict['reference_zarr_dir']}{fle_in}"
 
+            # or use
+            # fle_in = f"{domain_config['reference_history']['prefix']}_mon_{variable}_{domain_config['target_resolution']}_calib_linechunks.zarr"
             fle_in = f"{domain_config['reference_history']['prefix']}_mon_{variable}_{domain_config['target_resolution']}_calib.zarr"
             full_in = f"{reg_dir_dict['ref_forecast_mon_zarr_dir']}{fle_in}"
 
