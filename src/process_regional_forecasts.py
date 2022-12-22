@@ -224,9 +224,10 @@ if __name__ == "__main__":
 
     #
 
-    #
-    elif args.mode == "concat_forecasts":
-
+    # Concat SEAS5-Forecast on a daily Basis for calibration period or other desired period
+    elif args.mode == "concat_forecasts_daily":
+        syr_calib = domain_config["syr_calib"]
+        eyr_calib = domain_config["eyr_calib"]
         flenms = []
 
         # Loop over variables, years, and months and save filenames of all selected forecasts in a list
@@ -250,10 +251,10 @@ if __name__ == "__main__":
                 autoclose=True,
             )
 
-            if process_years[-1] < 2017:
-                zarr_out = f"{domain_config['raw_forecasts']['prefix']}_{month:02d}_{domain_config['target_resolution']}_reforecasts.zarr"
+            if process_years[0] == syr_calib and process_years[-1] == eyr_calib:
+                zarr_out = f"{domain_config['raw_forecasts']['prefix']}_{variable}_{month:02d}_{domain_config['target_resolution']}_calib.zarr"
             else:
-                zarr_out = f"{domain_config['raw_forecasts']['prefix']}_{month:02d}_{domain_config['target_resolution']}.zarr"
+                zarr_out = f"{domain_config['raw_forecasts']['prefix']}_{variable}_{process_years[0]}_{process_years[-1]}_{month:02d}_{domain_config['target_resolution']}.zarr"
 
             full_out = f"{reg_dir_dict['raw_forecasts_zarr_dir']}{zarr_out}"
 
