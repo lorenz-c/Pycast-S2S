@@ -318,13 +318,15 @@ if __name__ == "__main__":
                 zarr_out = f"{domain_config['raw_forecasts']['prefix']}_mon_{variable}_{process_years[0]}_{process_years[-1]}_{month:02d}_{domain_config['target_resolution']}.zarr"
 
             full_out = f"{reg_dir_dict['seas_forecast_mon_zarr_dir']}{zarr_out}"
-
+            print(full_out)
             # First, let's check if a ZARR-file exists
             if exists(full_out):
                 try:
+                    print("test")
                     ds_mon.to_zarr(full_out, mode="a", append_dim="time")
                     logging.info("Concat forecast: appending succesful")
                 except:
+                    print("test2")
                     logging.error(
                         "Concat forecast: something went wrong during appending"
                     )
