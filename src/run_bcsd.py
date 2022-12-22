@@ -302,6 +302,7 @@ if __name__ == "__main__":
                     print(f"Correcting timestep {timestep}...")
                     dayofyear_mdl = ds_mdl["time.dayofyear"]
                     day = dayofyear_mdl[timestep]
+                    print(day)
 
                     # Deal with normal and leap years
                     for calib_year in range(syr_calib, eyr_calib + 1):
