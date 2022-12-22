@@ -467,7 +467,7 @@ if __name__ == "__main__":
                 ds_quintiles = ds.groupby("time.month").quantile(q=[0.2, 0.4, 0.6, 0.8], dim=["time", "ens"])
                 ds_tercile = ds.groupby("time.month").quantile(q=[0.33, 0.66], dim=["time", "ens"]) # , dim=["ens"])
                 ds_extreme = ds.groupby("time.month").quantile(q=[0.1, 0.9], dim=["time", "ens"]) # , dim=["ens"])
-                print(ds_quintiles)
+                # print(ds_quintiles)
                 # Set Filenames
                 fle_out_quin = f"{domain_config['raw_forecasts']['prefix']}_quintile_{variable}_{syr_calib}_{eyr_calib}_{domain_config['target_resolution']}.nc"
                 full_out_quin = f"{reg_dir_dict['statistic_dir']}/{fle_out_quin}"
@@ -529,7 +529,7 @@ if __name__ == "__main__":
                 ds_quintiles = ds.groupby("time.month").quantile(q=[0.2, 0.4, 0.6, 0.8], dim=["time", "ens"])
                 ds_tercile = ds.groupby("time.month").quantile(q=[0.33, 0.66], dim=["time", "ens"]) # , dim=["ens"])
                 ds_extreme = ds.groupby("time.month").quantile(q=[0.1, 0.9], dim=["time", "ens"]) # , dim=["ens"])
-                print(ds_quintiles)
+                # print(ds_quintiles)
                 # Set Filenames
                 fle_out_quin = f"{domain_config['bcsd_forecasts']['prefix']}_quintile_{variable}_{syr_calib}_{eyr_calib}_{domain_config['target_resolution']}.nc"
                 full_out_quin = f"{reg_dir_dict['statistic_dir']}/{fle_out_quin}"
