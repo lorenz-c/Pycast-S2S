@@ -311,7 +311,7 @@ if __name__ == "__main__":
             )
 
             ds_mon = ds.resample(time="1MS").mean()
-
+            print(ds_mon)
             if process_years[0] == syr_calib and process_years[-1] == eyr_calib:
                 zarr_out = f"{domain_config['raw_forecasts']['prefix']}_mon_{variable}_{month:02d}_{domain_config['target_resolution']}_calib.zarr"
             else:
