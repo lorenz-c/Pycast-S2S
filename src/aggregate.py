@@ -12,6 +12,7 @@ from helper_modules import run_cmd
 import xarray as xr
 # cdo = Cdo()
 import numpy as np
+from os.path import exists
 
 def get_clas():
     parser = argparse.ArgumentParser(
@@ -220,6 +221,70 @@ if __name__ == "__main__":
             logging.info("Day to month: successful")
         except:
             logging.warning("Day to month: Something went wrong")
+
+    # Concat BCSD-Forecast on a daily Basis for calibration period or other desired period
+    elif args.mode == "concat_bcsd_daily":
+        syr_calib = domain_config["syr_calib"]
+        eyr_calib = domain_config["eyr_calib"]
+        flenms = []
+
+        # Loop over variables, years, and months and save filenames of all selected forecasts in a list
+        for month in process_months:
+
+            for variable in variable_config:
+
+                for year in process_years:
+                    # Get BCSD-Filename pp_full
+                    (raw_full, pp_full, refrcst_full, ref_full,) = helper_modules.set_input_files(domain_config,
+                                                                                                  reg_dir_dict, month,
+                                                                                                  year, variable)
+                    # set input files
+                    full_in = pp_full
+                    flenms.append(full_in)
+
+            # Now, let's open all files and concat along the time-dimensions
+            ds = xr.open_mfdataset(
+                flenms,
+                parallel=True,
+                chunks={"time": 215, "ens": 25, "lat": "auto", "lon": "auto"},
+                engine="netcdf4",
+                autoclose=True,
+            )
+
+            if process_years[0] == syr_calib and process_years[-1] == eyr_calib:
+                zarr_out = f"{domain_config['bcsd_forecasts']['prefix']}_v{domain_config['version']}_{variable}_{month:02d}_{domain_config['target_resolution']}_calib.zarr"
+            else:
+                zarr_out = f"{domain_config['bcsd_forecasts']['prefix']}_v{domain_config['version']}_{variable}_{process_years[0]}_{process_years[-1]}_{month:02d}_{domain_config['target_resolution']}.zarr"
+
+            full_out = f"{reg_dir_dict['bcsd_forecast_mon_zarr_dir']}{zarr_out}"
+
+            # First, let's check if a ZARR-file exists
+            if exists(full_out):
+                try:
+                    ds.to_zarr(full_out, mode="a", append_dim="time")
+                    logging.info("Concat forecast: appending succesful")
+                except:
+                    logging.error(
+                        "Concat forecast: something went wrong during appending"
+                    )
+
+            else:
+                coords = {
+                    "time": ds["time"].values,
+                    "ens": ds["ens"].values,
+                    "lat": ds["lat"].values.astype(np.float32),
+                    "lon": ds["lon"].values.astype(np.float32),
+                }
+
+                encoding = helper_modules.set_zarr_encoding(variable_config)
+
+                try:
+                    ds.to_zarr(full_out, encoding=encoding)
+                    logging.info("Concat forecast: writing to new file succesful")
+                except:
+                    logging.error("Concat forecast: writing to new file failed")
+
+
 
 
     # Concat all BCSD-Files on daily and monthly basis
