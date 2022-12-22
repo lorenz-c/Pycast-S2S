@@ -369,7 +369,7 @@ if __name__ == "__main__":
             logging.warning("REF climatology: Something went wrong")
 
 
-    # Calc quantile for REF-Product (ERA5-Land) --> Input: ERA5 on daily basis
+    # Calc quantile for REF-Product (ERA5-Land) --> Input: ERA5 on monthly basis
     elif args.mode == "quantile_ref":
         syr_calib = domain_config["syr_calib"]
         eyr_calib = domain_config["eyr_calib"]
@@ -432,7 +432,7 @@ if __name__ == "__main__":
                 logging.error("Error: Create NC-File for extreme")
 
 
-    # Calc quantile for REF-Product (ERA5-Land) --> Input: ERA5 on daily basis
+    # Calc quantile for SEAS5 raw --> Input: SEAS5 Raw on monthly basis
     elif args.mode == "quantile_seas":
         syr_calib = domain_config["syr_calib"]
         eyr_calib = domain_config["eyr_calib"]
@@ -474,6 +474,68 @@ if __name__ == "__main__":
                 fle_out_ter = f"{domain_config['raw_forecasts']['prefix']}_tercile_{variable}_{syr_calib}_{eyr_calib}_{domain_config['target_resolution']}.nc"
                 full_out_ter = f"{reg_dir_dict['statistic_dir']}/{fle_out_ter}"
                 fle_out_ext = f"{domain_config['raw_forecasts']['prefix']}_extreme_{variable}_{syr_calib}_{eyr_calib}_{domain_config['target_resolution']}.nc"
+                full_out_ext = f"{reg_dir_dict['statistic_dir']}/{fle_out_ext}"
+
+
+                # Save NC-File
+                # ENCODING?!
+                try:
+                    ds_quintiles.to_netcdf(full_out_quin)
+                except:
+                    logging.error("Error: Create NC-File for quantiles")
+
+                try:
+                    ds_quintiles.to_netcdf(full_out_ter)
+                except:
+                    logging.error("Error: Create NC-File for tercile")
+
+                try:
+                    ds_quintiles.to_netcdf(full_out_ext)
+                except:
+                    logging.error("Error: Create NC-File for extreme")
+
+    # Calc quantile for BCSD-Product --> Input: BCSD on monthly basis
+    elif args.mode == "quantile_bcsd":
+        syr_calib = domain_config["syr_calib"]
+        eyr_calib = domain_config["eyr_calib"]
+        # Loop over variables
+        for variable in variable_config:
+            for month in process_months:
+                # Set input File
+                # fle_in = f"{domain_config['reference_history']['prefix']}_{variable}_{domain_config['target_resolution']}_calib_linechunks.zarr"
+                # full_in = f"{reg_dir_dict['reference_zarr_dir']}{fle_in}"
+
+                # Take the monthly aggregated data
+                # or use
+                #  fle_in = f"{domain_config['raw_forecasts']['prefix']}_mon_{variable}_{month:02d}_{domain_config['target_resolution']}_calib_linechunks.zarr"
+                fle_in = f"{domain_config['bcsd_forecasts']['prefix']}_v{domain_config['version']}_mon_{variable}_{month:02d}_{domain_config['target_resolution']}_calib.zarr"
+                full_in = f"{reg_dir_dict['bcsd_forecast_mon_zarr_dir']}{fle_in}"
+
+
+                # Open dataset
+                ds = xr.open_zarr(full_in, consolidated=False)
+                ds = xr.open_zarr(
+                    full_in,
+                    chunks={"time": len(ds.time), "ens": len(ds.ens), "lat": 10, "lon": 10},
+                    consolidated=False
+                    # parallel=True,
+                    # engine="netcdf4",
+                )
+
+                # Calculate monthly mean for each year (only if daily data are used)
+                # ds = ds[variable].resample(time="1MS").mean()
+
+                # Calculate quantile, tercile and extremes on a monthly basis
+                ds_quintiles = ds.groupby("time.month").quantile(q=[0.2, 0.4, 0.6, 0.8], dim=["time", "ens"])
+                ds_tercile = ds.groupby("time.month").quantile(q=[0.33, 0.66], dim=["time", "ens"]) # , dim=["ens"])
+                ds_extreme = ds.groupby("time.month").quantile(q=[0.1, 0.9], dim=["time", "ens"]) # , dim=["ens"])
+                print(ds_quintiles)
+                # Set Filenames
+                fle_out_quin = f"{domain_config['bcsd_forecasts']['prefix']}_quintile_{variable}_{syr_calib}_{eyr_calib}_{domain_config['target_resolution']}.nc"
+                full_out_quin = f"{reg_dir_dict['statistic_dir']}/{fle_out_quin}"
+                fle_out_ter = f"{domain_config['bcsd_forecasts']['prefix']}_tercile_{variable}_{syr_calib}_{eyr_calib}_{domain_config['target_resolution']}.nc"
+                full_out_ter = f"{reg_dir_dict['statistic_dir']}/{fle_out_ter}"
+                fle_out_ext = f"{domain_config['bcsd_forecasts']['prefix']}_extreme_{variable}_{syr_calib}_{eyr_calib}_{domain_config['target_resolution']}.nc"
                 full_out_ext = f"{reg_dir_dict['statistic_dir']}/{fle_out_ext}"
 
 
