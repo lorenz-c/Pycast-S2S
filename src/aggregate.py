@@ -168,7 +168,7 @@ if __name__ == "__main__":
 
     # Ref
 
-    # Convert REF from daily to monthly data:
+    # Convert REF from daily to monthly data (separate files):
     if args.mode == "day2mon_ref":
         results = []
         for variable in variable_config:
@@ -186,7 +186,7 @@ if __name__ == "__main__":
 
 
     # Convert BCSD daily data to monthly data
-    if args.mode == "day2mon":
+    if args.mode == "day2mon_seas5":
         results = []
         for variable in variable_config:
 
@@ -194,7 +194,7 @@ if __name__ == "__main__":
 
                 for month in process_months:
 
-                    results.append(helper_modules.day2mon(domain_config,variable_config, reg_dir_dict, year, month, variable))
+                    results.append(helper_modules.day2mon_seas(domain_config,variable_config, reg_dir_dict, year, month, variable))
 
         try:
             dask.compute(results)

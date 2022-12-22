@@ -551,7 +551,7 @@ def day2mon_ref(domain_config: dict,variable_config: dict, reg_dir_dict: dict, y
 
 
 @dask.delayed
-def day2mon(domain_config: dict,variable_config: dict, reg_dir_dict: dict, year: int, month: int, variable: str):
+def day2mon_seas(domain_config: dict,variable_config: dict, reg_dir_dict: dict, year: int, month: int, variable: str):
     # Get BCSD-Filename pp_full
     (raw_full, pp_full, refrcst_full, ref_full,) = set_input_files(domain_config, reg_dir_dict, month, year, variable)
     print(pp_full)
