@@ -380,12 +380,12 @@ if __name__ == "__main__":
             # fle_in = f"{domain_config['reference_history']['prefix']}_{variable}_{domain_config['target_resolution']}_calib_linechunks.zarr"
             # full_in = f"{reg_dir_dict['reference_zarr_dir']}{fle_in}"
 
+            # Take the monthly aggregated data
             # or use
             # fle_in = f"{domain_config['reference_history']['prefix']}_mon_{variable}_{domain_config['target_resolution']}_calib_linechunks.zarr"
             fle_in = f"{domain_config['reference_history']['prefix']}_mon_{variable}_{domain_config['target_resolution']}_calib.zarr"
             full_in = f"{reg_dir_dict['ref_forecast_mon_zarr_dir']}{fle_in}"
 
-            print(full_in)
 
             # Open dataset
             ds = xr.open_zarr(full_in, consolidated=False)
@@ -397,18 +397,15 @@ if __name__ == "__main__":
                 # engine="netcdf4",
             )
 
-            # Calculate monthly mean for each year
+            # Calculate monthly mean for each year (only if daily data are used)
             # ds = ds[variable].resample(time="1MS").mean()
 
             # Calculate quantile, tercile and extremes on a monthly basis
             ds_quintiles = ds.groupby("time.month").quantile(q=[0.2, 0.4, 0.6, 0.8]) # , dim=["time"])
             ds_tercile = ds.groupby("time.month").quantile(q=[0.33, 0.66])
             ds_extreme = ds.groupby("time.month").quantile(q=[0.1, 0.9])
-            # print(ds_quintiles)
-            # print(ds_tercile)
-            # print(ds_extreme)
-            # Set Filenames
 
+            # Set Filenames
             fle_out_quin = f"{domain_config['reference_history']['prefix']}_quintile_{variable}_{syr_calib}_{eyr_calib}_{domain_config['target_resolution']}.nc"
             full_out_quin = f"{reg_dir_dict['statistic_dir']}/{fle_out_quin}"
             fle_out_ter = f"{domain_config['reference_history']['prefix']}_tercile_{variable}_{syr_calib}_{eyr_calib}_{domain_config['target_resolution']}.nc"
