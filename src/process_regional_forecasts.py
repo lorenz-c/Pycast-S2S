@@ -298,7 +298,7 @@ if __name__ == "__main__":
                 for year in process_years:
                     fle_in = f"{domain_config['raw_forecasts']['prefix']}_{variable}_{year}{month:02d}_{domain_config['target_resolution']}.nc"
                     full_in = f"{reg_dir_dict['raw_forecasts_target_resolution_dir']}/{fle_in}"
-
+                    print(full_in)
                     flenms.append(full_in)
 
             # Now, let's open all files and concat along the time-dimensions
@@ -312,6 +312,7 @@ if __name__ == "__main__":
 
             ds_mon = ds.resample(time="1MS").mean()
             print(ds_mon)
+
             if process_years[0] == syr_calib and process_years[-1] == eyr_calib:
                 zarr_out = f"{domain_config['raw_forecasts']['prefix']}_mon_{variable}_{month:02d}_{domain_config['target_resolution']}_calib.zarr"
             else:
