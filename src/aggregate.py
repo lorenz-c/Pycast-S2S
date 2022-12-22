@@ -445,8 +445,8 @@ if __name__ == "__main__":
 
             # Take the monthly aggregated data
             # or use
-            # fle_in = f"{domain_config['reference_history']['prefix']}_mon_{variable}_{domain_config['target_resolution']}_calib_linechunks.zarr"
-            fle_in = f"{domain_config['raw_forecasts']['prefix']}_{variable}_{month:02d}_{domain_config['target_resolution']}_calib.zarr"
+            #  fle_in = f"{domain_config['raw_forecasts']['prefix']}_mon_{variable}_{month:02d}_{domain_config['target_resolution']}_calib_linechunks.zarr"
+            fle_in = f"{domain_config['raw_forecasts']['prefix']}_mon_{variable}_{month:02d}_{domain_config['target_resolution']}_calib.zarr"
             full_in = f"{reg_dir_dict['seas_forecast_mon_zarr_dir']}{fle_in}"
 
 
