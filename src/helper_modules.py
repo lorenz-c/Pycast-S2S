@@ -65,6 +65,7 @@ def set_and_make_dirs(domain_config: dict) -> dict:
 
     reg_dir_dict["climatology_dir"] = f"{reg_dir_dict['aggregated_dir']}/climatology/"
     reg_dir_dict["monthly_dir"] = f"{reg_dir_dict['aggregated_dir']}/monthly/"
+    reg_dir_dict["statistic_dir"] = f"{reg_dir_dict['aggregated_dir']}/statistic/"
 
 
     # Then the level 3 directories
@@ -126,10 +127,10 @@ def set_input_files(
     pp_file = f"{domain_config['bcsd_forecasts']['prefix']}_v{domain_config['version']}_{variable}_{year}{month:02d}_{domain_config['target_resolution']}.nc"
     pp_full = f"{reg_dir_dict['processed_dir']}{pp_file}"
 
-    refrcst_zarr = f"{domain_config['raw_forecasts']['prefix']}_{month:02d}_{domain_config['target_resolution']}_reforecast_linechunks.zarr"
+    refrcst_zarr = f"{domain_config['raw_forecasts']['prefix']}_{variable}_{month:02d}_{domain_config['target_resolution']}_calib_linechunks.zarr"
     refrcst_full = f"{reg_dir_dict['raw_forecasts_zarr_dir']}{refrcst_zarr}"
 
-    ref_zarr = f"{domain_config['reference_history']['prefix']}_{domain_config['target_resolution']}_linechunks.zarr"
+    ref_zarr = f"{domain_config['reference_history']['prefix']}_{variable}_{domain_config['target_resolution']}_calib_linechunks.zarr"
     ref_full = f"{reg_dir_dict['reference_zarr_dir']}{ref_zarr}"
 
     return raw_full, pp_full, refrcst_full, ref_full

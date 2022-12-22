@@ -377,7 +377,7 @@ if __name__ == "__main__":
         for variable in variable_config:
 
             # Set input File
-            fle_in = f"{domain_config['reference_history']['prefix']}_{domain_config['target_resolution']}_linechunks.zarr"
+            fle_in = f"{domain_config['reference_history']['prefix']}_{variable}_{domain_config['target_resolution']}_calib_linechunks.zarr"
             full_in = f"{reg_dir_dict['reference_zarr_dir']}{fle_in}"
 
             # Open dataset
@@ -402,11 +402,11 @@ if __name__ == "__main__":
             # Set Filenames
 
             fle_out_quin = f"{domain_config['reference_history']['prefix']}_quintile_{variable}_{syr_calib}_{eyr_calib}_{domain_config['target_resolution']}.nc"
-            full_out_quin = f"{reg_dir_dict['monthly_dir']}/{fle_out_quin}"
+            full_out_quin = f"{reg_dir_dict['statistic_dir']}/{fle_out_quin}"
             fle_out_ter = f"{domain_config['reference_history']['prefix']}_tercile_{variable}_{syr_calib}_{eyr_calib}_{domain_config['target_resolution']}.nc"
-            full_out_ter = f"{reg_dir_dict['monthly_dir']}/{fle_out_ter}"
+            full_out_ter = f"{reg_dir_dict['statistic_dir']}/{fle_out_ter}"
             fle_out_ext = f"{domain_config['reference_history']['prefix']}_extreme_{variable}_{syr_calib}_{eyr_calib}_{domain_config['target_resolution']}.nc"
-            full_out_ext = f"{reg_dir_dict['monthly_dir']}/{fle_out_ext}"
+            full_out_ext = f"{reg_dir_dict['statistic_dir']}/{fle_out_ext}"
 
 
 
