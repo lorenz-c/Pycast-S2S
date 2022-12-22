@@ -284,6 +284,67 @@ if __name__ == "__main__":
                 except:
                     logging.error("Concat forecast: writing to new file failed")
 
+    # Concat SEAS5-Forecast on a daily Basis for calibration period or other desired period
+    elif args.mode == "concat_forecasts_monthly":
+        syr_calib = domain_config["syr_calib"]
+        eyr_calib = domain_config["eyr_calib"]
+        flenms = []
+
+        # Loop over variables, years, and months and save filenames of all selected forecasts in a list
+        for month in process_months:
+
+            for variable in variable_config:
+
+                for year in process_years:
+                    fle_in = f"{domain_config['raw_forecasts']['prefix']}_{variable}_{year}{month:02d}_{domain_config['target_resolution']}.nc"
+                    full_in = f"{reg_dir_dict['raw_forecasts_target_resolution_dir']}/{fle_in}"
+
+                    flenms.append(full_in)
+
+            # Now, let's open all files and concat along the time-dimensions
+            ds = xr.open_mfdataset(
+                flenms,
+                parallel=True,
+                chunks={"time": 5, "ens": 25, "lat": "auto", "lon": "auto"},
+                engine="netcdf4",
+                autoclose=True,
+            )
+
+            ds_mon = ds.resample(time="1MS").mean()
+
+            if process_years[0] == syr_calib and process_years[-1] == eyr_calib:
+                zarr_out = f"{domain_config['raw_forecasts']['prefix']}_mon_{variable}_{month:02d}_{domain_config['target_resolution']}_calib.zarr"
+            else:
+                zarr_out = f"{domain_config['raw_forecasts']['prefix']}_mon_{variable}_{process_years[0]}_{process_years[-1]}_{month:02d}_{domain_config['target_resolution']}.zarr"
+
+            full_out = f"{reg_dir_dict['seas_forecast_mon_zarr_dir']}{zarr_out}"
+
+            # First, let's check if a ZARR-file exists
+            if exists(full_out):
+                try:
+                    ds_mon.to_zarr(full_out, mode="a", append_dim="time")
+                    logging.info("Concat forecast: appending succesful")
+                except:
+                    logging.error(
+                        "Concat forecast: something went wrong during appending"
+                    )
+
+            else:
+                coords = {
+                    "time": ds["time"].values,
+                    "ens": ds["ens"].values,
+                    "lat": ds["lat"].values.astype(np.float32),
+                    "lon": ds["lon"].values.astype(np.float32),
+                }
+
+                encoding = helper_modules.set_zarr_encoding(variable_config)
+
+                try:
+                    ds_mon.to_zarr(full_out, encoding=encoding)
+                    logging.info("Concat forecast: writing to new file succesful")
+                except:
+                    logging.error("Concat forecast: writing to new file failed")
+
     elif args.mode == "rechunk_forecasts":
 
         for month in process_months:

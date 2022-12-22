@@ -70,10 +70,13 @@ def set_and_make_dirs(domain_config: dict) -> dict:
     # Then the level 3 directories
     reg_dir_dict[
         "bcsd_forecast_mon_zarr_dir"
-    ] = f"{reg_dir_dict['monthly_dir']}zarr_stores_seas5/"
+    ] = f"{reg_dir_dict['monthly_dir']}zarr_stores_bcsd/"
     reg_dir_dict[
         "ref_forecast_mon_zarr_dir"
     ] = f"{reg_dir_dict['monthly_dir']}zarr_stores_ref/"
+    reg_dir_dict[
+        "seas_forecast_mon_zarr_dir"
+    ] = f"{reg_dir_dict['monthly_dir']}zarr_stores_seas/"
 
 
 
