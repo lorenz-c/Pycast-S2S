@@ -377,8 +377,13 @@ if __name__ == "__main__":
         for variable in variable_config:
 
             # Set input File
-            fle_in = f"{domain_config['reference_history']['prefix']}_{variable}_{domain_config['target_resolution']}_calib_linechunks.zarr"
-            full_in = f"{reg_dir_dict['reference_zarr_dir']}{fle_in}"
+            # fle_in = f"{domain_config['reference_history']['prefix']}_{variable}_{domain_config['target_resolution']}_calib_linechunks.zarr"
+            # full_in = f"{reg_dir_dict['reference_zarr_dir']}{fle_in}"
+
+            fle_in = f"{domain_config['reference_history']['prefix']}_mon_{variable}_{domain_config['target_resolution']}_calib_linechunks.zarr"
+            full_in = f"{reg_dir_dict['ref_forecast_mon_zarr_dir']}{fle_in}"
+
+            print(full_in)
 
             # Open dataset
             ds = xr.open_zarr(full_in, consolidated=False)
@@ -389,8 +394,9 @@ if __name__ == "__main__":
                 # parallel=True,
                 # engine="netcdf4",
             )
+
             # Calculate monthly mean for each year
-            ds = ds[variable].resample(time="1MS").mean()
+            # ds = ds[variable].resample(time="1MS").mean()
 
             # Calculate quantile, tercile and extremes on a monthly basis
             ds_quintiles = ds.groupby("time.month").quantile(q=[0.2, 0.4, 0.6, 0.8]) # , dim=["time"])
