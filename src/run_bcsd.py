@@ -316,8 +316,8 @@ if __name__ == "__main__":
                         dayofyear_obs = ds_obs_year["time.dayofyear"]
                         dayofyear_mdl = ds_mdl_year["time.dayofyear"]
 
-                        # print(dayofyear_mdl)
-                        # print(len(dayofyear_mdl))
+                        print(dayofyear_mdl)
+                        print(len(dayofyear_mdl))
 
                         # normal years
                         if len(ds_obs_year.time.values) == 365:
