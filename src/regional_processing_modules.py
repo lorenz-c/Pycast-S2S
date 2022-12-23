@@ -134,7 +134,7 @@ def truncate_forecasts(
         preprocess=preprocess,
     )
     # Select Lat/Lon-Box
-    ds = ds.sel(lat=slice(min_lat, max_lat), lon=slice(min_lon, max_lon)) # , time=ds.time.dt.month.isin(month_range))
+    ds = ds.sel(lat=slice(min_lat, max_lat), lon=slice(min_lon, max_lon) , time=ds.time.dt.month.isin(month_range))
     # Select only 7 Month and exlude the first day of 8th month, because that couse troubles, when some SEAS5-Forecast does not include this day
     # ds = ds.sel(time=ds.time.dt.month.isin(month_range))
     # print(ds)
