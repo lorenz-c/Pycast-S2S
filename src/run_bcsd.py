@@ -294,7 +294,7 @@ if __name__ == "__main__":
                     },
                 ).persist()
 
-                print(ds_mdl)
+                print(ds_mdl.isel(time=0))
 
                 for timestep in range(0, len(ds_pred.time)):
                     # for timestep in range(82, 83):
