@@ -187,6 +187,7 @@ if __name__ == "__main__":
                     month_range = np.concatenate((month_range_1, month_range_2), axis=0)
                 # Store it as a list
                 month_range = list(month_range)
+                print(month_range)
 
                 results.append(
                     regional_processing_modules.truncate_forecasts(
