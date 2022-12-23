@@ -112,6 +112,7 @@ def truncate_forecasts(
     glob_dir_dict: str,
     year: int,
     month: int,
+    month_range: list
 ):
 
     bbox = domain_config["bbox"]
@@ -132,8 +133,10 @@ def truncate_forecasts(
         chunks={"time": 50},
         preprocess=preprocess,
     )
-
+    # Select Lat/Lon-Box
     ds = ds.sel(lat=slice(min_lat, max_lat), lon=slice(min_lon, max_lon))
+    # Select only 7 Month and exlude the first day of 8th month, because that couse troubles, when some SEAS5-Forecast does not include this day
+    ds = ds.sel(time=ds.time.dt.month.isin(month_range))
 
     coords = {
         "time": ds["time"].values,
@@ -179,8 +182,6 @@ def remap_forecasts(
 
     fle_out = f"{domain_config['raw_forecasts']['prefix']}_{variable}_{year}{month:02d}_{domain_config['target_resolution']}.nc"
     full_out = f"{reg_dir_dict['raw_forecasts_target_resolution_dir']}{fle_out}"
-
-
 
     cmd = (
         "cdo",
