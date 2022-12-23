@@ -254,7 +254,7 @@ if __name__ == "__main__":
                     full_in = f"{reg_dir_dict['raw_forecasts_target_resolution_dir']}/{fle_in}"
 
                     flenms.append(full_in)
-
+            print(full_in)
             # Now, let's open all files and concat along the time-dimensions
             ds = xr.open_mfdataset(
                 flenms,
@@ -263,6 +263,7 @@ if __name__ == "__main__":
                 engine="netcdf4",
                 autoclose=True,
             )
+            print(ds)
 
             if process_years[0] == syr_calib and process_years[-1] == eyr_calib:
                 zarr_out = f"{domain_config['raw_forecasts']['prefix']}_{variable}_{month:02d}_{domain_config['target_resolution']}_calib.zarr"
@@ -270,7 +271,7 @@ if __name__ == "__main__":
                 zarr_out = f"{domain_config['raw_forecasts']['prefix']}_{variable}_{process_years[0]}_{process_years[-1]}_{month:02d}_{domain_config['target_resolution']}.zarr"
 
             full_out = f"{reg_dir_dict['raw_forecasts_zarr_dir']}{zarr_out}"
-
+            print(full_out)
             # First, let's check if a ZARR-file exists
             if exists(full_out):
                 try:
