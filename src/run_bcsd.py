@@ -316,8 +316,8 @@ if __name__ == "__main__":
                         dayofyear_obs = ds_obs_year["time.dayofyear"]
                         dayofyear_mdl = ds_mdl_year["time.dayofyear"]
 
-                        print(dayofyear_mdl)
-                        print(len(dayofyear_mdl))
+                        # print(dayofyear_mdl)
+                        # print(len(dayofyear_mdl))
 
                         # normal years
                         if len(ds_obs_year.time.values) == 365:
@@ -341,6 +341,8 @@ if __name__ == "__main__":
                                 + 366
                             ) % 366 + 1
 
+                        print(day_range)
+
                         intersection_day_obs_year = np.in1d(dayofyear_obs, day_range)
                         intersection_day_mdl_year = np.in1d(dayofyear_mdl, day_range)
 
@@ -355,7 +357,7 @@ if __name__ == "__main__":
                                 intersection_day_mdl, intersection_day_mdl_year
                             )
 
-                    print(intersection_day_mdl)
+                    # print(intersection_day_mdl)
 
                     da_obs_sub = da_obs.loc[dict(time=intersection_day_obs)]
 
