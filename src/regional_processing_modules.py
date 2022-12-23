@@ -130,7 +130,7 @@ def truncate_forecasts(
         concat_dim="ens",
         combine="nested",
         parallel=True,
-        # chunks={"time": 50},
+        chunks={"time": -1},
         preprocess=preprocess,
     )
     # Select Lat/Lon-Box
