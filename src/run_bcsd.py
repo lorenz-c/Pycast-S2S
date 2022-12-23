@@ -357,7 +357,8 @@ if __name__ == "__main__":
                                 intersection_day_mdl, intersection_day_mdl_year
                             )
 
-                    # print(intersection_day_mdl)
+                    print(intersection_day_mdl)
+                    print(len(intersection_day_mdl))
 
                     da_obs_sub = da_obs.loc[dict(time=intersection_day_obs)]
 
