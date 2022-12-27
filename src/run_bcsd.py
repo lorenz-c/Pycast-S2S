@@ -294,7 +294,7 @@ if __name__ == "__main__":
                     },
                 ).persist()
 
-                print(ds_mdl.isel(time=0))
+
 
                 for timestep in range(0, len(ds_pred.time)):
                     # for timestep in range(82, 83):
@@ -302,7 +302,7 @@ if __name__ == "__main__":
                     print(f"Correcting timestep {timestep}...")
                     dayofyear_mdl = ds_mdl["time.dayofyear"]
                     day = dayofyear_mdl[timestep]
-                    print(day)
+
 
                     # Deal with normal and leap years
                     for calib_year in range(syr_calib, eyr_calib + 1):
@@ -316,8 +316,6 @@ if __name__ == "__main__":
                         dayofyear_obs = ds_obs_year["time.dayofyear"]
                         dayofyear_mdl = ds_mdl_year["time.dayofyear"]
 
-                        print(dayofyear_mdl)
-                        print(len(dayofyear_mdl))
 
                         # normal years
                         if len(ds_obs_year.time.values) == 365:
@@ -341,14 +339,17 @@ if __name__ == "__main__":
                                 + 366
                             ) % 366 + 1
 
-                        print(day_range)
 
                         intersection_day_obs_year = np.in1d(dayofyear_obs, day_range)
                         intersection_day_mdl_year = np.in1d(dayofyear_mdl, day_range)
 
                         if calib_year == syr_calib:
                             intersection_day_obs = intersection_day_obs_year
-                            intersection_day_mdl = intersection_day_mdl_year
+                            # Model data are missing (e.g. when the initialization is at June, there are no data for 1981 before that period, and we have to take care about them
+                            # Create Bool mask
+                            nr_missing = np.isnan(np.arange(1, 215 - len(dayofyear_mdl) + 1))
+                            # Merge
+                            intersection_day_mdl = np.append(nr_missing, intersection_day_mdl_year)
                         else:
                             intersection_day_obs = np.append(
                                 intersection_day_obs, intersection_day_obs_year
@@ -356,9 +357,6 @@ if __name__ == "__main__":
                             intersection_day_mdl = np.append(
                                 intersection_day_mdl, intersection_day_mdl_year
                             )
-
-                    print(intersection_day_mdl)
-                    print(len(intersection_day_mdl))
 
                     da_obs_sub = da_obs.loc[dict(time=intersection_day_obs)]
 
