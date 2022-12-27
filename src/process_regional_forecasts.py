@@ -309,6 +309,17 @@ if __name__ == "__main__":
 
         # Loop over variables, years, and months and save filenames of all selected forecasts in a list
         for month in process_months:
+            # create list of month, which are included in SEAS5
+            month_end = month + 8
+            if month_end < 14:
+                month_range = np.arange(month, month_end)
+            else:
+                month_range_1 = np.arange(month, 13)
+                month_range_2 = np.arange(1, month_end - 12)
+                month_range = np.concatenate((month_range_1, month_range_2), axis=0)
+            # Store it as a list
+            month_range = list(month_range)
+            print(month_range)
 
             for variable in variable_config:
 
@@ -327,7 +338,11 @@ if __name__ == "__main__":
                 autoclose=True,
             )
 
+            # Take monthly mean for each year
             ds_mon = ds.resample(time="1MS").mean()
+            # Only select the months which are needed, because resample add nan-values for other months, which we are not interested in
+            ds_mon = ds_mon.sel(time=ds_mon.time.dt.month.isin(month_range))
+
             # We need this step, because otherwise the chunks are not equally distributed....
             ds_mon = ds_mon.chunk({"time": 5, "ens": 25, "lat": "auto", "lon": "auto"})
 
