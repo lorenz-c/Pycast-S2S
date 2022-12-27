@@ -178,16 +178,16 @@ if __name__ == "__main__":
             for month in process_months:
 
                 # calculate the month_range, in order to just have a look at the 7 month, and not the first day of 8th month
-                month_end = month + 7
-                if month_end < 14:
-                    month_range = np.arange(month, month_end)
-                else:
-                    month_range_1 = np.arange(month, 13)
-                    month_range_2 = np.arange(1, month_end - 12)
-                    month_range = np.concatenate((month_range_1, month_range_2), axis=0)
+                # month_end = month + 7
+                # if month_end < 14:
+                #     month_range = np.arange(month, month_end)
+                # else:
+                #     month_range_1 = np.arange(month, 13)
+                #     month_range_2 = np.arange(1, month_end - 12)
+                #     month_range = np.concatenate((month_range_1, month_range_2), axis=0)
                 # Store it as a list
-                month_range = list(month_range)
-                print(month_range)
+                # month_range = list(month_range)
+                # print(month_range)
 
                 results.append(
                     regional_processing_modules.truncate_forecasts(
@@ -197,7 +197,7 @@ if __name__ == "__main__":
                         glob_dir_dict,
                         year,
                         month,
-                        month_range,
+                        # month_range,
                     )
                 )
         try:

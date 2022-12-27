@@ -112,7 +112,7 @@ def truncate_forecasts(
     glob_dir_dict: str,
     year: int,
     month: int,
-    month_range: list
+    # month_range: list
 ):
 
     bbox = domain_config["bbox"]
@@ -133,11 +133,8 @@ def truncate_forecasts(
         chunks={"time": "auto"},
         preprocess=preprocess,
     )
-    # Select Lat/Lon-Box
-    ds = ds.sel(lat=slice(min_lat, max_lat), lon=slice(min_lon, max_lon) , time=ds.time.dt.month.isin(month_range))
-    # Select only 7 Month and exlude the first day of 8th month, because that couse troubles, when some SEAS5-Forecast does not include this day
-    # ds = ds.sel(time=ds.time.dt.month.isin(month_range))
-    # print(ds)
+    # Select Lat/Lon-Box and maybe only the first 7 months
+    ds = ds.sel(lat=slice(min_lat, max_lat), lon=slice(min_lon, max_lon)) # , time=ds.time.dt.month.isin(month_range))
 
     coords = {
         "time": ds["time"].values,
