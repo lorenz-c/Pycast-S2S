@@ -137,7 +137,7 @@ if __name__ == "__main__":
         if key in domain_config["variables"]
     }
 
-    print(variable_config)
+
 
     reg_dir_dict, glob_dir_dict = helper_modules.set_and_make_dirs(domain_config)
 
@@ -249,7 +249,7 @@ if __name__ == "__main__":
         for month in process_months:
 
             for variable in variable_config:
-
+                print(variable)
                 for year in process_years:
 
                     fle_in = f"{domain_config['raw_forecasts']['prefix']}_{variable}_{year}{month:02d}_{domain_config['target_resolution']}.nc"
@@ -257,51 +257,51 @@ if __name__ == "__main__":
 
                     flenms.append(full_in)
 
-            # Now, let's open all files and concat along the time-dimensions
-            ds = xr.open_mfdataset(
-                flenms,
-                parallel=True,
-                chunks={"time": 5, "ens": 25, "lat": "auto", "lon": "auto"},
-                engine="netcdf4",
-                autoclose=True,
-            )
+                # Now, let's open all files and concat along the time-dimensions
+                ds = xr.open_mfdataset(
+                    flenms,
+                    parallel=True,
+                    chunks={"time": 5, "ens": 25, "lat": "auto", "lon": "auto"},
+                    engine="netcdf4",
+                    autoclose=True,
+                )
 
-            # We need this step, because otherwise the chunks are not equally distributed....
-            ds = ds.chunk({"time": 5, "ens": 25, "lat": "auto", "lon": "auto"})
+                # We need this step, because otherwise the chunks are not equally distributed....
+                ds = ds.chunk({"time": 5, "ens": 25, "lat": "auto", "lon": "auto"})
 
 
-            if process_years[0] == syr_calib and process_years[-1] == eyr_calib:
-                zarr_out = f"{domain_config['raw_forecasts']['prefix']}_{variable}_{month:02d}_{domain_config['target_resolution']}_calib.zarr"
-            else:
-                zarr_out = f"{domain_config['raw_forecasts']['prefix']}_{variable}_{process_years[0]}_{process_years[-1]}_{month:02d}_{domain_config['target_resolution']}.zarr"
+                if process_years[0] == syr_calib and process_years[-1] == eyr_calib:
+                    zarr_out = f"{domain_config['raw_forecasts']['prefix']}_{variable}_{month:02d}_{domain_config['target_resolution']}_calib.zarr"
+                else:
+                    zarr_out = f"{domain_config['raw_forecasts']['prefix']}_{variable}_{process_years[0]}_{process_years[-1]}_{month:02d}_{domain_config['target_resolution']}.zarr"
 
-            full_out = f"{reg_dir_dict['raw_forecasts_zarr_dir']}{zarr_out}"
-            print(full_out)
-            # First, let's check if a ZARR-file exists
-            if exists(full_out):
-                try:
-                    ds.to_zarr(full_out, mode="a", append_dim="time")
-                    logging.info("Concat forecast: appending succesful")
-                except:
-                    logging.error(
-                        "Concat forecast: something went wrong during appending"
-                    )
+                full_out = f"{reg_dir_dict['raw_forecasts_zarr_dir']}{zarr_out}"
 
-            else:
-                coords = {
-                    "time": ds["time"].values,
-                    "ens": ds["ens"].values,
-                    "lat": ds["lat"].values.astype(np.float32),
-                    "lon": ds["lon"].values.astype(np.float32),
-                }
+                # First, let's check if a ZARR-file exists
+                if exists(full_out):
+                    try:
+                        ds.to_zarr(full_out, mode="a", append_dim="time")
+                        logging.info("Concat forecast: appending succesful")
+                    except:
+                        logging.error(
+                            "Concat forecast: something went wrong during appending"
+                        )
 
-                encoding = helper_modules.set_zarr_encoding(variable_config)
+                else:
+                    coords = {
+                        "time": ds["time"].values,
+                        "ens": ds["ens"].values,
+                        "lat": ds["lat"].values.astype(np.float32),
+                        "lon": ds["lon"].values.astype(np.float32),
+                    }
 
-                try:
-                    ds.to_zarr(full_out, encoding=encoding)
-                    logging.info("Concat forecast: writing to new file succesful")
-                except:
-                    logging.error("Concat forecast: writing to new file failed")
+                    encoding = helper_modules.set_zarr_encoding(variable_config)
+
+                    try:
+                        ds.to_zarr(full_out, encoding=encoding)
+                        logging.info("Concat forecast: writing to new file succesful")
+                    except:
+                        logging.error("Concat forecast: writing to new file failed")
 
     # Concat SEAS5-Forecast on a daily Basis for calibration period or other desired period
     elif args.mode == "concat_forecasts_monthly":
