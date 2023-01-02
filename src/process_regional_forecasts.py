@@ -300,7 +300,7 @@ if __name__ == "__main__":
                     encoding = helper_modules.set_zarr_encoding(variable_config)
 
                     try:
-                        ds.to_zarr(full_out, encoding=encoding)
+                        ds.to_zarr(full_out, encoding={variable: encoding[variable]})
                         logging.info("Concat forecast: writing to new file succesful")
                     except:
                         logging.error("Concat forecast: writing to new file failed")
