@@ -257,6 +257,8 @@ if __name__ == "__main__":
 
                     flenms.append(full_in)
 
+                print(flenms)
+
                 # Now, let's open all files and concat along the time-dimensions
                 ds = xr.open_mfdataset(
                     flenms,
