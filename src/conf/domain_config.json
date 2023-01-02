@@ -23,7 +23,7 @@
 		}
 	},
 	"germany": {
-		"prefix": "germany",
+		"prefix": "germany_test",
 		"bbox": [5.25, 15.15, 45.55, 55.45],
 		"regroot": "/bg/data/NCZarr/s2s_forecasts/germany",
 		"syr_calib": 1981,
