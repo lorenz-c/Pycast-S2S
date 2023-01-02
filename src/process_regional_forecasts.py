@@ -274,7 +274,7 @@ if __name__ == "__main__":
                 zarr_out = f"{domain_config['raw_forecasts']['prefix']}_{variable}_{process_years[0]}_{process_years[-1]}_{month:02d}_{domain_config['target_resolution']}.zarr"
 
             full_out = f"{reg_dir_dict['raw_forecasts_zarr_dir']}{zarr_out}"
-
+            print(full_out)
             # First, let's check if a ZARR-file exists
             if exists(full_out):
                 try:
