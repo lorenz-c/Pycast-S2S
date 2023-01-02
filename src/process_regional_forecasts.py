@@ -243,13 +243,13 @@ if __name__ == "__main__":
     elif args.mode == "concat_forecasts_daily":
         syr_calib = domain_config["syr_calib"]
         eyr_calib = domain_config["eyr_calib"]
-        flenms = []
+
 
         # Loop over variables, years, and months and save filenames of all selected forecasts in a list
         for month in process_months:
 
             for variable in variable_config:
-                print(variable)
+                flenms = []
                 for year in process_years:
 
                     fle_in = f"{domain_config['raw_forecasts']['prefix']}_{variable}_{year}{month:02d}_{domain_config['target_resolution']}.nc"
