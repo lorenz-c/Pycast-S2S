@@ -710,11 +710,11 @@ if __name__ == "__main__":
 
             # Delete the directory of the intermediate files
             if exists(intermed):
-                os.rmdir(intermed)
+                shutil.rmtree(intermed)
 
             # This needs to be changed as we might want to add more data to the ZARR stores
             if exists(full_out):
-                os.rmdir(full_out)
+                shutil.rmtree(full_out)
 
             ds = xr.open_zarr(full_in, chunks={"time": 50, "lat": "auto", "lon": "auto"})
 
