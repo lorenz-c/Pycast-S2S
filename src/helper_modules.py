@@ -411,7 +411,7 @@ def getCluster(queue, nodes, jobs_per_node):
     elif queue == "ivyshort":
         cores, memory, walltime = (40, "60GB", "08:00:00")
     elif queue == "ccgp" or queue == "cclake":
-        cores, memory, walltime = (38, "170GB", "04:00:00")
+        cores, memory, walltime = (38, "170GB", "24:00:00")
     elif queue == "haswell":
         cores, memory, walltime = (40, "120GB", "08:00:00")
     elif queue == "ivy":
