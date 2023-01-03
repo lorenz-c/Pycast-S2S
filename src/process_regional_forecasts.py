@@ -308,7 +308,7 @@ if __name__ == "__main__":
     elif args.mode == "concat_forecasts_monthly":
         syr_calib = domain_config["syr_calib"]
         eyr_calib = domain_config["eyr_calib"]
-        flenms = []
+
 
         # Loop over variables, years, and months and save filenames of all selected forecasts in a list
         for month in process_months:
@@ -325,67 +325,67 @@ if __name__ == "__main__":
             print(month_range)
 
             for variable in variable_config:
-
+                flenms = []
                 for year in process_years:
                     fle_in = f"{domain_config['raw_forecasts']['prefix']}_{variable}_{year}{month:02d}_{domain_config['target_resolution']}.nc"
                     full_in = f"{reg_dir_dict['raw_forecasts_target_resolution_dir']}/{fle_in}"
 
                     flenms.append(full_in)
 
-            # Now, let's open all files and concat along the time-dimensions
-            ds = xr.open_mfdataset(
-                flenms,
-                parallel=True,
-                chunks={"time": 5, "ens": 25, "lat": "auto", "lon": "auto"},
-                engine="netcdf4",
-                autoclose=True,
-            )
+                # Now, let's open all files and concat along the time-dimensions
+                ds = xr.open_mfdataset(
+                    flenms,
+                    parallel=True,
+                    chunks={"time": 5, "ens": 25, "lat": "auto", "lon": "auto"},
+                    engine="netcdf4",
+                    autoclose=True,
+                )
 
-            # Take monthly mean for each year
-            ds_mon = ds.resample(time="1MS").mean()
-            # Only select the months which are needed, because resample add nan-values for other months, which we are not interested in
-            ds_mon = ds_mon.sel(time=ds_mon.time.dt.month.isin(month_range))
+                # Take monthly mean for each year
+                ds_mon = ds.resample(time="1MS").mean()
+                # Only select the months which are needed, because resample add nan-values for other months, which we are not interested in
+                ds_mon = ds_mon.sel(time=ds_mon.time.dt.month.isin(month_range))
 
-            # We need this step, because otherwise the chunks are not equally distributed....
-            ds_mon = ds_mon.chunk({"time": 5, "ens": 25, "lat": "auto", "lon": "auto"})
+                # We need this step, because otherwise the chunks are not equally distributed....
+                ds_mon = ds_mon.chunk({"time": 5, "ens": 25, "lat": "auto", "lon": "auto"})
 
 
-            if process_years[0] == syr_calib and process_years[-1] == eyr_calib:
-                zarr_out = f"{domain_config['raw_forecasts']['prefix']}_mon_{variable}_{month:02d}_{domain_config['target_resolution']}_calib.zarr"
-            else:
-                zarr_out = f"{domain_config['raw_forecasts']['prefix']}_mon_{variable}_{process_years[0]}_{process_years[-1]}_{month:02d}_{domain_config['target_resolution']}.zarr"
+                if process_years[0] == syr_calib and process_years[-1] == eyr_calib:
+                    zarr_out = f"{domain_config['raw_forecasts']['prefix']}_mon_{variable}_{month:02d}_{domain_config['target_resolution']}_calib.zarr"
+                else:
+                    zarr_out = f"{domain_config['raw_forecasts']['prefix']}_mon_{variable}_{process_years[0]}_{process_years[-1]}_{month:02d}_{domain_config['target_resolution']}.zarr"
 
-            full_out = f"{reg_dir_dict['seas_forecast_mon_zarr_dir']}{zarr_out}"
+                full_out = f"{reg_dir_dict['seas_forecast_mon_zarr_dir']}{zarr_out}"
 
-            # First, let's check if a ZARR-file exists
-            if exists(full_out):
-                try:
+                # First, let's check if a ZARR-file exists
+                if exists(full_out):
+                    try:
 
-                    ds_mon.to_zarr(full_out, mode="a", append_dim="time")
-                    logging.info("Concat forecast: appending succesful")
-                except:
+                        ds_mon.to_zarr(full_out, mode="a", append_dim="time")
+                        logging.info("Concat forecast: appending succesful")
+                    except:
 
-                    logging.error(
-                        "Concat forecast: something went wrong during appending"
-                    )
+                        logging.error(
+                            "Concat forecast: something went wrong during appending"
+                        )
 
-            else:
-                coords = {
-                    "time": ds["time"].values,
-                    "ens": ds["ens"].values,
-                    "lat": ds["lat"].values.astype(np.float32),
-                    "lon": ds["lon"].values.astype(np.float32),
-                }
+                else:
+                    coords = {
+                        "time": ds["time"].values,
+                        "ens": ds["ens"].values,
+                        "lat": ds["lat"].values.astype(np.float32),
+                        "lon": ds["lon"].values.astype(np.float32),
+                    }
 
-                encoding = helper_modules.set_zarr_encoding(variable_config)
+                    encoding = helper_modules.set_zarr_encoding(variable_config)
 
-                try:
+                    try:
 
-                    ds_mon.to_zarr(full_out, encoding={variable: encoding[variable]})
-                    logging.info("Concat forecast: writing to new file succesful")
-                except:
+                        ds_mon.to_zarr(full_out, encoding={variable: encoding[variable]})
+                        logging.info("Concat forecast: writing to new file succesful")
+                    except:
 
-                    logging.error("Concat forecast: writing to new file failed")
+                        logging.error("Concat forecast: writing to new file failed")
 
     elif args.mode == "rechunk_forecasts":
         for variable in variable_config:
@@ -492,11 +492,11 @@ if __name__ == "__main__":
     elif args.mode == "concat_reference_daily":
         syr_calib = domain_config["syr_calib"]
         eyr_calib = domain_config["eyr_calib"]
-        filenames = []
+
 
         # Loop over variables, years, and months and save filenames of all selected forecasts in a list
         for variable in variable_config:
-
+            filenames = []
             for year in process_years:
 
                 file_out = f"{domain_config['reference_history']['prefix']}_{variable}_{year}_{domain_config['target_resolution']}.nc"
@@ -506,94 +506,94 @@ if __name__ == "__main__":
 
                 filenames.append(full_out)
 
-        # Now, let's open all files and concat along the time-dimensions
-        ds = xr.open_mfdataset(
-            filenames,
-            parallel=True,
-            # chunks={'time': 5, 'lat': 'auto', 'lon': 'auto'},
-            engine="netcdf4",
-            autoclose=True,
-        )
+            # Now, let's open all files and concat along the time-dimensions
+            ds = xr.open_mfdataset(
+                filenames,
+                parallel=True,
+                # chunks={'time': 5, 'lat': 'auto', 'lon': 'auto'},
+                engine="netcdf4",
+                autoclose=True,
+            )
 
-        if process_years[0] == syr_calib and process_years[-1] == eyr_calib:
-            zarr_out = f"{domain_config['reference_history']['prefix']}_{variable}_{domain_config['target_resolution']}_calib.zarr"
-        else:
-            zarr_out = f"{domain_config['reference_history']['prefix']}_{variable}_{process_years[0]}_{process_years[-1]}_{domain_config['target_resolution']}.zarr"
+            if process_years[0] == syr_calib and process_years[-1] == eyr_calib:
+                zarr_out = f"{domain_config['reference_history']['prefix']}_{variable}_{domain_config['target_resolution']}_calib.zarr"
+            else:
+                zarr_out = f"{domain_config['reference_history']['prefix']}_{variable}_{process_years[0]}_{process_years[-1]}_{domain_config['target_resolution']}.zarr"
 
-        full_out = f"{reg_dir_dict['reference_zarr_dir']}{zarr_out}"
+            full_out = f"{reg_dir_dict['reference_zarr_dir']}{zarr_out}"
 
-        ds = ds.chunk({"time": 50})
+            ds = ds.chunk({"time": 50})
 
-        # First, let's check if a ZARR-file exists
-        if exists(full_out):
-            try:
-                ds.to_zarr(full_out, mode="a", append_dim="time")
-                logging.info("Concat forecast: appending succesful")
-            except:
-                logging.error("Concat forecast: something went wrong during appending")
+            # First, let's check if a ZARR-file exists
+            if exists(full_out):
+                try:
+                    ds.to_zarr(full_out, mode="a", append_dim="time")
+                    logging.info("Concat forecast: appending succesful")
+                except:
+                    logging.error("Concat forecast: something went wrong during appending")
 
-        else:
-            coords = {
-                "time": ds["time"].values,
-                "lat": ds["lat"].values.astype(np.float32),
-                "lon": ds["lon"].values.astype(np.float32),
-            }
+            else:
+                coords = {
+                    "time": ds["time"].values,
+                    "lat": ds["lat"].values.astype(np.float32),
+                    "lon": ds["lon"].values.astype(np.float32),
+                }
 
-            encoding = helper_modules.set_zarr_encoding(variable_config)
-            try:
-                ds.to_zarr(full_out, encoding=encoding)
-                logging.info("Concat forecast: writing to new file succesful")
-            except:
-                logging.error("Concat forecast: writing to new file failed")
+                encoding = helper_modules.set_zarr_encoding(variable_config)
+                try:
+                    ds.to_zarr(full_out, encoding={variable: encoding[variable]})
+                    logging.info("Concat forecast: writing to new file succesful")
+                except:
+                    logging.error("Concat forecast: writing to new file failed")
 
-    #            if domain_config["reference_history"]["merged_variables"]:
-    #                month_str = "01"  # dummy
-    #                fnme_dict = dir_fnme.set_filenames(
-    #                    domain_config, year, month_str, True, variable
-    #                )
-    #                fle_list.append(
-    #                    f"{dir_dict['ref_low_glob_dir']}/{fnme_dict['ref_low_glob_raw_dir']}"
-    #                )
-    #                fle_string = fle_list
-    #            else:
-    #                # Update Filenames
-    #                month_str = "01"  # dummy
-    #                fnme_dict = dir_fnme.set_filenames(
-    #                    domain_config, year, month_str, False, variable
-    #                )
-    #                fle_string = f"{dir_dict['ref_low_glob_dir']}/{fnme_dict['ref_low_glob_dir']}"
-    #                results.append(
-    #                    regional_processing_modules.truncate_reference(
-    #                        domain_config,
-    #                        variable_config,
-    #                        dir_dict,
-    #                        fnme_dict,
-    #                        fle_string,
-    #                        variable,
-    #                    )
-    #                )#
-    #
-    #        if domain_config["reference_history"]["merged_variables"]:
-    #               results.append(
-    #                   regional_processing_modules.truncate_reference(
-    #                       domain_config,
-    #                       variable_config,
-    #                       dir_dict,
-    #                       fnme_dict,
-    #                       fle_string,
-    #                      variable,
-    #                  )
-    #              )
+        #            if domain_config["reference_history"]["merged_variables"]:
+        #                month_str = "01"  # dummy
+        #                fnme_dict = dir_fnme.set_filenames(
+        #                    domain_config, year, month_str, True, variable
+        #                )
+        #                fle_list.append(
+        #                    f"{dir_dict['ref_low_glob_dir']}/{fnme_dict['ref_low_glob_raw_dir']}"
+        #                )
+        #                fle_string = fle_list
+        #            else:
+        #                # Update Filenames
+        #                month_str = "01"  # dummy
+        #                fnme_dict = dir_fnme.set_filenames(
+        #                    domain_config, year, month_str, False, variable
+        #                )
+        #                fle_string = f"{dir_dict['ref_low_glob_dir']}/{fnme_dict['ref_low_glob_dir']}"
+        #                results.append(
+        #                    regional_processing_modules.truncate_reference(
+        #                        domain_config,
+        #                        variable_config,
+        #                        dir_dict,
+        #                        fnme_dict,
+        #                        fle_string,
+        #                        variable,
+        #                    )
+        #                )#
+        #
+        #        if domain_config["reference_history"]["merged_variables"]:
+        #               results.append(
+        #                   regional_processing_modules.truncate_reference(
+        #                       domain_config,
+        #                       variable_config,
+        #                       dir_dict,
+        #                       fnme_dict,
+        #                       fle_string,
+        #                      variable,
+        #                  )
+        #              )
 
     # Concat reference for BCSD (for calibration period) or for any desired period (monthly data))
     elif args.mode == "concat_reference_monthly":
         syr_calib = domain_config["syr_calib"]
         eyr_calib = domain_config["eyr_calib"]
-        filenames = []
+
 
         # Loop over variables, years, and months and save filenames of all selected forecasts in a list
         for variable in variable_config:
-
+            filenames = []
             for year in process_years:
                 file_out = f"{domain_config['reference_history']['prefix']}_{variable}_{year}_{domain_config['target_resolution']}.nc"
                 full_out = (
@@ -602,85 +602,85 @@ if __name__ == "__main__":
 
                 filenames.append(full_out)
 
-        # Now, let's open all files and concat along the time-dimensions
-        ds = xr.open_mfdataset(
-            filenames,
-            parallel=True,
-            # chunks={'time': 5, 'lat': 'auto', 'lon': 'auto'},
-            engine="netcdf4",
-            autoclose=True,
-        )
-        ds_mon = ds.resample(time="1MS").mean()
+            # Now, let's open all files and concat along the time-dimensions
+            ds = xr.open_mfdataset(
+                filenames,
+                parallel=True,
+                # chunks={'time': 5, 'lat': 'auto', 'lon': 'auto'},
+                engine="netcdf4",
+                autoclose=True,
+            )
+            ds_mon = ds.resample(time="1MS").mean()
 
-        if process_years[0] == syr_calib and process_years[-1] == eyr_calib:
-            zarr_out = f"{domain_config['reference_history']['prefix']}_mon_{variable}_{domain_config['target_resolution']}_calib.zarr"
-        else:
-            zarr_out = f"{domain_config['reference_history']['prefix']}_mon_{variable}_{process_years[0]}_{process_years[-1]}_{domain_config['target_resolution']}.zarr"
+            if process_years[0] == syr_calib and process_years[-1] == eyr_calib:
+                zarr_out = f"{domain_config['reference_history']['prefix']}_mon_{variable}_{domain_config['target_resolution']}_calib.zarr"
+            else:
+                zarr_out = f"{domain_config['reference_history']['prefix']}_mon_{variable}_{process_years[0]}_{process_years[-1]}_{domain_config['target_resolution']}.zarr"
 
-        full_out = f"{reg_dir_dict['ref_forecast_mon_zarr_dir']}{zarr_out}"
+            full_out = f"{reg_dir_dict['ref_forecast_mon_zarr_dir']}{zarr_out}"
 
-        ds = ds.chunk({"time": 50})
+            ds = ds.chunk({"time": 50})
 
-        # First, let's check if a ZARR-file exists
-        if exists(full_out):
-            try:
-                ds_mon.to_zarr(full_out, mode="a", append_dim="time")
-                logging.info("Concat forecast: appending succesful")
-            except:
-                logging.error("Concat forecast: something went wrong during appending")
+            # First, let's check if a ZARR-file exists
+            if exists(full_out):
+                try:
+                    ds_mon.to_zarr(full_out, mode="a", append_dim="time")
+                    logging.info("Concat forecast: appending succesful")
+                except:
+                    logging.error("Concat forecast: something went wrong during appending")
 
-        else:
-            coords = {
-                "time": ds["time"].values,
-                "lat": ds["lat"].values.astype(np.float32),
-                "lon": ds["lon"].values.astype(np.float32),
-            }
+            else:
+                coords = {
+                    "time": ds["time"].values,
+                    "lat": ds["lat"].values.astype(np.float32),
+                    "lon": ds["lon"].values.astype(np.float32),
+                }
 
-            encoding = helper_modules.set_zarr_encoding(variable_config)
-            try:
-                ds_mon.to_zarr(full_out, encoding=encoding)
-                logging.info("Concat forecast: writing to new file succesful")
-            except:
-                logging.error("Concat forecast: writing to new file failed")
+                encoding = helper_modules.set_zarr_encoding(variable_config)
+                try:
+                    ds_mon.to_zarr(full_out, encoding={variable: encoding[variable]})
+                    logging.info("Concat forecast: writing to new file succesful")
+                except:
+                    logging.error("Concat forecast: writing to new file failed")
 
-    #            if domain_config["reference_history"]["merged_variables"]:
-    #                month_str = "01"  # dummy
-    #                fnme_dict = dir_fnme.set_filenames(
-    #                    domain_config, year, month_str, True, variable
-    #                )
-    #                fle_list.append(
-    #                    f"{dir_dict['ref_low_glob_dir']}/{fnme_dict['ref_low_glob_raw_dir']}"
-    #                )
-    #                fle_string = fle_list
-    #            else:
-    #                # Update Filenames
-    #                month_str = "01"  # dummy
-    #                fnme_dict = dir_fnme.set_filenames(
-    #                    domain_config, year, month_str, False, variable
-    #                )
-    #                fle_string = f"{dir_dict['ref_low_glob_dir']}/{fnme_dict['ref_low_glob_dir']}"
-    #                results.append(
-    #                    regional_processing_modules.truncate_reference(
-    #                        domain_config,
-    #                        variable_config,
-    #                        dir_dict,
-    #                        fnme_dict,
-    #                        fle_string,
-    #                        variable,
-    #                    )
-    #                )#
-    #
-    #        if domain_config["reference_history"]["merged_variables"]:
-    #               results.append(
-    #                   regional_processing_modules.truncate_reference(
-    #                       domain_config,
-    #                       variable_config,
-    #                       dir_dict,
-    #                       fnme_dict,
-    #                       fle_string,
-    #                      variable,
-    #                  )
-    #              )
+        #            if domain_config["reference_history"]["merged_variables"]:
+        #                month_str = "01"  # dummy
+        #                fnme_dict = dir_fnme.set_filenames(
+        #                    domain_config, year, month_str, True, variable
+        #                )
+        #                fle_list.append(
+        #                    f"{dir_dict['ref_low_glob_dir']}/{fnme_dict['ref_low_glob_raw_dir']}"
+        #                )
+        #                fle_string = fle_list
+        #            else:
+        #                # Update Filenames
+        #                month_str = "01"  # dummy
+        #                fnme_dict = dir_fnme.set_filenames(
+        #                    domain_config, year, month_str, False, variable
+        #                )
+        #                fle_string = f"{dir_dict['ref_low_glob_dir']}/{fnme_dict['ref_low_glob_dir']}"
+        #                results.append(
+        #                    regional_processing_modules.truncate_reference(
+        #                        domain_config,
+        #                        variable_config,
+        #                        dir_dict,
+        #                        fnme_dict,
+        #                        fle_string,
+        #                        variable,
+        #                    )
+        #                )#
+        #
+        #        if domain_config["reference_history"]["merged_variables"]:
+        #               results.append(
+        #                   regional_processing_modules.truncate_reference(
+        #                       domain_config,
+        #                       variable_config,
+        #                       dir_dict,
+        #                       fnme_dict,
+        #                       fle_string,
+        #                      variable,
+        #                  )
+        #              )
 
 
 
