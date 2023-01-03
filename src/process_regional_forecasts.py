@@ -5,7 +5,7 @@ import logging
 import os
 import sys
 from os.path import exists
-
+import shutil
 import dask
 import numpy as np
 import xarray as xr
@@ -381,7 +381,7 @@ if __name__ == "__main__":
 
                 try:
 
-                    ds_mon.to_zarr(full_out, encoding=encoding)
+                    ds_mon.to_zarr(full_out, encoding={variable: encoding[variable]})
                     logging.info("Concat forecast: writing to new file succesful")
                 except:
 
@@ -409,11 +409,11 @@ if __name__ == "__main__":
 
                 # Delete the directory of the intermediate files
                 if exists(intermed):
-                    os.rmdir(intermed)
+                    shutil.rmtree(intermed)
 
                 # This needs to be changed as we might want to add more data to the ZARR stores
                 if exists(full_out):
-                    os.rmdir(full_out)
+                    shutil.rmtree(full_out)
 
                 ds = xr.open_zarr(
                     full_in, chunks={"time": 5, "ens": 25, "lat": "auto", "lon": "auto"}
