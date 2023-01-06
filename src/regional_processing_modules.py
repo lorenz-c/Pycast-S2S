@@ -272,7 +272,7 @@ def truncate_reference(
         file_in_t2m = (f"{glob_dir_dict['global_reference']}/ERA5_Land_daily_t2m_{year}.nc")
         fnme_lst.append(file_in_t2m)
         if variable == "t2plus":
-
+            print("yes")
             # load t2max
             file_in_t2max = (f"{glob_dir_dict['global_reference']}/ERA5_Land_daily_t2max_{year}.nc")
             fnme_lst.append(file_in_t2max)
