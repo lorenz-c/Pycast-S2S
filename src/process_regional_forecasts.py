@@ -443,7 +443,7 @@ if __name__ == "__main__":
         results = []
 
         for variable in variable_config:
-            #
+            print(variable)
             for year in process_years:
                 results.append(
                     regional_processing_modules.truncate_reference(

@@ -264,7 +264,7 @@ def truncate_reference(
     max_lon = bbox[1] + 1
     min_lat = bbox[2] - 1
     max_lat = bbox[3] + 1
-    print("yes")
+
     # calculate t2plus and t2minus
     if variable == "t2plus" or variable == "t2minus":
         fnme_lst = []
@@ -287,7 +287,7 @@ def truncate_reference(
                 autoclose=True,
             )
 
-            print(ds)
+
 
             try:
                 # drop time_bounds
