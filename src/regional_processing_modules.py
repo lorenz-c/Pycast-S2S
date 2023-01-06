@@ -314,8 +314,11 @@ def truncate_reference(
                 preprocess=preprocess_reference,
                 autoclose=True,
             )
-            # drop time_bounds
-            ds = ds.drop_vars("time_bnds")
+            try:
+                # drop time_bounds
+                ds = ds.drop_vars("time_bnds")
+            except:
+                print("no bnds available")
 
             # Calculate t2plus
             ds["t2minus"] = ds.t2m - ds.t2min
