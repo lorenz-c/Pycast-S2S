@@ -137,7 +137,6 @@ if __name__ == "__main__":
         if key in domain_config["variables"]
     }
 
-    print(variable_config)
 
     reg_dir_dict, glob_dir_dict = helper_modules.set_and_make_dirs(domain_config)
 
@@ -512,7 +511,12 @@ if __name__ == "__main__":
                 "lon": ds["lon"].values.astype(np.float32),
             }
 
+
             # variable config only for t2plus and t2minus
+            # Read the variable configuration from the respective JSON
+            with open("conf/variable_config.json", "r") as j:
+                variable_config = json.loads(j.read())
+
             variable_config_t2plus_minus = {
                 key: value
                 for key, value in variable_config.items()
