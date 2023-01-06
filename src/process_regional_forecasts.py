@@ -463,6 +463,16 @@ if __name__ == "__main__":
 
     # calculate t2plus and t2minus
     elif args.mode == "calc_t2plus_minus":
+        # variable config only for t2plus and t2minus
+        # Read the variable configuration from the respective JSON
+        with open("conf/variable_config.json", "r") as j:
+            variable_config = json.loads(j.read())
+
+        variable_config_t2plus_minus = {
+            key: value
+            for key, value in variable_config.items()
+            if key in ["t2plus", "t2minus"]
+        }
 
         for year in process_years:
             fnme_lst = []
@@ -510,18 +520,6 @@ if __name__ == "__main__":
                 "time": ds["time"].values,
                 "lat": ds["lat"].values.astype(np.float32),
                 "lon": ds["lon"].values.astype(np.float32),
-            }
-
-
-            # variable config only for t2plus and t2minus
-            # Read the variable configuration from the respective JSON
-            with open("conf/variable_config.json", "r") as j:
-                variable_config = json.loads(j.read())
-
-            variable_config_t2plus_minus = {
-                key: value
-                for key, value in variable_config.items()
-                if key in ["t2plus", "t2minus"]
             }
 
             encoding = helper_modules.set_encoding(variable_config_t2plus_minus, coords)
