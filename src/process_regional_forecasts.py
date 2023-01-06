@@ -137,7 +137,7 @@ if __name__ == "__main__":
         if key in domain_config["variables"]
     }
 
-
+    print(variable_config)
 
     reg_dir_dict, glob_dir_dict = helper_modules.set_and_make_dirs(domain_config)
 
