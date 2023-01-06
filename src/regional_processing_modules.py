@@ -152,6 +152,12 @@ def truncate_forecasts(
         fle_out = f"{domain_config['raw_forecasts']['prefix']}_{variable}_{year}{month:02d}.nc"
         full_out = f"{reg_dir_dict['raw_forecasts_initial_resolution_dir']}/{fle_out}"
 
+        # calclutate t2plus and t2minus
+        if variable == "t2plus":
+            ds["t2plus"] = ds.t2max - ds.t2m
+        elif variable =="t2minus":
+            ds["t2minus"] = ds.t2m - ds.t2min
+
         try:
             ds[variable].to_netcdf(full_out, encoding={variable: encoding[variable]})
             logging.info(
