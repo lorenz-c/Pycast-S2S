@@ -151,7 +151,6 @@ def truncate_forecasts(
 
         fle_out = f"{domain_config['raw_forecasts']['prefix']}_{variable}_{year}{month:02d}.nc"
         full_out = f"{reg_dir_dict['raw_forecasts_initial_resolution_dir']}/{fle_out}"
-        print(full_out)
 
         # calclutate t2plus and t2minus
         if variable == "t2plus":
