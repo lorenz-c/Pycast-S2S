@@ -309,7 +309,7 @@ def truncate_reference(
             ds = xr.open_mfdataset(
                 fnme_lst,
                 # parallel=True,
-                # chunks={"time": 50},
+                chunks={"time": 50},
                 # engine="netcdf4",
                 preprocess=preprocess_reference,
                 # autoclose=True,
