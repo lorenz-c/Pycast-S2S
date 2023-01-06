@@ -265,20 +265,72 @@ def truncate_reference(
     min_lat = bbox[2] - 1
     max_lat = bbox[3] + 1
 
-    file_in = (
-        f"{glob_dir_dict['global_reference']}/ERA5_Land_daily_{variable}_{year}.nc"
-    )
+    # calculate t2plus and t2minus
+    if variable == "t2plus" or variable == "t2minus":
+        fnme_lst = []
+        # load t2m
+        file_in_t2m = (f"{glob_dir_dict['global_reference']}/ERA5_Land_daily_t2m_{year}.nc")
+        fnme_lst.append(file_in_t2m)
+        if variable == "t2plus":
+
+            # load t2max
+            file_in_t2max = (f"{glob_dir_dict['global_reference']}/ERA5_Land_daily_t2max_{year}.nc")
+            fnme_lst.append(file_in_t2max)
+
+            # Open t2m and t2max together
+            ds = xr.open_mfdataset(
+                fnme_lst,
+                parallel=True,
+                chunks={"time": 50},
+                engine="netcdf4",
+                preprocess=preprocess_reference,
+                autoclose=True,
+            )
+            # drop time_bounds
+            ds = ds.drop_vars("time_bnds")
+
+            # Calculate t2plus
+            ds["t2plus"] = ds.t2max - ds.t2m
+
+
+        elif variable == "t2minus":
+            # load t2min
+            file_in_t2min = (f"{glob_dir_dict['global_reference']}/ERA5_Land_daily_t2min_{year}.nc")
+
+            fnme_lst.append(file_in_t2min)
+
+            # Open t2m and t2max together
+            ds = xr.open_mfdataset(
+                fnme_lst,
+                parallel=True,
+                chunks={"time": 50},
+                engine="netcdf4",
+                preprocess=preprocess_reference,
+                autoclose=True,
+            )
+            # drop time_bounds
+            ds = ds.drop_vars("time_bnds")
+
+            # Calculate t2plus
+            ds["t2minus"] = ds.t2m - ds.t2min
+
+    else:
+        file_in = (
+            f"{glob_dir_dict['global_reference']}/ERA5_Land_daily_{variable}_{year}.nc"
+        )
+
+        ds = xr.open_mfdataset(
+            file_in,
+            parallel=True,
+            chunks={"time": 50},
+            engine="netcdf4",
+            preprocess=preprocess_reference,
+            autoclose=True,
+        )
+
+
     file_out = f"{domain_config['reference_history']['prefix']}_{variable}_{year}.nc"
     full_out = f"{reg_dir_dict['reference_initial_resolution_dir']}/{file_out}"
-
-    ds = xr.open_mfdataset(
-        file_in,
-        parallel=True,
-        chunks={"time": 50},
-        engine="netcdf4",
-        preprocess=preprocess_reference,
-        autoclose=True,
-    )
 
     ds = ds.sel(lat=slice(min_lat, max_lat), lon=slice(min_lon, max_lon))
 
