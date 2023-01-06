@@ -308,11 +308,11 @@ def truncate_reference(
             # Open t2m and t2max together
             ds = xr.open_mfdataset(
                 fnme_lst,
-                parallel=True,
-                chunks={"time": 50},
-                engine="netcdf4",
+                # parallel=True,
+                # chunks={"time": 50},
+                # engine="netcdf4",
                 preprocess=preprocess_reference,
-                autoclose=True,
+                # autoclose=True,
             )
             try:
                 # drop time_bounds
