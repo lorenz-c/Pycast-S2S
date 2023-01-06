@@ -463,8 +463,9 @@ if __name__ == "__main__":
 
     # calculate t2plus and t2minus
     elif args.mode == "calc_t2plus_minus":
-        fnme_lst = []
+
         for year in process_years:
+            fnme_lst = []
             # load t2m
             file_t2m = f"{domain_config['reference_history']['prefix']}_t2m_{year}.nc"
             full_t2m = f"{reg_dir_dict['reference_initial_resolution_dir']}/{file_t2m}"
