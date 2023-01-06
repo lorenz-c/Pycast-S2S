@@ -462,6 +462,73 @@ if __name__ == "__main__":
         except:
             logging.warning("Truncate reference: Something went wrong")
 
+    # calculate t2plus and t2minus
+    elif args.mode == "calc_t2plus_minus":
+        fnme_lst = []
+        for year in process_years:
+            # load t2m
+            file_t2m = f"{domain_config['reference_history']['prefix']}_t2m_{year}.nc"
+            full_t2m = f"{reg_dir_dict['reference_initial_resolution_dir']}/{file_t2m}"
+            fnme_lst.append(full_t2m)
+            # t2max
+            file_t2max = f"{domain_config['reference_history']['prefix']}_t2max_{year}.nc"
+            full_t2max = f"{reg_dir_dict['reference_initial_resolution_dir']}/{file_t2max}"
+            fnme_lst.append(full_t2max)
+            # t2min
+            file_t2min = f"{domain_config['reference_history']['prefix']}_t2min_{year}.nc"
+            full_t2min = f"{reg_dir_dict['reference_initial_resolution_dir']}/{file_t2min}"
+            fnme_lst.append(full_t2min)
+
+            # Open all together
+            ds = xr.open_mfdataset(
+                fnme_lst,
+                parallel=True,
+                chunks={"time": 50},
+                engine="netcdf4",
+                autoclose=True,
+            )
+
+            try:
+                # drop time_bounds
+                ds = ds.drop_vars("time_bnds")
+            except:
+                print("no bnds available")
+
+            # Calculate t2plus and t2minus
+            ds["t2plus"] = ds.t2max - ds.t2m
+            ds["t2minus"] = ds.t2m - ds.t2min
+
+            # t2max
+            file_t2plus = f"{domain_config['reference_history']['prefix']}_t2plus_{year}.nc"
+            full_t2plus= f"{reg_dir_dict['reference_initial_resolution_dir']}/{file_t2plus}"
+
+            # t2min
+            file_t2minus = f"{domain_config['reference_history']['prefix']}_t2minus_{year}.nc"
+            full_t2minus = f"{reg_dir_dict['reference_initial_resolution_dir']}/{file_t2minus}"
+
+            coords = {
+                "time": ds["time"].values,
+                "lat": ds["lat"].values.astype(np.float32),
+                "lon": ds["lon"].values.astype(np.float32),
+            }
+
+            # variable config only for t2plus and t2minus
+            variable_config_t2plus_minus = {
+                key: value
+                for key, value in variable_config.items()
+                if key in ["t2plus", "t2minus"]
+            }
+
+            encoding = helper_modules.set_encoding(variable_config_t2plus_minus, coords)
+
+            # Store as netcdf
+            try:
+                ds["t2plus"].to_netcdf(full_t2plus, encoding={"t2plus": encoding["t2plus"]})
+                ds["t2minus"].to_netcdf(full_t2minus, encoding={"t2minus": encoding["t2minus"]})
+            except:
+                print("Calculation t2plus, t2minus: something went wrong")
+
+
     elif args.mode == "remap_reference":
 
         results = []
