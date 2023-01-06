@@ -264,7 +264,7 @@ def truncate_reference(
     max_lon = bbox[1] + 1
     min_lat = bbox[2] - 1
     max_lat = bbox[3] + 1
-
+    print("yes")
     # calculate t2plus and t2minus
     if variable == "t2plus" or variable == "t2minus":
         fnme_lst = []
@@ -272,7 +272,7 @@ def truncate_reference(
         file_in_t2m = (f"{glob_dir_dict['global_reference']}/ERA5_Land_daily_t2m_{year}.nc")
         fnme_lst.append(file_in_t2m)
         if variable == "t2plus":
-            print("yes")
+
             # load t2max
             file_in_t2max = (f"{glob_dir_dict['global_reference']}/ERA5_Land_daily_t2max_{year}.nc")
             fnme_lst.append(file_in_t2max)
