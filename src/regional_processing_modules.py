@@ -286,6 +286,9 @@ def truncate_reference(
                 preprocess=preprocess_reference,
                 autoclose=True,
             )
+
+            print(ds)
+
             try:
                 # drop time_bounds
                 ds = ds.drop_vars("time_bnds")
