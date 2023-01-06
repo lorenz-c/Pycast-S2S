@@ -286,8 +286,11 @@ def truncate_reference(
                 preprocess=preprocess_reference,
                 autoclose=True,
             )
-            # drop time_bounds
-            ds = ds.drop_vars("time_bnds")
+            try:
+                # drop time_bounds
+                ds = ds.drop_vars("time_bnds")
+            except:
+                print("no bnds available")
 
             # Calculate t2plus
             ds["t2plus"] = ds.t2max - ds.t2m
@@ -343,7 +346,7 @@ def truncate_reference(
     encoding = set_encoding(variable_config, coords)
 
     try:
-        ds.to_netcdf(full_out, encoding={variable: encoding[variable]})
+        ds[variable].to_netcdf(full_out, encoding={variable: encoding[variable]})
         logging.info(
             f"Truncate reference: succesful for variable {variable} and year {year}"
         )
