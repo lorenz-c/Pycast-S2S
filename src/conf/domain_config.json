@@ -28,7 +28,7 @@
 		"regroot": "/bg/data/NCZarr/s2s_forecasts/germany_test",
 		"syr_calib": 1981,
 		"eyr_calib": 2016,
-		"variables": ["tp", "t2m"],
+		"variables": ["t2m"],
 		"raw_forecasts": {"prefix": "SEAS5", "merged_variables": true},
 		"bcsd_forecasts": {"prefix": "SEAS5_BCSD", "merged_variables": true},
 		"reference_history": {"prefix": "ERA5_Land", "merged_variables": true},
