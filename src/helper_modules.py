@@ -407,15 +407,15 @@ def getCluster(queue, nodes, jobs_per_node):
 
     # cluster options
     if queue == "rome":
-        cores, memory, walltime = (62, "220GB", "0-15:00:00")
+        cores, memory, walltime = (62, "220GB", "0-48:00:00")
     elif queue == "ivyshort":
-        cores, memory, walltime = (40, "60GB", "08:00:00")
+        cores, memory, walltime = (40, "60GB", "48:00:00")
     elif queue == "ccgp" or queue == "cclake":
-        cores, memory, walltime = (38, "170GB", "36:00:00")
+        cores, memory, walltime = (38, "170GB", "48:00:00")
     elif queue == "haswell":
-        cores, memory, walltime = (40, "120GB", "08:00:00")
+        cores, memory, walltime = (40, "120GB", "48:00:00")
     elif queue == "ivy":
-        cores, memory, walltime = (40, "60GB", "04:00:00")
+        cores, memory, walltime = (40, "60GB", "48:00:00")
     elif queue == "fat":
         cores, memory, walltime = (96, "800GB", "48:00:00")
 
