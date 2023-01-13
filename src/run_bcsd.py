@@ -331,6 +331,9 @@ if __name__ == "__main__":
                     )
                     da_mdl_sub = da_mdl_sub.drop("time")
 
+                    #Rechunk MDL in time
+                    da_mdl_sub = da_mdl_sub.chunk({"ens_time": -1})
+
                     # Select current timestep in prediction data
                     da_pred_sub = da_pred.isel(time=timestep)
 
