@@ -300,76 +300,38 @@ if __name__ == "__main__":
                     # for timestep in range(82, 83):
 
                     print(f"Correcting timestep {timestep}...")
-                    dayofyear_mdl = ds_mdl["time.dayofyear"]
-                    day = dayofyear_mdl[timestep]
+                    # get actual day of timestep in MDL data
+                    day = ds_mdl["time.dayofyear"][:215][timestep]
+                    # day_leap = ds_mdl["time.dayofyear"][215*3:215*4][timestep]
 
+                    datasets_mdl = []
+                    datasets_obs = []
+                    for year in range(1981, 2017):
+                        da_mdl_year = da_mdl.sel(time=da_mdl.time.dt.year.isin([year]))
+                        da_obs_year = da_obs.sel(time=da_obs.time.dt.year.isin([year]))
 
-                    # Deal with normal and leap years
-                    for calib_year in range(syr_calib, eyr_calib + 1):
+                        day_range = (np.arange(day - 15 - 1, day + 15, ) + 365) % 365 + 1
 
-                        # print(calib_year)
-                        # print(year)
+                        if len(da_obs_year.time.values) == 366:
+                            # Add 1 to all dates higher than 28th February, because the window will moove then by 1 day within a leap year
+                            day_range = np.where(day_range < 60, day_range, day_range + 1)
 
-                        ds_obs_year = ds_obs.sel(time=ds_obs.time.dt.year == calib_year)
-                        ds_mdl_year = ds_mdl.sel(time=ds_mdl.time.dt.year == calib_year)
+                        da_mdl_year_range = da_mdl_year.sel(time=da_mdl_year.time.dt.dayofyear.isin(day_range))
+                        da_obs_year_range = da_obs_year.sel(time=da_obs_year.time.dt.dayofyear.isin(day_range))
 
-                        dayofyear_obs = ds_obs_year["time.dayofyear"]
-                        dayofyear_mdl = ds_mdl_year["time.dayofyear"]
+                        datasets_mdl.append(da_mdl_year_range)
+                        datasets_obs.append(da_obs_year_range)
 
-
-                        # normal years
-                        if len(ds_obs_year.time.values) == 365:
-
-                            # day_range = (np.arange(day - domain_config['bc_params']['window'], day + domain_config['bc_params']['window'] + 1) + 365) % 365 + 1
-                            day_range = (
-                                np.arange(
-                                    day - domain_config["bc_params"]["window"] - 1,
-                                    day + domain_config["bc_params"]["window"],
-                                )
-                                + 365
-                            ) % 365 + 1
-
-                            # leap years
-                        else:
-                            day_range = (
-                                np.arange(
-                                    day - domain_config["bc_params"]["window"] - 1,
-                                    day + domain_config["bc_params"]["window"],
-                                )
-                                + 366
-                            ) % 366 + 1
-
-
-                        intersection_day_obs_year = np.in1d(dayofyear_obs, day_range)
-                        intersection_day_mdl_year = np.in1d(dayofyear_mdl, day_range)
-
-                        if calib_year == syr_calib:
-                            intersection_day_obs = intersection_day_obs_year
-                            # Model data are missing (e.g. when the initialization is at June, there are no data for 1981 before that period, and we have to take care about them
-                            # Create Bool mask
-                            nr_missing = np.isnan(np.arange(1, 215 - len(dayofyear_mdl) + 1))
-                            # Merge
-                            intersection_day_mdl = np.append(nr_missing, intersection_day_mdl_year)
-                        else:
-                            intersection_day_obs = np.append(
-                                intersection_day_obs, intersection_day_obs_year
-                            )
-                            intersection_day_mdl = np.append(
-                                intersection_day_mdl, intersection_day_mdl_year
-                            )
-
-                    da_obs_sub = da_obs.loc[dict(time=intersection_day_obs)]
-
-                    with dask.config.set(
-                        **{"array.slicing.split_large_chunks": False}
-                    ):  # --> I really don't know why we need to silence the warning here...
-                        da_mdl_sub = da_mdl.loc[dict(time=intersection_day_mdl)]
+                    # Merge Data
+                    da_mdl_sub = xr.concat(datasets_mdl, dim="time")
+                    da_obs_sub = xr.concat(datasets_obs, dim="time")
 
                     da_mdl_sub = da_mdl_sub.stack(
                         ens_time=("ens", "time"), create_index=True
                     )
                     da_mdl_sub = da_mdl_sub.drop("time")
 
+                    # Select current timestep in prediction data
                     da_pred_sub = da_pred.isel(time=timestep)
 
                     da_temp[timestep, :, :] = xr.apply_ufunc(
