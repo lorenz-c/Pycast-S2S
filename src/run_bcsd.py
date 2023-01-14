@@ -7,7 +7,7 @@ import dask
 import numpy as np
 import xarray as xr
 from dask.distributed import Client
-
+import pandas as pd
 import helper_modules
 from bc_module_v2 import bc_module
 
@@ -300,31 +300,74 @@ if __name__ == "__main__":
                     # for timestep in range(82, 83):
 
                     print(f"Correcting timestep {timestep}...")
+                    # get obs data
+                    dayofyear_mdl = ds_mdl["time.dayofyear"]
+                    day = dayofyear_mdl[timestep]
+
+                    for calib_year in range(syr_calib, eyr_calib + 1):
+
+                        ds_obs_year = ds_obs.sel(time=ds_obs.time.dt.year == calib_year)
+                        dayofyear_obs = ds_obs_year["time.dayofyear"]
+
+                        # normal years
+                        if len(ds_obs_year.time.values) == 365:
+
+                            # day_range = (np.arange(day - domain_config['bc_params']['window'], day + domain_config['bc_params']['window'] + 1) + 365) % 365 + 1
+                            day_range = (
+                                                np.arange(
+                                                    day - domain_config['bc_params']['window'] - 1,
+                                                    day + domain_config['bc_params']['window'],
+                                                )
+                                                + 365
+                                        ) % 365 + 1
+
+                            # leap years
+                        else:
+                            day_range = (
+                                                np.arange(
+                                                    day - domain_config['bc_params']['window'] - 1,
+                                                    day + domain_config['bc_params']['window'],
+                                                )
+                                                + 366
+                                        ) % 366 + 1
+
+                        intersection_day_obs_year = np.in1d(dayofyear_obs, day_range)
+
+                        if calib_year == syr_calib:
+                            intersection_day_obs = intersection_day_obs_year
+                        else:
+                            intersection_day_obs = np.append(
+                                intersection_day_obs, intersection_day_obs_year
+                            )
+                    # Make subset of obs data
+                    da_obs_sub = da_obs.loc[dict(time=intersection_day_obs)]
+
                     # get actual day of timestep in MDL data
-                    day = ds_mdl["time.dayofyear"][:215][timestep]
-                    # day_leap = ds_mdl["time.dayofyear"][215*3:215*4][timestep]
 
-                    datasets_mdl = []
-                    datasets_obs = []
-                    for year in range(1981, 2017):
-                        da_mdl_year = da_mdl.sel(time=da_mdl.time.dt.year.isin([year]))
-                        da_obs_year = da_obs.sel(time=da_obs.time.dt.year.isin([year]))
+                    for i in range(0, 7740, 215):
+                        da_mdl_215 = ds_mdl["time.dayofyear"][i:i + 215]
+                        year = ds_mdl["time.year"][i:i + 215]
 
-                        day_range = (np.arange(day - 15 - 1, day + 15, ) + 365) % 365 + 1
+                        day_normal = ds_mdl["time.dayofyear"][i:i + 215][timestep]
+                        date_min = day_normal.time - np.timedelta64(15, "D")
+                        date_max = day_normal.time + np.timedelta64(15, "D")
 
-                        if len(da_obs_year.time.values) == 366:
-                            # Add 1 to all dates higher than 28th February, because the window will moove then by 1 day within a leap year
-                            day_range = np.where(day_range < 60, day_range, day_range + 1)
+                        date_range = pd.date_range(date_min.values, date_max.values)
 
-                        da_mdl_year_range = da_mdl_year.sel(time=da_mdl_year.time.dt.dayofyear.isin(day_range))
-                        da_obs_year_range = da_obs_year.sel(time=da_obs_year.time.dt.dayofyear.isin(day_range))
+                        day_range = date_range.dayofyear
+                        year_range = date_range.year
 
-                        datasets_mdl.append(da_mdl_year_range)
-                        datasets_obs.append(da_obs_year_range)
+                        # Correct for leap years
+                        # day_range_2 = np.where((day_range>=60) & ((year_range==1984) | (year_range==1988) | (year_range==1992) | (year_range==1996) | (year_range==2000)| (year_range==2004)| (year_range==2008)| (year_range==2012)| (year_range==2016)),day_range+1, day_range+0)
 
-                    # Merge Data
-                    da_mdl_sub = xr.concat(datasets_mdl, dim="time")
-                    da_obs_sub = xr.concat(datasets_obs, dim="time")
+                        # day_range = (np.arange(day_normal - 15 - 1,day_normal + 15,)+ 365) % 365 + 1
+                        if i == 0:
+                            intersection_day_mdl = da_mdl_215.isin(day_range)
+                        else:
+                            intersection_day_mdl = np.append(intersection_day_mdl, da_mdl_215.isin(day_range))
+
+                    da_mdl_sub = da_mdl.loc[dict(time=intersection_day_mdl)]
+
 
                     da_mdl_sub = da_mdl_sub.stack(
                         ens_time=("ens", "time"), create_index=True
@@ -332,8 +375,8 @@ if __name__ == "__main__":
                     da_mdl_sub = da_mdl_sub.drop("time")
 
                     #Rechunk in time
-                    da_mdl_sub = da_mdl_sub.chunk({"ens_time": -1})
-                    da_obs_sub = da_obs_sub.chunk({"time": -1})
+                    # da_mdl_sub = da_mdl_sub.chunk({"ens_time": -1})
+                    # da_obs_sub = da_obs_sub.chunk({"time": -1})
 
                     # Select current timestep in prediction data
                     da_pred_sub = da_pred.isel(time=timestep)
