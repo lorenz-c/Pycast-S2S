@@ -368,7 +368,7 @@ if __name__ == "__main__":
 
                     da_mdl_sub = da_mdl.loc[dict(time=intersection_day_mdl)]
                     print(da_mdl_sub)
-                    print(da_mdl_obs)
+                    print(da_obs_sub)
                     da_mdl_sub = da_mdl_sub.stack(
                         ens_time=("ens", "time"), create_index=True
                     )
