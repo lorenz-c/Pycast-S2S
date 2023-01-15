@@ -414,12 +414,13 @@ if __name__ == "__main__":
 
                 # ...and save everything to disk..
                 # ds_out_sel.to_netcdf(bcsd_dict[variable], mode='a', format='NETCDF4_CLASSIC', engine='netcdf4', encoding = {variable: encoding[variable]})
-                ds.to_netcdf(
-                    pp_full,
-                    mode="w",
-                    engine="netcdf4",
-                    encoding={variable: encoding[variable]},
-                )
+                # ds.to_netcdf(
+                #    pp_full,
+                #    mode="w",
+                #    engine="netcdf4",
+                #    encoding={variable: encoding[variable]},
+                #)
+
                 # ds_out_sel.close()
 
     # client.close()
