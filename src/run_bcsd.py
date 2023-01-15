@@ -298,8 +298,8 @@ if __name__ == "__main__":
 
 
 
-                # for timestep in range(0, len(ds_pred.time)):
-                for timestep in range(82, 83):
+                for timestep in range(0, len(ds_pred.time)):
+                # for timestep in range(82, 83):
 
                     print(f"Correcting timestep {timestep}...")
                     # get obs data
