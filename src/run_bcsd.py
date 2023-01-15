@@ -185,6 +185,9 @@ if __name__ == "__main__":
                 ) = helper_modules.set_input_files(
                     domain_config, reg_dir_dict, month, year, variable
                 )
+                print(raw_full)
+                print(pp_full)
+
 
                 coords = helper_modules.get_coords_from_frcst(raw_full)
 
