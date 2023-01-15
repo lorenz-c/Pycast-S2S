@@ -379,6 +379,11 @@ if __name__ == "__main__":
                     # Select current timestep in prediction data
                     da_pred_sub = da_pred.isel(time=timestep)
 
+                    print(da_obs_sub)
+                    print(da_mdl_sub)
+                    print(da_pred_sub)
+
+
                     da_temp[timestep, :, :] = xr.apply_ufunc(
                         bc_module,
                         da_pred_sub,
@@ -395,6 +400,7 @@ if __name__ == "__main__":
                         output_dtypes=[np.float64],
                     )
 
+                print(da_temp)
                 # Change the datatype from "object" to "float64" --> Can we somehow get around this???
                 da_temp = da_temp.astype("float64")
 
