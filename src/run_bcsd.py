@@ -348,7 +348,7 @@ if __name__ == "__main__":
 
                     for i in range(0, 7740, 215):
                         da_mdl_215 = ds_mdl["time.dayofyear"][i:i + 215]
-                        year = ds_mdl["time.year"][i:i + 215]
+                        years_mdl = ds_mdl["time.year"][i:i + 215]
 
                         day_normal = ds_mdl["time.dayofyear"][i:i + 215][timestep]
                         date_min = day_normal.time - np.timedelta64(15, "D")
