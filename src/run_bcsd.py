@@ -401,6 +401,8 @@ if __name__ == "__main__":
                     )
 
                 print(da_temp)
+                da_temp.time.values == ds[variable].time.values
+
                 # Change the datatype from "object" to "float64" --> Can we somehow get around this???
                 da_temp = da_temp.astype("float64")
 
