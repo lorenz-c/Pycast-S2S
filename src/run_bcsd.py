@@ -185,8 +185,7 @@ if __name__ == "__main__":
                 ) = helper_modules.set_input_files(
                     domain_config, reg_dir_dict, month, year, variable
                 )
-                print(raw_full)
-                print(pp_full)
+
 
 
                 coords = helper_modules.get_coords_from_frcst(raw_full)
@@ -382,9 +381,6 @@ if __name__ == "__main__":
                     # Select current timestep in prediction data
                     da_pred_sub = da_pred.isel(time=timestep)
 
-                    print(da_obs_sub)
-                    print(da_mdl_sub)
-                    print(da_pred_sub)
 
 
                     da_temp[timestep, :, :] = xr.apply_ufunc(
@@ -403,9 +399,6 @@ if __name__ == "__main__":
                         output_dtypes=[np.float64],
                     )
 
-                print(da_temp)
-                print(da_temp.time.values)
-                print(ds.time.values)
                 # Change the datatype from "object" to "float64" --> Can we somehow get around this???
                 da_temp = da_temp.astype("float64")
 
@@ -419,12 +412,12 @@ if __name__ == "__main__":
 
                 # ...and save everything to disk..
                 # ds_out_sel.to_netcdf(bcsd_dict[variable], mode='a', format='NETCDF4_CLASSIC', engine='netcdf4', encoding = {variable: encoding[variable]})
-                # ds.to_netcdf(
-                #    pp_full,
-                #    mode="w",
-                #    engine="netcdf4",
-                #    encoding={variable: encoding[variable]},
-                #)
+                ds.to_netcdf(
+                   pp_full,
+                   mode="w",
+                   engine="netcdf4",
+                   encoding={variable: encoding[variable]},
+                )
 
                 # ds_out_sel.close()
 
