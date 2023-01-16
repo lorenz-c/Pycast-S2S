@@ -338,7 +338,7 @@ def create_4d_netcdf(
 
 def get_coords_from_frcst(filename):
 
-    ds = xr.open_dataset(filename)
+    ds = xr.open_dataset(filename, engine = "netcdf4")
 
     # return {
     #    'time': ds['time'].values,
