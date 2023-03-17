@@ -158,8 +158,11 @@ def truncate_forecasts(
         elif variable =="t2minus":
             ds["t2minus"] = ds.t2m - ds.t2min
 
+        # Delete all encoding-fields
+        ds.encoding = []
+
         try:
-            ds[variable].to_netcdf(full_out, encoding={variable: encoding[variable]})
+            ds[variable].to_netcdf(full_out, encoding={variable: encoding[variable], 'lat': encoding['lat'], 'lon': encoding['lon'], 'time': encoding['time']})
             logging.info(
                 f"Truncate forecasts: succesful for month {month:02d} and year {year}"
             )
