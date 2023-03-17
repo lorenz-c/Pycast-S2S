@@ -8,7 +8,6 @@ import logging
 import dask.array as da
 import numpy as np
 import pandas as pd
-import s3fs
 import xarray as xr
 import zarr
 from dask import config
