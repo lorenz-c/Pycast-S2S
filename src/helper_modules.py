@@ -406,7 +406,7 @@ def getCluster(queue, nodes, jobs_per_node):
         cores=cores,
         memory=memory,
         processes=jobs_per_node,
-        local_directory="/bg/data/NCZarr/temp",
+        local_directory="/pd/home/lorenz-c/temp",
         queue=queue,
         project="dask_test",
         walltime=walltime,
