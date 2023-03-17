@@ -223,6 +223,10 @@ def set_encoding(variable_config, coordinates, type="maps"):
             "chunksizes": chunksizes,
         }
 
+    encoding['lat'] = {"_FillValue": None}
+    encoding['lon'] = {"_FillValue": None}
+    encoding['time'] = {"_FillValue": None, "units": 'days since 1950-01-01 00:00:00'}
+
     return encoding
 
 
