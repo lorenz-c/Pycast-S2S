@@ -215,10 +215,10 @@ def set_encoding(variable_config, coordinates, type="maps"):
     for variable in variable_config:
         encoding[variable] = {
             "zlib": True,
-            "complevel": 4,
+            "complevel": 1,
             "_FillValue": variable_config[variable]["_FillValue"],
             "scale_factor": variable_config[variable]["scale_factor"],
-            "add_offset": variable_config[variable]["scale_factor"],
+            "add_offset": variable_config[variable]["add_offset"],
             "dtype": variable_config[variable]["dtype"],
             "chunksizes": chunksizes,
         }
@@ -240,7 +240,7 @@ def set_zarr_encoding(variable_config):
             "compressor": zarr.Blosc(cname="zstd", clevel=3, shuffle=2),
             "_FillValue": variable_config[variable]["_FillValue"],
             "scale_factor": variable_config[variable]["scale_factor"],
-            "add_offset": variable_config[variable]["scale_factor"],
+            "add_offset": variable_config[variable]["add_offset"],
             "dtype": variable_config[variable]["dtype"],
         }
 
