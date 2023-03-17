@@ -24,7 +24,7 @@
 	},
 	"ceara": {
 		"prefix": "ceara",
-		"bbox": [-37.0, -41.6, -2.7, -8],
+		"bbox": [-41.6, -37.0, -8, -2.7],
 		"regroot": "/pd/data/regclim_data/gridded_data/processed/ceara",
 		"syr_calib": 1981,
 		"eyr_calib": 2016,
