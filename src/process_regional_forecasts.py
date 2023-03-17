@@ -97,6 +97,9 @@ def get_clas():
 
 
 def setup_logger(domain_name):
+ 
+    os.makedirs(os.path.dirname(f"logs/{domain_name}_setup_domain.log"), exist_ok=True)
+
     logging.basicConfig(
         filename=f"logs/{domain_name}_setup_domain.log",
         level=logging.INFO,
