@@ -175,9 +175,9 @@ if __name__ == "__main__":
     # Create some code for calculation of history files for period syr_calib to eyr_calib
     if args.mode == "truncate_forecasts":
 
-        results = []
-
         for year in process_years:
+            
+            results = []
 
             for month in process_months:
 
@@ -204,11 +204,12 @@ if __name__ == "__main__":
                         # month_range,
                     )
                 )
-        try:
-            dask.compute(results)
-            logging.info("Truncate forecasts: successful")
-        except:
-            logging.warning("Truncate forecasts: Something went wrong")
+                
+            try:
+                dask.compute(results)
+                logging.info("Truncate forecasts: successful")
+            except:
+                logging.warning("Truncate forecasts: Something went wrong")
 
     elif args.mode == "remap_forecasts":
 
