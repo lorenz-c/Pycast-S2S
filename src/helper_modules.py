@@ -4,7 +4,7 @@ import os
 import sys
 from pathlib import Path
 from subprocess import PIPE, run
-
+import logging
 import dask.array as da
 import numpy as np
 import pandas as pd
@@ -14,7 +14,7 @@ import zarr
 from dask import config
 from dask.distributed import Client
 from dask_jobqueue import SLURMCluster
-
+import dask
 import dir_fnme
 
 # from bc_module import bc_module
@@ -56,12 +56,30 @@ def set_and_make_dirs(domain_config: dict) -> dict:
         "reference_initial_resolution_dir"
     ] = f"{reg_dir_dict['reference_dir']}initial_resolution/"
     reg_dir_dict[
+        "bcsd_forecast_zarr_dir"
+    ] = f"{reg_dir_dict['processed_dir']}zarr_stores/"
+    reg_dir_dict[
         "reference_target_resolution_dir"
     ] = f"{reg_dir_dict['reference_dir']}target_resolution/"
     reg_dir_dict["reference_zarr_dir"] = f"{reg_dir_dict['reference_dir']}zarr_stores/"
 
     reg_dir_dict["climatology_dir"] = f"{reg_dir_dict['aggregated_dir']}/climatology/"
     reg_dir_dict["monthly_dir"] = f"{reg_dir_dict['aggregated_dir']}/monthly/"
+    reg_dir_dict["statistic_dir"] = f"{reg_dir_dict['aggregated_dir']}/statistic/"
+
+
+    # Then the level 3 directories
+    reg_dir_dict[
+        "bcsd_forecast_mon_zarr_dir"
+    ] = f"{reg_dir_dict['monthly_dir']}zarr_stores_bcsd/"
+    reg_dir_dict[
+        "ref_forecast_mon_zarr_dir"
+    ] = f"{reg_dir_dict['monthly_dir']}zarr_stores_ref/"
+    reg_dir_dict[
+        "seas_forecast_mon_zarr_dir"
+    ] = f"{reg_dir_dict['monthly_dir']}zarr_stores_seas/"
+
+
 
     for key in reg_dir_dict:
         if not os.path.isdir(reg_dir_dict[key]):
@@ -109,10 +127,10 @@ def set_input_files(
     pp_file = f"{domain_config['bcsd_forecasts']['prefix']}_v{domain_config['version']}_{variable}_{year}{month:02d}_{domain_config['target_resolution']}.nc"
     pp_full = f"{reg_dir_dict['processed_dir']}{pp_file}"
 
-    refrcst_zarr = f"{domain_config['raw_forecasts']['prefix']}_{month:02d}_{domain_config['target_resolution']}_reforecast_linechunks.zarr"
+    refrcst_zarr = f"{domain_config['raw_forecasts']['prefix']}_{variable}_{month:02d}_{domain_config['target_resolution']}_calib_linechunks.zarr"
     refrcst_full = f"{reg_dir_dict['raw_forecasts_zarr_dir']}{refrcst_zarr}"
 
-    ref_zarr = f"{domain_config['reference_history']['prefix']}_{domain_config['target_resolution']}_linechunks.zarr"
+    ref_zarr = f"{domain_config['reference_history']['prefix']}_{variable}_{domain_config['target_resolution']}_calib_linechunks.zarr"
     ref_full = f"{reg_dir_dict['reference_zarr_dir']}{ref_zarr}"
 
     return raw_full, pp_full, refrcst_full, ref_full
@@ -320,7 +338,7 @@ def create_4d_netcdf(
 
 def get_coords_from_frcst(filename):
 
-    ds = xr.open_dataset(filename)
+    ds = xr.open_dataset(filename, engine = "netcdf4")
 
     # return {
     #    'time': ds['time'].values,
@@ -389,15 +407,15 @@ def getCluster(queue, nodes, jobs_per_node):
 
     # cluster options
     if queue == "rome":
-        cores, memory, walltime = (62, "220GB", "0-15:00:00")
+        cores, memory, walltime = (62, "220GB", "0-48:00:00")
     elif queue == "ivyshort":
-        cores, memory, walltime = (40, "60GB", "08:00:00")
+        cores, memory, walltime = (40, "60GB", "48:00:00")
     elif queue == "ccgp" or queue == "cclake":
-        cores, memory, walltime = (38, "170GB", "04:00:00")
+        cores, memory, walltime = (38, "170GB", "48:00:00")
     elif queue == "haswell":
-        cores, memory, walltime = (40, "120GB", "08:00:00")
+        cores, memory, walltime = (40, "120GB", "48:00:00")
     elif queue == "ivy":
-        cores, memory, walltime = (40, "60GB", "04:00:00")
+        cores, memory, walltime = (40, "60GB", "48:00:00")
     elif queue == "fat":
         cores, memory, walltime = (96, "800GB", "48:00:00")
 
@@ -475,6 +493,230 @@ def decode_processing_months(months_string):
 
     return months
 
+@dask.delayed
+def day2mon_seas(domain_config: dict,variable_config: dict, reg_dir_dict: dict, year: int, month: int, variable: str):
+    # Get SEAS5-raw-Filename
+    fle_in = f"{domain_config['raw_forecasts']['prefix']}_{variable}_{year}{month:02d}_{domain_config['target_resolution']}.nc"
+    full_in = f"{reg_dir_dict['raw_forecasts_target_resolution_dir']}{fle_in}"
+
+    # open-File
+    ds = xr.open_dataset(full_in)
+    ds = xr.open_mfdataset(
+        full_in,
+        parallel=True,
+        chunks={"time": len(ds.time), 'ens': len(ds.ens), 'lat': "auto", 'lon': "auto"},
+        # chunks={"time": 50},
+        engine="netcdf4",
+        autoclose=True,
+    )
+
+    # Monthly mean
+    ds = ds.resample(time="1MS").mean(dim="time")
+    # ds = ds.groupby("time.month").mean()
+
+    coords = {
+        "time": ds["time"].values,
+        "ens": ds["ens"].values,
+        "lat": ds["lat"].values.astype(np.float32),
+        "lon": ds["lon"].values.astype(np.float32),
+    }
+
+    encoding = set_encoding(variable_config, coords, "lines")
+
+    # set output files
+    fle_out = f"{domain_config['raw_forecasts']['prefix']}_mon_{variable}_{year}{month:02d}_{domain_config['target_resolution']}.nc"
+    full_out = f"{reg_dir_dict['monthly_dir']}/{fle_out}"
+
+    try:
+        ds.to_netcdf(full_out, encoding={variable: encoding[variable]})
+        logging.info(
+            f"Day to month: Convert day to month for {year}-{month:02d} successful"
+        )
+    except:
+        logging.info(f"Day to month: Something went wrong for {year}-{month:02d}")
+
+
+    # monthly mean by using cdo
+    # cmd = (
+    #    "cdo",
+    #    "-O",
+    #    "-f",
+    #    "nc4c",
+    #    "-z",
+    #    "zip_6",
+    #    "monmean",
+    #    str(full_in),
+    #    str(full_out),
+    #)
+    #try:
+    #    os.path.isfile(full_in)
+    #    run_cmd(cmd)
+    #except:
+    #    logging.error(f"Day to month: file {full_in} not available")
+
+
+@dask.delayed
+def day2mon_ref(domain_config: dict,variable_config: dict, reg_dir_dict: dict, year: int, variable: str):
+    # Get ref-filename:
+    file_in = f"{domain_config['reference_history']['prefix']}_{variable}_{year}_{domain_config['target_resolution']}.nc"
+    full_in = f"{reg_dir_dict['reference_target_resolution_dir']}/{file_in}"
+
+    # open-File
+    ds = xr.open_dataset(full_in)
+    ds = xr.open_mfdataset(
+        full_in,
+        parallel=True,
+        chunks={"time": len(ds.time), 'lat': "auto", 'lon': "auto"},
+        # chunks={"time": 50},
+        engine="netcdf4",
+        autoclose=True,
+    )
+
+    # Monthly mean
+    ds = ds.resample(time="1MS").mean(dim="time")
+    # ds = ds.groupby("time.month").mean()
+
+    coords = {
+        "time": ds["time"].values,
+        "lat": ds["lat"].values.astype(np.float32),
+        "lon": ds["lon"].values.astype(np.float32),
+    }
+
+    encoding = set_encoding(variable_config, coords, "lines")
+
+    # set output files
+    fle_out = f"{domain_config['reference_history']['prefix']}_mon_{variable}_{year}_{domain_config['target_resolution']}.nc"
+    full_out = f"{reg_dir_dict['monthly_dir']}/{fle_out}"
+
+    try:
+        ds.to_netcdf(full_out, encoding={variable: encoding[variable]})
+        logging.info(
+            f"Day to month REF: Convert day to month for {year}- successful"
+        )
+    except:
+        logging.info(f"Day to month REF: Something went wrong for {year}-")
+
+
+    # monthly mean by using cdo
+    # cmd = (
+    #    "cdo",
+    #    "-O",
+    #    "-f",
+    #    "nc4c",
+    #    "-z",
+    #    "zip_6",
+    #    "monmean",
+    #    str(full_in),
+    #    str(full_out),
+    #)
+    #try:
+    #    os.path.isfile(full_in)
+    #    run_cmd(cmd)
+    #except:
+    #    logging.error(f"Day to month: file {full_in} not available")
+
+
+@dask.delayed
+def day2mon_bcsd(domain_config: dict,variable_config: dict, reg_dir_dict: dict, year: int, month: int, variable: str):
+    # Get BCSD-Filename pp_full
+    (raw_full, pp_full, refrcst_full, ref_full,) = set_input_files(domain_config, reg_dir_dict, month, year, variable)
+    print(pp_full)
+    # set input files
+    full_in = pp_full
+
+    # open-File
+    ds = xr.open_dataset(full_in)
+    ds = xr.open_mfdataset(
+        full_in,
+        parallel=True,
+        chunks={"time": len(ds.time), 'ens': len(ds.ens), 'lat': "auto", 'lon': "auto"},
+        # chunks={"time": 50},
+        engine="netcdf4",
+        autoclose=True,
+    )
+
+    # Monthly mean
+    ds = ds.resample(time="1MS").mean(dim="time")
+    # ds = ds.groupby("time.month").mean()
+
+    coords = {
+        "time": ds["time"].values,
+        "ens": ds["ens"].values,
+        "lat": ds["lat"].values.astype(np.float32),
+        "lon": ds["lon"].values.astype(np.float32),
+    }
+
+    encoding = set_encoding(variable_config, coords, "lines")
+
+    # set output files
+    fle_out = f"{domain_config['bcsd_forecasts']['prefix']}_v{domain_config['version']}_mon_{variable}_{year}{month:02d}_{domain_config['target_resolution']}.nc"
+    full_out = f"{reg_dir_dict['monthly_dir']}/{fle_out}"
+
+    try:
+        ds.to_netcdf(full_out, encoding={variable: encoding[variable]})
+        logging.info(
+            f"Day to month: Convert day to month for {year}-{month:02d} successful"
+        )
+    except:
+        logging.info(f"Day to month: Something went wrong for {year}-{month:02d}")
+
+
+    # monthly mean by using cdo
+    # cmd = (
+    #    "cdo",
+    #    "-O",
+    #    "-f",
+    #    "nc4c",
+    #    "-z",
+    #    "zip_6",
+    #    "monmean",
+    #    str(full_in),
+    #    str(full_out),
+    #)
+    #try:
+    #    os.path.isfile(full_in)
+    #    run_cmd(cmd)
+    #except:
+    #    logging.error(f"Day to month: file {full_in} not available")
+
+@dask.delayed
+def create_climatology(domain_config: dict, variable_config: dict, reg_dir_dict: dict, syr_calib: int, eyr_calib: int, variable: str):
+
+    # Set input File
+    fle_in = f"{domain_config['reference_history']['prefix']}_{domain_config['target_resolution']}_linechunks.zarr"
+    full_in = f"{reg_dir_dict['reference_zarr_dir']}{fle_in}"
+
+    # Open dataset
+    ds = xr.open_zarr(full_in, consolidated=False)
+    ds = xr.open_zarr(
+        full_in,
+        chunks={"time": len(ds.time), "lat": 10, "lon": 10},
+        consolidated=False
+        # parallel=True,
+        # engine="netcdf4",
+    )
+    # Calculate climatogloy (mean)
+    ds_clim = ds[variable].groupby("time.month").mean("time")
+    ds_clim = ds_clim.rename({"month": "time"})
+    # set encoding
+    coords = {
+        "time": ds_clim["time"].values,
+        "lat": ds_clim["lat"].values.astype(np.float32),
+        "lon": ds_clim["lon"].values.astype(np.float32),
+    }
+    encoding = set_encoding(variable_config, coords, "lines")
+
+    fle_out  = f"{domain_config['reference_history']['prefix']}_clim_{variable}_{syr_calib}_{eyr_calib}_{domain_config['target_resolution']}.nc"
+    full_out = f"{reg_dir_dict['climatology_dir']}/{fle_out}"
+
+    # Save NC-File
+    try:
+        ds_clim.to_netcdf(full_out, encoding={variable: encoding[variable]},)
+        logging.info(
+            f"Calculate climatology of Ref: Climatology for variable suceeded!")
+    except:
+        logging.error(
+            f"Calculate climatology of Ref: Climatology for variable failed!")
 
 def s3_init():
     s3 = s3fs.S3FileSystem(

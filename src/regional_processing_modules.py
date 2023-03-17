@@ -84,6 +84,7 @@ def create_grd_file(domain_config: dict, grid_file: str) -> str:
 
     return grid_file
 
+### SEAS5 ###
 
 def preprocess(ds):
     # ADD SOME CHECKS HERE THAT THIS STUFF IS ONLY APPLIED WHEN LATITUDES ARE REVERSED AND LONGITUDES GO FROM 0 TO 360
@@ -111,6 +112,7 @@ def truncate_forecasts(
     glob_dir_dict: str,
     year: int,
     month: int,
+    # month_range: list
 ):
 
     bbox = domain_config["bbox"]
@@ -128,11 +130,11 @@ def truncate_forecasts(
         concat_dim="ens",
         combine="nested",
         parallel=True,
-        chunks={"time": 50},
+        chunks={"time": "auto"},
         preprocess=preprocess,
     )
-
-    ds = ds.sel(lat=slice(min_lat, max_lat), lon=slice(min_lon, max_lon))
+    # Select Lat/Lon-Box and maybe only the first 7 months
+    ds = ds.sel(lat=slice(min_lat, max_lat), lon=slice(min_lon, max_lon)) # , time=ds.time.dt.month.isin(month_range))
 
     coords = {
         "time": ds["time"].values,
@@ -149,6 +151,12 @@ def truncate_forecasts(
 
         fle_out = f"{domain_config['raw_forecasts']['prefix']}_{variable}_{year}{month:02d}.nc"
         full_out = f"{reg_dir_dict['raw_forecasts_initial_resolution_dir']}/{fle_out}"
+
+        # calclutate t2plus and t2minus
+        if variable == "t2plus":
+            ds["t2plus"] = ds.t2max - ds.t2m
+        elif variable =="t2minus":
+            ds["t2minus"] = ds.t2m - ds.t2min
 
         try:
             ds[variable].to_netcdf(full_out, encoding={variable: encoding[variable]})
@@ -170,16 +178,14 @@ def remap_forecasts(
     grd_fle: str,
     variable: str,
 ):
-
-    fle_in = (
-        f"{domain_config['raw_forecasts']['prefix']}_{variable}_{year}{month:02d}.nc"
-    )
-    full_in = f"{reg_dir_dict['raw_forecasts_initial_resolution_dir']}/{fle_in}"
+    print("test")
+    fle_in = f"{domain_config['raw_forecasts']['prefix']}_{variable}_{year}{month:02d}.nc"
+    full_in = f"{reg_dir_dict['raw_forecasts_initial_resolution_dir']}{fle_in}"
 
     print(full_in)
 
     fle_out = f"{domain_config['raw_forecasts']['prefix']}_{variable}_{year}{month:02d}_{domain_config['target_resolution']}.nc"
-    full_out = f"{reg_dir_dict['raw_forecasts_target_resolution_dir']}/{fle_out}"
+    full_out = f"{reg_dir_dict['raw_forecasts_target_resolution_dir']}{fle_out}"
 
     cmd = (
         "cdo",
@@ -199,6 +205,158 @@ def remap_forecasts(
     except:
         logging.error(f"Remap_forecast: file {full_in} not available")
 
+### REF ####
+
+def preprocess_reference(ds):
+    # Create new and unique time values
+    # set year
+    year = ds.time.dt.year.values[0]
+    # save attributes
+    time_attr = ds.time.attrs
+
+    # Create time values
+    time_values = pd.date_range(f"{year}-01-01 12:00:00", f"{year}-12-31 12:00:00")
+
+    # Set time values
+    ds = ds.assign_coords({"time": time_values})
+    ds.time.attrs = {
+        "standard_name": time_attr["standard_name"],
+        "long_name": time_attr["long_name"],
+        "axis": time_attr["axis"],
+    }
+
+    # some other preprocessing
+    if "longitude" in ds.variables:
+        ds = ds.rename({"longitude": "lon"})
+
+    if "latitude" in ds.variables:
+        ds = ds.rename({"latitude": "lat"})
+
+    ds = ds.sortby(ds.lat)
+    ds.coords["lon"] = (ds.coords["lon"] + 180) % 360 - 180
+    ds = ds.sortby(ds.lon)
+
+    ds["lon"].attrs = {"standard_name": "longitude", "units": "degrees_east"}
+    ds["lat"].attrs = {"standard_name": "latitude", "units": "degrees_north"}
+
+    # Drop var "time bounds" if necessary, otherwise cant be merged
+    try:
+        ds = ds.drop_dims("bnds")
+    except:
+        print("No bnds dimension available")
+
+    return ds
+
+
+@dask.delayed
+def truncate_reference(
+    domain_config: dict,
+    variable_config: dict,
+    reg_dir_dict: dict,
+    glob_dir_dict: dict,
+    year: int,
+    variable: str,
+):
+    bbox = domain_config["bbox"]
+
+    # Add one degree in each direction to avoid NaNs at the boarder after remapping.
+    min_lon = bbox[0] - 1
+    max_lon = bbox[1] + 1
+    min_lat = bbox[2] - 1
+    max_lat = bbox[3] + 1
+
+
+    file_in = (
+        f"{glob_dir_dict['global_reference']}/ERA5_Land_daily_{variable}_{year}.nc"
+    )
+
+    ds = xr.open_mfdataset(
+        file_in,
+        parallel=True,
+        chunks={"time": 50},
+        engine="netcdf4",
+        preprocess=preprocess_reference,
+        autoclose=True,
+    )
+
+
+    file_out = f"{domain_config['reference_history']['prefix']}_{variable}_{year}.nc"
+    full_out = f"{reg_dir_dict['reference_initial_resolution_dir']}/{file_out}"
+
+    ds = ds.sel(lat=slice(min_lat, max_lat), lon=slice(min_lon, max_lon))
+
+    coords = {
+        "time": ds["time"].values,
+        "lat": ds["lat"].values.astype(np.float32),
+        "lon": ds["lon"].values.astype(np.float32),
+    }
+
+    encoding = set_encoding(variable_config, coords)
+
+    try:
+        ds.to_netcdf(full_out, encoding={variable: encoding[variable]})
+        logging.info(
+            f"Truncate reference: succesful for variable {variable} and year {year}"
+        )
+    except:
+        logging.info(
+            f"Truncate reference: something went wrong for variable {variable} and year {year}"
+        )
+    #            f"{dir_dict['ref_low_reg_dir']}/{fnme_dict['ref_low_reg_dir']}",
+    #            encoding=encoding,
+
+    # try:
+    #    if domain_config["reference_history"]["merged_variables"]:
+    #        ds.to_netcdf(
+    #            f"{dir_dict['ref_low_reg_dir']}/{fnme_dict['ref_low_reg_dir']}",
+    #            encoding=encoding,
+    #        )
+    #    else:
+    #        ds.to_netcdf(
+    #            f"{dir_dict['ref_low_reg_dir']}/{fnme_dict['ref_low_reg_dir']}",
+    #            encoding={variable: encoding[variable]},
+    #        )
+
+    # except:
+    #    logging.error(
+    #        f"Truncate reference: Something went wrong during truncation for variable {variable}!"
+    #    )
+
+
+@dask.delayed
+def remap_reference(
+    domain_config: dict,
+    reg_dir_dict: dict,
+    year: int,
+    grd_fle: str,
+    variable: str,
+):
+
+    file_in = f"{domain_config['reference_history']['prefix']}_{variable}_{year}.nc"
+    full_in = f"{reg_dir_dict['reference_initial_resolution_dir']}/{file_in}"
+
+    file_out = f"{domain_config['reference_history']['prefix']}_{variable}_{year}_{domain_config['target_resolution']}.nc"
+    full_out = f"{reg_dir_dict['reference_target_resolution_dir']}/{file_out}"
+
+    cmd = (
+        "cdo",
+        "-O",
+        "-f",
+        "nc4c",
+        "-z",
+        "zip_6",
+        f"remapbil,{grd_fle}",
+        str(full_in),
+        str(full_out),
+    )
+
+    try:
+        os.path.isfile(full_in)
+        run_cmd(cmd)
+    except:
+        logging.error(f"Remap_forecast: file {full_in} not available")
+
+######### Old Crap #########
 
 def rechunker_forecasts(
     domain_config: dict,
@@ -324,6 +482,7 @@ def rechunk_forecasts(
     #    logging.error(f"Something went wrong during writing of forecast linechunks")
 
 
+
 def calib_forecasts(domain_config, variable_config, dir_dict, syr, eyr, month_str):
     file_list = []
     if domain_config["reference_history"]["merged_variables"]:
@@ -410,151 +569,11 @@ def calib_forecasts(domain_config, variable_config, dir_dict, syr, eyr, month_st
                 logging.error("Calibrate forecast: Something went wrong")
 
 
-def preprocess_reference(ds):
-    # Create new and unique time values
-    # set year
-    year = ds.time.dt.year.values[0]
-    # save attributes
-    time_attr = ds.time.attrs
-
-    # Create time values
-    time_values = pd.date_range(f"{year}-01-01 12:00:00", f"{year}-12-31 12:00:00")
-
-    # Set time values
-    ds = ds.assign_coords({"time": time_values})
-    ds.time.attrs = {
-        "standard_name": time_attr["standard_name"],
-        "long_name": time_attr["long_name"],
-        "axis": time_attr["axis"],
-    }
-
-    # some other preprocessing
-    if "longitude" in ds.variables:
-        ds = ds.rename({"longitude": "lon"})
-
-    if "latitude" in ds.variables:
-        ds = ds.rename({"latitude": "lat"})
-
-    ds = ds.sortby(ds.lat)
-    ds.coords["lon"] = (ds.coords["lon"] + 180) % 360 - 180
-    ds = ds.sortby(ds.lon)
-
-    ds["lon"].attrs = {"standard_name": "longitude", "units": "degrees_east"}
-    ds["lat"].attrs = {"standard_name": "latitude", "units": "degrees_north"}
-
-    # Drop var "time bounds" if necessary, otherwise cant be merged
-    try:
-        ds = ds.drop_dims("bnds")
-    except:
-        print("No bnds dimension available")
-
-    return ds
 
 
-@dask.delayed
-def truncate_reference(
-    domain_config: dict,
-    variable_config: dict,
-    reg_dir_dict: dict,
-    glob_dir_dict: dict,
-    year: int,
-    variable: str,
-):
-    bbox = domain_config["bbox"]
-
-    # Add one degree in each direction to avoid NaNs at the boarder after remapping.
-    min_lon = bbox[0] - 1
-    max_lon = bbox[1] + 1
-    min_lat = bbox[2] - 1
-    max_lat = bbox[3] + 1
-
-    file_in = (
-        f"{glob_dir_dict['global_reference']}/ERA5_Land_daily_{variable}_{year}.nc"
-    )
-    file_out = f"{domain_config['reference_history']['prefix']}_{variable}_{year}.nc"
-    full_out = f"{reg_dir_dict['reference_initial_resolution_dir']}/{file_out}"
-
-    ds = xr.open_mfdataset(
-        file_in,
-        parallel=True,
-        chunks={"time": 50},
-        engine="netcdf4",
-        preprocess=preprocess_reference,
-        autoclose=True,
-    )
-
-    ds = ds.sel(lat=slice(min_lat, max_lat), lon=slice(min_lon, max_lon))
-
-    coords = {
-        "time": ds["time"].values,
-        "lat": ds["lat"].values.astype(np.float32),
-        "lon": ds["lon"].values.astype(np.float32),
-    }
-
-    encoding = set_encoding(variable_config, coords)
-
-    try:
-        ds.to_netcdf(full_out, encoding={variable: encoding[variable]})
-        logging.info(
-            f"Truncate reference: succesful for variable {variable} and year {year}"
-        )
-    except:
-        logging.info(
-            f"Truncate reference: something went wrong for variable {variable} and year {year}"
-        )
-    #            f"{dir_dict['ref_low_reg_dir']}/{fnme_dict['ref_low_reg_dir']}",
-    #            encoding=encoding,
-
-    # try:
-    #    if domain_config["reference_history"]["merged_variables"]:
-    #        ds.to_netcdf(
-    #            f"{dir_dict['ref_low_reg_dir']}/{fnme_dict['ref_low_reg_dir']}",
-    #            encoding=encoding,
-    #        )
-    #    else:
-    #        ds.to_netcdf(
-    #            f"{dir_dict['ref_low_reg_dir']}/{fnme_dict['ref_low_reg_dir']}",
-    #            encoding={variable: encoding[variable]},
-    #        )
-
-    # except:
-    #    logging.error(
-    #        f"Truncate reference: Something went wrong during truncation for variable {variable}!"
-    #    )
 
 
-@dask.delayed
-def remap_reference(
-    domain_config: dict,
-    reg_dir_dict: dict,
-    year: int,
-    grd_fle: str,
-    variable: str,
-):
 
-    file_in = f"{domain_config['reference_history']['prefix']}_{variable}_{year}.nc"
-    full_in = f"{reg_dir_dict['reference_initial_resolution_dir']}/{file_in}"
-
-    file_out = f"{domain_config['reference_history']['prefix']}_{variable}_{year}_{domain_config['target_resolution']}.nc"
-    full_out = f"{reg_dir_dict['reference_target_resolution_dir']}/{file_out}"
-
-    cmd = (
-        "cdo",
-        "-O",
-        "-f",
-        "nc4c",
-        "-z",
-        "zip_6",
-        f"remapbil,{grd_fle}",
-        str(full_in),
-        str(full_out),
-    )
-
-    try:
-        os.path.isfile(full_in)
-        run_cmd(cmd)
-    except:
-        logging.error(f"Remap_forecast: file {full_in} not available")
 
 
 @dask.delayed
@@ -711,245 +730,3 @@ def calib_reference(
             f"Rechunk reference: Rechunking of reference data failed for variable {variable}!"
         )
 
-
-def create_climatology(
-    dataset, domain_config, variable_config, dir_dict, syr_calib, eyr_calib, month_str
-):
-    # Open Points:
-    # --> Prefix and Directories does not match (era5_land / ERA5_Land) --> Issue
-    # --> Alles einheitlich bennen für die Funktionen --> Issue
-    # --> Encoding while writing netcdf????
-    # --> Loop over months for SEAS5???
-    # --> Write one function and choose ref or seas5 product???
-    # --> Choose baseline period with start and end year (up to now, all files in the folder
-    #   are selected and opened)
-    # set up encoding for netcdf-file later
-
-    # SEAS5
-    if dataset == "seas5":
-        fle_list = []
-        if domain_config["reference_history"]["merged_variables"]:
-            # Select period of time
-            for year in range(syr_calib, eyr_calib + 1):
-                # Update filenames
-                fnme_dict = dir_fnme.set_filenames(
-                    domain_config,
-                    syr_calib,
-                    eyr_calib,
-                    year,
-                    month_str,
-                    domain_config["reference_history"]["merged_variables"],
-                )
-
-                fle_list.append(
-                    f"{dir_dict['frcst_low_reg_dir']}/{fnme_dict['frcst_low_reg_dir']}"
-                )
-
-            # load nc-Files for each month over all years
-            ds = xr.open_mfdataset(fle_list, parallel=True, engine="netcdf4")
-            # Calculate climatogloy (mean) for each lead month
-            ds_clim = ds.groupby("time.month").mean("time")
-            ds_clim = ds_clim.rename({"month": "time"})
-            # set encoding
-            coords = {
-                "time": ds_clim["time"].values,
-                "ens": ds_clim["ens"].values,
-                "lat": ds_clim["lat"].values.astype(np.float32),
-                "lon": ds_clim["lon"].values.astype(np.float32),
-            }
-            encoding = set_encoding(variable_config, coords, "lines")
-
-            # Save NC-File
-            try:
-                ds_clim.to_netcdf(
-                    f"{dir_dict['frcst_climatology']}/{fnme_dict['frcst_climatology']}",
-                    encoding=encoding,
-                )
-            except:
-                logging.error(
-                    f"Calculate climatology of SEAS5: Climatology for month {month_str} failed!"
-                )
-        else:
-            for variable in variable_config:
-                # Select period of time
-                for year in range(syr_calib, eyr_calib + 1):
-                    # Update filenames
-                    fnme_dict = dir_fnme.set_filenames(
-                        domain_config,
-                        syr_calib,
-                        eyr_calib,
-                        year,
-                        month_str,
-                        domain_config["reference_history"]["merged_variables"],
-                        variable,
-                    )
-
-                    fle_list.append(
-                        f"{dir_dict['frcst_low_reg_dir']}/{fnme_dict['frcst_low_reg_dir']}"
-                    )
-
-                # load nc-Files for each month over all years
-                ds = xr.open_mfdataset(fle_list, parallel=True, engine="netcdf4")
-                # Calculate climatogloy (mean) for each lead month
-                ds_clim = ds.groupby("time.month").mean("time")
-                ds_clim = ds_clim.rename({"month": "time"})
-                # set encoding
-                coords = {
-                    "time": ds_clim["time"].values,
-                    "ens": ds_clim["ens"].values,
-                    "lat": ds_clim["lat"].values.astype(np.float32),
-                    "lon": ds_clim["lon"].values.astype(np.float32),
-                }
-                encoding = set_encoding(variable_config, coords, "lines")
-
-                # Save NC-File
-                try:
-                    ds_clim.to_netcdf(
-                        f"{dir_dict['frcst_climatology']}/{fnme_dict['frcst_climatology']}",
-                        encoding={variable: encoding[variable]},
-                    )
-                except:
-                    logging.error(
-                        f"Calculate climatology of SEAS5: Climatology for month {month_str} failed!"
-                    )
-
-    #### Ref - ERA5
-    else:
-        # Select period of time
-        fle_list = []
-        if domain_config["reference_history"]["merged_variables"]:
-            for year in range(syr_calib, eyr_calib + 1):
-                # Update filenames
-                fnme_dict = dir_fnme.set_filenames(
-                    domain_config,
-                    syr_calib,
-                    eyr_calib,
-                    year,
-                    month_str,
-                    domain_config["reference_history"]["merged_variables"],
-                )
-
-                fle_list.append(
-                    f"{dir_dict['ref_low_reg_dir']}/{fnme_dict['ref_low_reg_dir']}"
-                )
-
-            # Open dataset
-            ds = xr.open_mfdataset(fle_list, parallel=True, engine="netcdf4")
-            # Calculate climatogloy (mean)
-            ds_clim = ds.groupby("time.month").mean("time")
-            ds_clim = ds_clim.rename({"month": "time"})
-            # set encoding
-            coords = {
-                "time": ds_clim["time"].values,
-                "lat": ds_clim["lat"].values.astype(np.float32),
-                "lon": ds_clim["lon"].values.astype(np.float32),
-            }
-            encoding = set_encoding(variable_config, coords, "lines")
-            # Save NC-File
-            try:
-                ds_clim.to_netcdf(
-                    f"{dir_dict['ref_climatology']}/{fnme_dict['ref_climatology']}",
-                    encoding=encoding,
-                )
-            except:
-                logging.error(
-                    f"Calculate climatology of Ref: Climatology for variable failed!"
-                )
-        else:
-            for variable in variable_config:
-                for year in range(syr_calib, eyr_calib + 1):
-                    # Update filenames
-                    fnme_dict = dir_fnme.set_filenames(
-                        domain_config,
-                        syr_calib,
-                        eyr_calib,
-                        year,
-                        month_str,
-                        domain_config["reference_history"]["merged_variables"],
-                        variable,
-                    )
-
-                    fle_list.append(
-                        f"{dir_dict['ref_low_reg_dir']}/{fnme_dict['ref_low_reg_dir']}"
-                    )
-
-                # Open dataset
-                ds = xr.open_mfdataset(fle_list, parallel=True, engine="netcdf4")
-                # Calculate climatogloy (mean)
-                ds_clim = ds.groupby("time.month").mean("time")
-                ds_clim = ds_clim.rename({"month": "time"})
-                # set encoding
-                coords = {
-                    "time": ds_clim["time"].values,
-                    "lat": ds_clim["lat"].values.astype(np.float32),
-                    "lon": ds_clim["lon"].values.astype(np.float32),
-                }
-                encoding = set_encoding(variable_config, coords, "lines")
-                # Save NC-File
-                try:
-                    ds_clim.to_netcdf(
-                        f"{dir_dict['ref_climatology']}/{fnme_dict['ref_climatology']}",
-                        encoding={variable: encoding[variable]},
-                    )
-                except:
-                    logging.error(
-                        f"Calculate climatology of Ref: Climatology for variable {variable} failed!"
-                    )
-
-
-def calc_quantile_thresh(domain_config, dir_dict, syr_calib, eyr_calib, month_str):
-    # Create empty file list
-    file_lst = []
-    # Load all years of specific months in one file
-    for year in range(syr_calib, eyr_calib + 1):
-        # Update Filenames
-        # fnme_dict = dir_fnme.set_filenames(
-        #    domain_config, syr_calib, eyr_calib, year, month_str
-        # )
-
-        # Monthly Filename = .../domain/monthly/SEAS5_BCSD/SEAS5_BCSD_V3.0_monthly_198101_0.1_Chira.nc"
-        file_lst.append(
-            f"""{dir_dict['monthly_bcsd']}/{domain_config['bcsd_forecasts']['prefix']}_{domain_config['version']}_
-            monthly_{year}{month_str}_{domain_config['target_resolution']}_{domain_config['prefix']}.nc"""
-        )
-
-    # Load file list at once
-    ds = xr.open_mfdataset(file_lst, parallel=True, engine="netcdf4")
-    # This step depends on how the files will look like and if they have the variable "time_bnds"
-    ds = ds.drop_vars("time_bnds")
-
-    # Necessary otherwise error
-    ds = ds.chunk(dict(time=-1))
-
-    # Calculate quantile, tercile and extremes on a monthly basis
-    ds_quintiles = ds.groupby("time.month").quantile(
-        q=[0.2, 0.4, 0.6, 0.8], dim=["time", "ens"]
-    )
-    ds_tercile = ds.groupby("time.month").quantile(q=[0.33, 0.66], dim=["time", "ens"])
-    ds_extreme = ds.groupby("time.month").quantile(q=[0.1, 0.9], dim=["time", "ens"])
-
-    # Save NC-File
-    # ENCODING?!
-    try:
-        ds_quintiles.to_netcdf(
-            f"""{dir_dict['monthly_quantile']}/{domain_config['bcsd_forecasts']['prefix']}_{domain_config['version']}_monthly_quintiles_
-            {syr_calib}_{eyr_calib}_{month_str}_{domain_config['target_resolution']}_{domain_config['prefix']}.nc"""
-        )
-    except:
-        logging.error("Error: Create NC-File for quantiles")
-
-    try:
-        ds_tercile.to_netcdf(
-            f"""{dir_dict['monthly_quantile']}/{domain_config['bcsd_forecasts']['prefix']}_{domain_config['version']}_monthly_tercile_
-            {syr_calib}_{eyr_calib}_{month_str}_{domain_config['target_resolution']}_{domain_config['prefix']}.nc"""
-        )
-    except:
-        logging.error("Error: Create NC-File for tercile")
-
-    try:
-        ds_extreme.to_netcdf(
-            f"""{dir_dict['monthly_quantile']}/{domain_config['bcsd_forecasts']['prefix']}_{domain_config['version']}_monthly_extreme_
-            {syr_calib}_{eyr_calib}_{month_str}_{domain_config['target_resolution']}_{domain_config['prefix']}.nc"""
-        )
-    except:
-        logging.error("Error: Create NC-File for extreme")
