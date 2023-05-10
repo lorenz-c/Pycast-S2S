@@ -9,6 +9,7 @@ message: >-
   If you use this software, please cite it using the
   metadata from this file.
 type: software
+version: 0.5
 authors:
   - given-names: Christof
     family-names: Lorenz
@@ -17,6 +18,13 @@ authors:
     orcid: 'https://orcid.org/0000-0001-5590-5470'
   - given-names: Borkenhagen
     family-names: Clemens
-    email: clemens.borkenhagen9@kit.edu
     affiliation: Karlsruhe Institute of Technology
-
+  - given-names: Jan
+    family-names: Weber
+    email: jan.weber@kit.edu
+    affiliation: Karlsruhe Institute of Technology
+  - given-names: Tanja Christina
+    family-names: Portele
+    email: tanja.portele@kit.edu
+    affiliation: Karlsruhe Institute of Technology
+    orcid: 'https://orcid.org/0000-0001-9436-710X'
