@@ -2,12 +2,13 @@
 import argparse
 import json
 import logging
-import pandas as pd
+
 import dask
 import numpy as np
 import xarray as xr
 from dask.distributed import Client
 
+import delayed_module
 import helper_modules
 from bc_module_v2 import bc_module
 
@@ -172,7 +173,7 @@ if __name__ == "__main__":
 
     # Insert IF-Statement in order to run the bcsd for the historical files
     for year in process_years:
-        print(f"Year: {year}")
+
         for month in process_months:
 
             for variable in variable_config:
@@ -185,8 +186,6 @@ if __name__ == "__main__":
                 ) = helper_modules.set_input_files(
                     domain_config, reg_dir_dict, month, year, variable
                 )
-
-                print(raw_full)
 
                 coords = helper_modules.get_coords_from_frcst(raw_full)
 
@@ -210,7 +209,7 @@ if __name__ == "__main__":
 
                 ds_obs = xr.open_zarr(
                     ref_full,
-                    chunks={"time": len(ds_obs.time), "lat": 10, "lon": 10},
+                    # chunks={"time": len(ds_obs.time), "lat": 'auto', "lon": 'auto'},
                     consolidated=False
                     # parallel=True,
                     # engine="netcdf4",
@@ -227,32 +226,32 @@ if __name__ == "__main__":
                     ds_mdl = xr.open_zarr(refrcst_full, consolidated=False)
                     ds_mdl = xr.open_zarr(
                         refrcst_full,
-                        chunks={
-                            "time": len(ds_mdl.time),
-                            "ens": len(ds_mdl.ens),
-                            "lat": 10,
-                            "lon": 10,
-                        },
+                        # chunks={
+                        #   "time": len(ds_mdl.time),
+                        #   "ens": len(ds_mdl.ens),
+                        #   "lat": 'auto',
+                        #   "lon": 'auto'
+                        # },
                         consolidated=False
                         # parallel=True,
                         # engine="netcdf4",
                     )
-                    da_mdl = ds_mdl[variable].persist()
+                    da_mdl = ds_mdl[variable]
 
                 # Pred (current year for one month and 215 days)
                 ds_pred = xr.open_dataset(raw_full)
                 ds_pred = xr.open_mfdataset(
                     raw_full,
                     chunks={
-                        "time": len(ds_pred.time),
+                        "time": 1,
                         "ens": len(ds_pred.ens),
-                        "lat": 10,
-                        "lon": 10,
+                        "lat": "auto",
+                        "lon": "auto",
                     },
                     parallel=True,
                     engine="netcdf4",
                 )
-                da_pred = ds_pred[variable].persist()
+                da_pred = ds_pred[variable]
 
                 if args.crossval == True:
                     da_mdl = da_mdl.sel(time=~da_pred.time)
@@ -294,130 +293,126 @@ if __name__ == "__main__":
                             },
                         ),
                     },
-                ).persist()
+                )
 
+                for timestep in range(0, 20):
 
-
-                for timestep in range(0, len(ds_pred.time)):
-                # for timestep in range(82, 83):
-
-                    print(f"Correcting timestep {timestep}...")
-                    # get obs data
-                    dayofyear_mdl = ds_mdl["time.dayofyear"]
-                    day = dayofyear_mdl[timestep]
-
-                    for calib_year in range(syr_calib, eyr_calib + 1):
-
-                        ds_obs_year = ds_obs.sel(time=ds_obs.time.dt.year == calib_year)
-                        dayofyear_obs = ds_obs_year["time.dayofyear"]
-
-                        # normal years
-                        if len(ds_obs_year.time.values) == 365:
-
-                            # day_range = (np.arange(day - domain_config['bc_params']['window'], day + domain_config['bc_params']['window'] + 1) + 365) % 365 + 1
-                            day_range = (
-                                                np.arange(
-                                                    day - domain_config['bc_params']['window'] - 1,
-                                                    day + domain_config['bc_params']['window'],
-                                                )
-                                                + 365
-                                        ) % 365 + 1
-
-                            # leap years
-                        else:
-                            day_range = (
-                                                np.arange(
-                                                    day - domain_config['bc_params']['window'] - 1,
-                                                    day + domain_config['bc_params']['window'],
-                                                )
-                                                + 366
-                                        ) % 366 + 1
-
-                        intersection_day_obs_year = np.in1d(dayofyear_obs, day_range)
-
-                        if calib_year == syr_calib:
-                            intersection_day_obs = intersection_day_obs_year
-                        else:
-                            intersection_day_obs = np.append(
-                                intersection_day_obs, intersection_day_obs_year
-                            )
-                    # Make subset of obs data
-                    da_obs_sub = da_obs.loc[dict(time=intersection_day_obs)]
-
-                    # get actual day of timestep in MDL data
-
-                    for i in range(0, 7740, 215):
-                        da_mdl_215 = ds_mdl["time.dayofyear"][i:i + 215]
-                        years_mdl = ds_mdl["time.year"][i:i + 215]
-
-                        day_normal = ds_mdl["time.dayofyear"][i:i + 215][timestep]
-                        date_min = day_normal.time - np.timedelta64(15, "D")
-                        date_max = day_normal.time + np.timedelta64(15, "D")
-
-                        date_range = pd.date_range(date_min.values, date_max.values)
-
-                        day_range = date_range.dayofyear
-                        year_range = date_range.year
-
-                        # Correct for leap years
-                        # day_range_2 = np.where((day_range>=60) & ((year_range==1984) | (year_range==1988) | (year_range==1992) | (year_range==1996) | (year_range==2000)| (year_range==2004)| (year_range==2008)| (year_range==2012)| (year_range==2016)),day_range+1, day_range+0)
-
-                        # day_range = (np.arange(day_normal - 15 - 1,day_normal + 15,)+ 365) % 365 + 1
-                        if i == 0:
-                            intersection_day_mdl = da_mdl_215.isin(day_range)
-                        else:
-                            intersection_day_mdl = np.append(intersection_day_mdl, da_mdl_215.isin(day_range))
-
-                    da_mdl_sub = da_mdl.loc[dict(time=intersection_day_mdl)]
-                    da_mdl_sub = da_mdl_sub.stack(
-                        ens_time=("ens", "time"), create_index=True
-                    )
-                    da_mdl_sub = da_mdl_sub.drop("time")
-
-                    #Rechunk in time
-                    # da_mdl_sub = da_mdl_sub.chunk({"ens_time": -1})
-                    # da_obs_sub = da_obs_sub.chunk({"time": -1})
-
-                    # Select current timestep in prediction data
-                    da_pred_sub = da_pred.isel(time=timestep)
-
-
-
-                    da_temp[timestep, :, :] = xr.apply_ufunc(
-                        bc_module,
-                        da_pred_sub,
-                        da_obs_sub,
-                        da_mdl_sub,
-                        kwargs={
-                            "bc_params": domain_config["bc_params"],
-                            "precip": variable_config[variable]["isprecip"],
-                        },
-                        input_core_dims=[["ens"], ["time"], ["ens_time"]],
-                        output_core_dims=[["ens"]],
-                        vectorize=True,
-                        dask="parallelized",
-                        output_dtypes=[np.float64],
+                    da_temp[timestep, :, :, :] = delayed_module.intersect_and_correct(
+                        timestep,
+                        variable,
+                        domain_config,
+                        variable_config,
+                        da_mdl,
+                        da_obs,
+                        da_pred,
                     )
 
-                # Change the datatype from "object" to "float64" --> Can we somehow get around this???
-                da_temp = da_temp.astype("float64")
+                # da_temp = da_temp_delayed.compute()
+
+                # da_temp = da_temp.astype("float64")
 
                 # Select only the actual variable from the output dataset
                 # ds_out_sel = ds[[variable]]
 
                 # Fill this variable with some data...
-                ds[variable].values = da_temp.transpose(
-                    "time", "ens", "lat", "lon"
-                ).values
+                # ds[variable].values = da_temp.transpose(
+                #    "time", "ens", "lat", "lon"
+                # ).values
 
-                # ...and save everything to disk..
+                ## ...and save everything to disk..
                 # ds_out_sel.to_netcdf(bcsd_dict[variable], mode='a', format='NETCDF4_CLASSIC', engine='netcdf4', encoding = {variable: encoding[variable]})
-                ds.to_netcdf(
-                   pp_full,
-                   mode="w",
-                   engine="netcdf4",
-                   encoding={variable: encoding[variable]},
-                )
+                # ds.to_netcdf(
+                #    pp_full,
+                #    mode="w",
+                #    engine="netcdf4",
+                #    encoding={variable: encoding[variable]},
+                # )
+
+                # for timestep in range(82, 83):
+
+                # #print(f"Correcting timestep {timestep}...")
+                # #dayofyear_mdl = ds_mdl["time.dayofyear"]
+                # #day = dayofyear_mdl[timestep]##
+
+                # # Deal with normal and leap years
+                # #for calib_year in range(syr_calib, eyr_calib + 1):
+
+                # #    print(calib_year)
+                # #    print(year)
+
+                # #    ds_obs_year = ds_obs.sel(time=ds_obs.time.dt.year == calib_year)
+                # #    ds_mdl_year = ds_mdl.sel(time=ds_mdl.time.dt.year == calib_year)
+
+                # #    dayofyear_obs = ds_obs_year["time.dayofyear"]
+                # #    dayofyear_mdl = ds_mdl_year["time.dayofyear"]
+
+                # #    # normal years
+                # #    if len(ds_obs_year.time.values) == 365:
+
+                #         # day_range = (np.arange(day - domain_config['bc_params']['window'], day + domain_config['bc_params']['window'] + 1) + 365) % 365 + 1
+                #         day_range = (
+                #             np.arange(
+                #                 day - domain_config["bc_params"]["window"] - 1,
+                #                 day + domain_config["bc_params"]["window"],
+                #             )
+                #             + 365
+                #         ) % 365 + 1
+
+                #         # leap years
+                #     else:
+                #         day_range = (
+                #             np.arange(
+                #                 day - domain_config["bc_params"]["window"] - 1,
+                #                 day + domain_config["bc_params"]["window"],
+                #             )
+                #             + 366
+                #         ) % 366 + 1
+
+                #     intersection_day_obs_year = np.in1d(dayofyear_obs, day_range)
+                #     intersection_day_mdl_year = np.in1d(dayofyear_mdl, day_range)
+
+                #     if calib_year == syr_calib:
+                #         intersection_day_obs = intersection_day_obs_year
+                #         intersection_day_mdl = intersection_day_mdl_year
+                #     else:
+                #         intersection_day_obs = np.append(
+                #             intersection_day_obs, intersection_day_obs_year
+                #         )
+                #         intersection_day_mdl = np.append(
+                #             intersection_day_mdl, intersection_day_mdl_year
+                #         )
+
+                # da_obs_sub = da_obs.loc[dict(time=intersection_day_obs)]
+
+                # with dask.config.set(
+                #     **{"array.slicing.split_large_chunks": False}
+                # ):  # --> I really don't know why we need to silence the warning here...
+                #     da_mdl_sub = da_mdl.loc[dict(time=intersection_day_mdl)]
+
+                # da_mdl_sub = da_mdl_sub.stack(
+                #     ens_time=("ens", "time"), create_index=True
+                # )
+                # da_mdl_sub = da_mdl_sub.drop("time")
+
+                # da_pred_sub = da_pred.isel(time=timestep)
+
+                # da_temp[timestep, :, :] = xr.apply_ufunc(
+                #     bc_module,
+                #     da_pred_sub,
+                #     da_obs_sub,
+                #     da_mdl_sub,
+                #     kwargs={
+                #         "bc_params": domain_config["bc_params"],
+                #         "precip": variable_config[variable]["isprecip"],
+                #     },
+                #     input_core_dims=[["ens"], ["time"], ["ens_time"]],
+                #     output_core_dims=[["ens"]],
+                #     vectorize=True,
+                #     dask="parallelized",
+                #     output_dtypes=[np.float64],
+                # )
+
+                # Change the datatype from "object" to "float64" --> Can we somehow get around this???
 
                 # ds_out_sel.close()
 

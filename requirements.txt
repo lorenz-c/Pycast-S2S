@@ -1,0 +1,12 @@
+# SPDX-FileCopyrightText: 2022 Karlsruhe Institute of Technology - KIT
+#
+# SPDX-License-Identifier: MIT
+pandas
+dask
+xarray
+numpy
+netCDF4
+scipy
+pytest
+surpyval
+formulaic

@@ -12,6 +12,9 @@ dependencies:
   - numpy
   - netCDF4
   - scipy
+  - pytest
+  - pre-commit
+  - sphinx
   - pip
   - pip:
     - surpyval

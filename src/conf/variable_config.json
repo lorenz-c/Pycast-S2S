@@ -16,7 +16,7 @@
         "dtype": "int16",
         "_FillValue": -9999, 
         "scale_factor": 0.01,
-        "add_offset": 237.15,
+        "add_offset": 273.15,
         "isprecip": false
     },
     "t2min": {
@@ -26,7 +26,7 @@
         "dtype": "int16",
         "_FillValue": -9999, 
         "scale_factor": 0.01,
-        "add_offset": 237.15,
+        "add_offset": 273.15,
         "isprecip": false
     },
     "t2max": {
@@ -36,7 +36,7 @@
         "dtype": "int16",
         "_FillValue": -9999, 
         "scale_factor": 0.01,
-        "add_offset": 237.15,
+        "add_offset": 273.15,
         "isprecip": false
     },
     "t2plus": {
