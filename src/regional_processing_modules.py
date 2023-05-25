@@ -272,16 +272,16 @@ def truncate_reference(
     file_in = (
         f"{glob_dir_dict['global_reference']}/ERA5_Land_daily_{variable}_{year}.nc"
     )
-
-    ds = xr.open_mfdataset(
-        file_in,
-        parallel=True,
-        chunks={"time": 50},
-        engine="netcdf4",
-        preprocess=preprocess_reference,
-        autoclose=True,
-    )
-
+    
+    with dask.config.set(**{'array.slicing.split_large_chunks': True}):
+        ds = xr.open_mfdataset(
+            file_in,
+            parallel=False,
+            chunks={"time": 20},
+            engine="netcdf4",
+            preprocess=preprocess_reference,
+            autoclose=True,
+        )
 
     file_out = f"{domain_config['reference_history']['prefix']}_{variable}_{year}.nc"
     full_out = f"{reg_dir_dict['reference_initial_resolution_dir']}/{file_out}"
@@ -297,7 +297,7 @@ def truncate_reference(
     encoding = set_encoding(variable_config, coords)
 
     try:
-        ds.to_netcdf(full_out, encoding={variable: encoding[variable]})
+        ds.to_netcdf(full_out, encoding={variable: encoding[variable], 'lat': encoding['lat'], 'lon': encoding['lon'], 'time': encoding['time']})
         logging.info(
             f"Truncate reference: succesful for variable {variable} and year {year}"
         )
