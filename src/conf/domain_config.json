@@ -25,10 +25,10 @@
 	"ceara": {
 		"prefix": "ceara",
 		"bbox": [-41.6, -37.0, -8, -2.7],
-		"regroot": "/pd/data/regclim_data/gridded_data/processed/ceara",
+		"regroot": "/pd/data/NCZarr/s2s_forecasts/ceara",
 		"syr_calib": 1981,
 		"eyr_calib": 2016,
-		"variables": ["tp", "t2m"],
+		"variables": ["ssrd"],
 		"raw_forecasts": {"prefix": "SEAS5", "merged_variables": true},
 		"bcsd_forecasts": {"prefix": "SEAS5_BCSD", "merged_variables": true},
 		"reference_history": {"prefix": "ERA5_Land", "merged_variables": false},
