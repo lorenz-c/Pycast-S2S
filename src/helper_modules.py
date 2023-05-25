@@ -223,9 +223,9 @@ def set_encoding(variable_config, coordinates, type="maps"):
             "chunksizes": chunksizes,
         }
 
-    encoding['lat'] = {"_FillValue": None}
-    encoding['lon'] = {"_FillValue": None}
-    encoding['time'] = {"_FillValue": None, "units": 'days since 1950-01-01 00:00:00', "dtype": "int32"}
+    encoding['lat'] = {"_FillValue": None, "dtype": "float"}
+    encoding['lon'] = {"_FillValue": None, "dtype": "float"}
+    encoding['time'] = {"_FillValue": None, "units": 'days since 1950-01-01 00:00:00', "dtype": "float"}
 
     return encoding
 
@@ -243,6 +243,10 @@ def set_zarr_encoding(variable_config):
             "add_offset": variable_config[variable]["add_offset"],
             "dtype": variable_config[variable]["dtype"],
         }
+        
+        encoding['lat'] = {"_FillValue": None, "dtype": "float"}
+        encoding['lon'] = {"_FillValue": None, "dtype": "float"}
+        encoding['time'] = {"_FillValue": None, "units": 'days since 1950-01-01 00:00:00', "dtype": "float"}
 
     return encoding
 

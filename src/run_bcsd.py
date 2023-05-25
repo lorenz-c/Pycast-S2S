@@ -238,7 +238,9 @@ if __name__ == "__main__":
                         # engine="netcdf4",
                     )
                     da_mdl = ds_mdl[variable].persist()
-
+                    
+                print('Do samma...')
+                
                 # Pred (current year for one month and 215 days)
                 ds_pred = xr.open_dataset(raw_full)
                 ds_pred = xr.open_mfdataset(
@@ -254,6 +256,8 @@ if __name__ == "__main__":
                 )
                 da_pred = ds_pred[variable].persist()
 
+                
+                
                 if args.crossval == True:
                     da_mdl = da_mdl.sel(time=~da_pred.time)
                     da_obs = da_obs.sel(time=~da_pred.time)
@@ -296,32 +300,37 @@ if __name__ == "__main__":
                     },
                 ).persist()
 
-
+                
 
                 for timestep in range(0, len(ds_pred.time)):
                 # for timestep in range(82, 83):
 
                     print(f"Correcting timestep {timestep}...")
-                    # get obs data
+                    # MDL: Get all model-timesteps as days of year
                     dayofyear_mdl = ds_mdl["time.dayofyear"]
+                    # MDL: Select the day at the position timestep
                     day = dayofyear_mdl[timestep]
 
                     for calib_year in range(syr_calib, eyr_calib + 1):
+                        
+                        
 
+                        # OBS: Select all days of the current year
                         ds_obs_year = ds_obs.sel(time=ds_obs.time.dt.year == calib_year)
+                        # OBS: Transform dates into days of year
                         dayofyear_obs = ds_obs_year["time.dayofyear"]
 
                         # normal years
+                        # OBS: Check if the current year is a leap year or not
                         if len(ds_obs_year.time.values) == 365:
-
-                            # day_range = (np.arange(day - domain_config['bc_params']['window'], day + domain_config['bc_params']['window'] + 1) + 365) % 365 + 1
+                            
                             day_range = (
-                                                np.arange(
-                                                    day - domain_config['bc_params']['window'] - 1,
-                                                    day + domain_config['bc_params']['window'],
-                                                )
-                                                + 365
-                                        ) % 365 + 1
+                                np.arange(
+                                    day - domain_config['bc_params']['window'] - 1,
+                                    day + domain_config['bc_params']['window'],
+                                )
+                                + 365
+                            ) % 365 + 1
 
                             # leap years
                         else:
@@ -333,6 +342,7 @@ if __name__ == "__main__":
                                                 + 366
                                         ) % 366 + 1
 
+     
                         intersection_day_obs_year = np.in1d(dayofyear_obs, day_range)
 
                         if calib_year == syr_calib:

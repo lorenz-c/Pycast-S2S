@@ -423,31 +423,37 @@ if __name__ == "__main__":
                 )
 
                 encoding = helper_modules.set_zarr_encoding(variable_config)
+                
+                ds = ds.chunk({"time": len(ds.time), "ens": len(ds.ens), "lat": "auto", "lon": "auto"})
+                
+                ds.to_zarr(full_out, encoding={variable: encoding[variable], 'lat': encoding['lat'], 'lon': encoding['lon'], 'time': encoding['time']})
+                
 
-                rechunked = rechunk(
-                    ds,
-                    target_chunks={
-                        "time": len(ds.time),
-                        "ens": len(ds.ens),
-                        "lat": 1,
-                        "lon": 1,
-                    },
-                    target_store=full_out,
-                    max_mem="2000MB",
-                    temp_store=intermed,
-                    target_options=encoding,
-                )
+                #rechunked = rechunk(
+                #    ds,
+                #    target_chunks={
+                #        "time": len(ds.time),
+                #        "ens": len(ds.ens),
+                #        "lat": 1,
+                #        "lon": 1,
+                #    },
+                #    target_store=full_out,
+                #    max_mem="2000MB",
+                #    temp_store=intermed,
+                #    target_options=encoding,
+                #)
 
-            with ProgressBar():
-                rechunked.execute()
+            #with ProgressBar():
+            #    rechunked.execute()
 
     elif args.mode == "truncate_reference":
 
-        results = []
-
         for variable in variable_config:
-            print(variable)
+            
+            results = []
+            
             for year in process_years:
+                
                 results.append(
                     regional_processing_modules.truncate_reference(
                         domain_config,
@@ -459,11 +465,11 @@ if __name__ == "__main__":
                     )
                 )
 
-        try:
-            dask.compute(results)
-            logging.info("Truncate reference: successful")
-        except:
-            logging.warning("Truncate reference: Something went wrong")
+            try:
+                dask.compute(results)
+                logging.info("Truncate reference: successful")
+            except:
+                logging.warning("Truncate reference: Something went wrong")
 
     # calculate t2plus and t2minus
     elif args.mode == "calc_t2plus_minus":
@@ -583,7 +589,7 @@ if __name__ == "__main__":
             # Now, let's open all files and concat along the time-dimensions
             ds = xr.open_mfdataset(
                 filenames,
-                parallel=True,
+                parallel=False,
                 # chunks={'time': 5, 'lat': 'auto', 'lon': 'auto'},
                 engine="netcdf4",
                 autoclose=True,
