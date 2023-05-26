@@ -1,3 +1,4 @@
+
 # In this script, the historical SEAS5- and ERA5-Land-Data are processed for each domain
 
 # Packages
@@ -13,8 +14,8 @@ import pandas as pd
 # from cdo import *
 # cdo = Cdo()
 import xarray as xr
-import zarr
-from rechunker import rechunk
+#import zarr
+#from rechunker import rechunk
 
 # import dir_fnme
 from helper_modules import run_cmd, set_encoding
@@ -151,7 +152,7 @@ def truncate_forecasts(
 
         fle_out = f"{domain_config['raw_forecasts']['prefix']}_{variable}_{year}{month:02d}.nc"
         full_out = f"{reg_dir_dict['raw_forecasts_initial_resolution_dir']}/{fle_out}"
-
+#        full_out = f"/scratch/{fle_out}"
         # calclutate t2plus and t2minus
         if variable == "t2plus":
             ds["t2plus"] = ds.t2max - ds.t2m
@@ -162,7 +163,8 @@ def truncate_forecasts(
         ds.encoding = []
 
         try:
-            ds[variable].to_netcdf(full_out, encoding={variable: encoding[variable], 'lat': encoding['lat'], 'lon': encoding['lon'], 'time': encoding['time']})
+            print(f"we write now...")
+            ds[variable].to_netcdf(full_out, encoding={variable: encoding[variable], 'lat': encoding['lat'], 'lon': encoding['lon'], 'time': encoding['time']}, engine="netcdf4")
             logging.info(
                 f"Truncate forecasts: succesful for month {month:02d} and year {year}"
             )
