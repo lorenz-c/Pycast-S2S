@@ -11,7 +11,7 @@ import numpy as np
 import xarray as xr
 from dask.diagnostics import ProgressBar
 from dask.distributed import Client
-from rechunker import rechunk
+#from rechunker import rechunk
 
 # import dir_fnme_v2 as dir_fnme
 import helper_modules
@@ -53,6 +53,15 @@ def get_clas():
         action="store",
         type=str,
         help="Months for which the processing should be executed",
+        required=False,
+    )
+
+    parser.add_argument(
+        "-v",
+        "--variables",
+        action="store",
+        type=str,
+        help="Variable",
         required=False,
     )
 
@@ -134,11 +143,20 @@ if __name__ == "__main__":
         logging.error(f"Init: no configuration for domain {args.domain}")
         sys.exit()
 
-    variable_config = {
-        key: value
-        for key, value in variable_config.items()
-        if key in domain_config["variables"]
-    }
+    if args.variables is not None:
+        variable_config = {
+            key: value
+            for key, value in variable_config.items()
+            if key in args.variables
+        }
+        print(variable_config)
+    else:
+        variable_config = {
+            key: value
+            for key, value in variable_config.items()
+            if key in domain_config["variables"]
+        }
+
 
 
     reg_dir_dict, glob_dir_dict = helper_modules.set_and_make_dirs(domain_config)
@@ -160,7 +178,8 @@ if __name__ == "__main__":
         )
 
         client.get_versions(check=True)
-        client.amm.start()
+
+        #client.amm.start()
 
         print(f"Dask dashboard available at {client.dashboard_link}")
 
