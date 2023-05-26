@@ -9,7 +9,7 @@ import dask.array as da
 import numpy as np
 import pandas as pd
 import xarray as xr
-import zarr
+#import zarr
 from dask import config
 from dask.distributed import Client
 from dask_jobqueue import SLURMCluster
@@ -414,7 +414,7 @@ def getCluster(queue, nodes, jobs_per_node):
 
     # cluster options
     if queue == "rome":
-        cores, memory, walltime = (62, "220GB", "0-48:00:00")
+        cores, memory, walltime = (62, "220GB", "08:00:00")
     elif queue == "ivyshort":
         cores, memory, walltime = (40, "60GB", "48:00:00")
     elif queue == "ccgp" or queue == "cclake":
@@ -425,6 +425,8 @@ def getCluster(queue, nodes, jobs_per_node):
         cores, memory, walltime = (40, "60GB", "48:00:00")
     elif queue == "fat":
         cores, memory, walltime = (96, "800GB", "48:00:00")
+    elif queue == "milan":
+        cores, memory, walltime = (40, "120GB", "12:00:00")
 
     # cluster if only single cluster is needed!
     cluster = SLURMCluster(
@@ -432,11 +434,10 @@ def getCluster(queue, nodes, jobs_per_node):
         memory=memory,
         processes=jobs_per_node,
         queue=queue,
-        project="dask_test",
         walltime=walltime,
     )
 
-    config.set({"interface": "lo"})
+    # config.set({"interface": "lo"})
 
     client = Client(cluster)
 
