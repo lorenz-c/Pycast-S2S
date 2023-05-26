@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#SBATCH --partition=ivyshort
+#SBATCH --partition=milan
 #SBATCH --job-name=Operational_SEAS5_BCSD      # Job name
 #SBATCH --mail-type=END,FAIL                   # Mail events (NONE, BEGIN, END, FAIL, ALL)
 #SBATCH --mail-user=christof.lorenz@kit.edu    # Where to send mail	
@@ -11,21 +11,21 @@
 #SBATCH --output=logs/seas5_bcsd_%j.log             # Standard output and error log
 #SBATCH --error=logs/seas5_bcsd_errors_%j.log
 
-date;hostname;pwd
+#date;hostname;pwd
 
+for i in {01..12}; do echo $i; done
 
-module load app/cdo/1.9.9
-module load app/nco/4.7.8
-module load app/matlab/2021b
+#module load app/cdo/1.9.9
+#module load app/nco/4.7.8
 
-export PATH="/pd/home/lorenz-c/miniconda3/bin":$PATH
+#export PATH="/pd/home/lorenz-c/miniconda3/bin":$PATH
 
-source /home/lorenz-c/.bashrc
-source activate forecast_bias_correction
+#source /home/lorenz-c/.bashrc
+#source activate forecast_bias_correction
 
-pip install surpyval formulaic
+#pip install surpyval formulaic
 
-cd /home/lorenz-c/Projects/bias-correction-seas5-py
+#cd /home/lorenz-c/Projects/bias-correction-seas5-py
 
 # Run the issue-date-update-script
 #python3 src/update_params.py
