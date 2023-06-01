@@ -6,16 +6,14 @@ import logging
 import os
 from os.path import exists
 
-# import zarrimpo
+import zarr
 import dask
 import numpy as np
 import pandas as pd
 
-# from cdo import *
-# cdo = Cdo()
 import xarray as xr
 #import zarr
-#from rechunker import rechunk
+from rechunker import rechunk
 
 # import dir_fnme
 from helper_modules import run_cmd, set_encoding

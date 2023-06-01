@@ -9,7 +9,7 @@ import xarray as xr
 from dask.distributed import Client
 
 import helper_modules
-from bc_module_v2 import bc_module
+from bc_module import bc_module
 
 
 def get_clas():
@@ -42,6 +42,15 @@ def get_clas():
     )
 
     parser.add_argument(
+        "-v",
+        "--variables",
+        action="store",
+        type=str,
+        help="Variable",
+        required=False,
+    )
+
+    parser.add_argument(
         "-c",
         "--crossval",
         action="store",
@@ -49,6 +58,7 @@ def get_clas():
         help="If TRUE, do not use actual forecast for computing forecast climatology ",
         required=False,
     )
+
     parser.add_argument(
         "-s",
         "--forecast_structure",
@@ -57,6 +67,7 @@ def get_clas():
         help="Structure of the line-chunked forecasts (can be 5D or 4D)",
         required=True,
     )
+
     parser.add_argument(
         "-N",
         "--nodes",
@@ -135,11 +146,19 @@ if __name__ == "__main__":
         logging.error(f"Init: no configuration for domain {args.domain}")
         sys.exit()
 
-    variable_config = {
-        key: value
-        for key, value in variable_config.items()
-        if key in domain_config["variables"]
-    }
+    if args.variables is not None:
+        variable_config = {
+            key: value
+            for key, value in variable_config.items()
+            if key in args.variables
+        }
+        print(variable_config)
+    else:
+        variable_config = {
+            key: value
+            for key, value in variable_config.items()
+            if key in domain_config["variables"]
+        }
 
     reg_dir_dict, glob_dir_dict = helper_modules.set_and_make_dirs(domain_config)
 

@@ -11,7 +11,7 @@ import numpy as np
 import xarray as xr
 from dask.diagnostics import ProgressBar
 from dask.distributed import Client
-#from rechunker import rechunk
+from rechunker import rechunk
 
 # import dir_fnme_v2 as dir_fnme
 import helper_modules

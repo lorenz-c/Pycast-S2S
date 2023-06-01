@@ -9,7 +9,7 @@ import dask.array as da
 import numpy as np
 import pandas as pd
 import xarray as xr
-#import zarr
+import zarr
 from dask import config
 from dask.distributed import Client
 from dask_jobqueue import SLURMCluster
@@ -53,7 +53,7 @@ def set_and_make_dirs(domain_config: dict) -> dict:
     ] = f"{reg_dir_dict['raw_forecasts_dir']}zarr_stores/"
     reg_dir_dict[
         "reference_initial_resolution_dir"
-    ] = f"{reg_dir_dict['reference_dir']}initial_resolution/"
+    ] = f"{reg_dir_dict['reference_dir']}initial_resolution"
     reg_dir_dict[
         "bcsd_forecast_zarr_dir"
     ] = f"{reg_dir_dict['processed_dir']}zarr_stores/"
