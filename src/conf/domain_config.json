@@ -25,7 +25,7 @@
 	"ceara": {
 		"prefix": "ceara",
 		"bbox": [-41.6, -37.0, -8, -2.7],
-		"regroot": "/bg/home/lorenz-c/s2s/ceara",
+		"regroot": "/bg/data/s2s/ceara",
 		"syr_calib": 1981,
 		"eyr_calib": 2016,
 		"variables": ["tp", "t2m", "ssrd"],
@@ -48,7 +48,7 @@
 	"germany": {
 		"prefix": "germany",
 		"bbox": [5.25, 15.15, 45.55, 55.45],
-		"regroot": "/bg/data/NCZarr/s2s_forecasts/germany_test",
+		"regroot": "/bg/data/s2s/germany",
 		"syr_calib": 1981,
 		"eyr_calib": 2016,
 		"variables": ["tp","t2m"],
