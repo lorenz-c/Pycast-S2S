@@ -445,7 +445,13 @@ if __name__ == "__main__":
                    pp_full,
                    mode="w",
                    engine="netcdf4",
-                   encoding={variable: encoding[variable]},
+                   encoding={
+			variable: encoding[variable], 
+			'ens': encoding['ens'],
+			'time': encoding['time'],
+			'lat': encoding['lat'],
+			'lon': encoding['lon']
+		   },
                 )
 
                 # ds_out_sel.close()
