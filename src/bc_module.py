@@ -6,19 +6,6 @@ from scipy.stats import gumbel_l, norm
 
 
 def bc_module(pred, obs, mdl, bc_params, precip):
-    # bc_params = {
-    #    'dry_thresh': 0.01,
-    #    'precip': True,
-    #    'low_extrapol': "delta_additive",
-    #    'up_extrapol': "delta_additive",
-    #    'extremes': "weibull",
-    #    'intermittency': True,
-    #    'nquants': 2500
-    # }
-
-    # nts = len(pred.time.values)
-
-    # print(mdl)
 
     ds_nan = pred.copy()
     ds_nan[:] = np.nan
@@ -29,6 +16,7 @@ def bc_module(pred, obs, mdl, bc_params, precip):
     # print(np.any(~np.isnan(mdl)))
     # Check if we have sufficient values for the bcsd
     if np.any(~np.isnan(obs)) and np.any(~np.isnan(mdl)):
+
         if len(np.unique(mdl)) > 10 and len(np.unique(obs)) > 10:
 
             # if np.any(~np.isnan(obs)) and np.any(~np.isnan(mdl)):
@@ -54,7 +42,6 @@ def bc_module(pred, obs, mdl, bc_params, precip):
             # print(q_mdl)
 
             pred = pred.copy()
-            # pred_1 = pred.copy()
 
             pred[pred > max(q_mdl)] = max(q_mdl)
             pred[pred < min(q_mdl)] = min(q_mdl)
@@ -127,7 +114,7 @@ def bc_module(pred, obs, mdl, bc_params, precip):
                     ) / np.quantile(mdl, p_max_obs, interpolation="midpoint")
                     pred_corr[up] = pred[up] * delta
 
-            if up.size != 0:
+            if low.size != 0:
                 if bc_params["low_extrapol"] == "constant":
                     pred_corr[low] = np.min(obs)
                 elif bc_params["low_extrapol"] == "distribution":
