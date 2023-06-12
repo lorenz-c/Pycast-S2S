@@ -6,6 +6,7 @@ import pandas as pd
 import dask
 import numpy as np
 import xarray as xr
+from tqdm import tqdm
 from dask.distributed import Client
 
 import helper_modules
@@ -120,6 +121,12 @@ def setup_logger(domain_name):
 
 if __name__ == "__main__":
 
+    print(f"[run_bcsd] ----------------------------------")
+    print(f"[run_bcsd]       Pycast S2S Main program     ")
+    print(f"[run_bcsd] ----------------------------------")
+    print(f"[run_bcsd]             Version 0.1           ")
+    print(f"[run_bcsd] ----------------------------------")
+
     args = get_clas()
 
     # Read the command line arguments
@@ -152,7 +159,6 @@ if __name__ == "__main__":
             for key, value in variable_config.items()
             if key in args.variables
         }
-        print(variable_config)
     else:
         variable_config = {
             key: value
@@ -179,7 +185,7 @@ if __name__ == "__main__":
         client.get_versions(check=True)
         client.amm.start()
 
-        print(f"Dask dashboard available at {client.dashboard_link}")
+        print(f"[run_bcsd] Dask dashboard available at {client.dashboard_link}")
 
     if args.scheduler_file is not None:
         client = Client(scheduler_file=args.scheduler_file)
@@ -187,14 +193,16 @@ if __name__ == "__main__":
         client.get_versions(check=True)
         client.amm.start()
 
-        print(f"Dask dashboard available at {client.dashboard_link}")
+        print(f"[run_bcsd] Dask dashboard available at {client.dashboard_link}")
 
     # Insert IF-Statement in order to run the bcsd for the historical files
     for year in process_years:
-        print(f"Year: {year}")
+
         for month in process_months:
 
             for variable in variable_config:
+
+                print(f"[run_bcsd] Starting BC-routine for year {year}, month {month} and variable {variable}")
 
                 (
                     raw_full,
@@ -204,8 +212,6 @@ if __name__ == "__main__":
                 ) = helper_modules.set_input_files(
                     domain_config, reg_dir_dict, month, year, variable
                 )
-
-                print(raw_full)
 
                 coords = helper_modules.get_coords_from_frcst(raw_full)
 
@@ -224,7 +230,10 @@ if __name__ == "__main__":
                     variable,
                 )
 
-                print(f"Opening {ref_full}")
+                print(f"[run_bcsd] Using {refrcst_full} as reference for the calibration period")
+                print(f"[run_bcsd] Using {ref_full} as forecasts for the calibration period")
+                print(f"[run_bcsd] Using {raw_full} as actual forecasts")
+
                 ds_obs = xr.open_zarr(ref_full, consolidated=False)
 
                 ds_obs = xr.open_zarr(
@@ -236,7 +245,6 @@ if __name__ == "__main__":
                 )
                 da_obs = ds_obs[variable].persist()
 
-                print(f"Opening {refrcst_full}")
                 if args.forecast_structure == "5D":
                     ds_mdl = helper_modules.preprocess_mdl_hist(
                         refrcst_full, month, variable
@@ -249,8 +257,8 @@ if __name__ == "__main__":
                         chunks={
                             "time": len(ds_mdl.time),
                             "ens": len(ds_mdl.ens),
-                            "lat": 10,
-                            "lon": 10,
+                            "lat": 'auto',
+                            "lon": 'auto',
                         },
                         consolidated=False
                         # parallel=True,
@@ -258,7 +266,6 @@ if __name__ == "__main__":
                     )
                     da_mdl = ds_mdl[variable].persist()
                     
-                print('Do samma...')
                 
                 # Pred (current year for one month and 215 days)
                 ds_pred = xr.open_dataset(raw_full)
@@ -267,8 +274,8 @@ if __name__ == "__main__":
                     chunks={
                         "time": len(ds_pred.time),
                         "ens": len(ds_pred.ens),
-                        "lat": 10,
-                        "lon": 10,
+                        "lat": 'auto',
+                        "lon": 'auto',
                     },
                     parallel=True,
                     engine="netcdf4",
@@ -319,12 +326,12 @@ if __name__ == "__main__":
                     },
                 ).persist()
 
-                
+                print(f"Starting BC-routine for year {year}, month {month} and variable {variable}")
 
-                for timestep in range(0, len(ds_pred.time)):
-                # for timestep in range(82, 83):
+                for timestep in tqdm(range(0, len(ds_pred.time))):
+                #for timestep in range(0,4):
 
-                    print(f"Correcting timestep {timestep}...")
+                    #print(f"Correcting timestep {timestep}...")
                     # MDL: Get all model-timesteps as days of year
                     dayofyear_mdl = ds_mdl["time.dayofyear"]
                     # MDL: Select the day at the position timestep

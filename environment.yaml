@@ -17,6 +17,7 @@ dependencies:
   - sphinx
   - zarr
   - rechunker
+  - tqdm
   - pip
   - pip:
     - surpyval
