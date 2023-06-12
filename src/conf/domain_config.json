@@ -59,7 +59,7 @@
 		"target_resolution": 0.1,
 		"version": "3.0",
 		"bc_params": {
-			"dry_thresh": 0.01,
+			"dry_thresh": 0.1,
 			"low_extrapol": "delta_additive",
 			"up_extrapol": "delta_additive",
 			"extremes": "weibull",
