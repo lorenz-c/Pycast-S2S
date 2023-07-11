@@ -326,9 +326,8 @@ if __name__ == "__main__":
                     },
                 ).persist()
 
-                print(f"Starting BC-routine for year {year}, month {month} and variable {variable}")
 
-                for timestep in tqdm(range(0, len(ds_pred.time))):
+                for timestep in tqdm(range(0, len(ds_pred.time)), desc="Timestep"):
                 #for timestep in range(0,4):
 
                     #print(f"Correcting timestep {timestep}...")
