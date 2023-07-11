@@ -2,11 +2,14 @@
 import argparse
 import json
 import logging
+import os
+import sys
 
 # from cdo import *
 import dask
 from dask.distributed import Client
 import helper_modules
+import aggregation_modules
 import regional_processing_modules
 from helper_modules import run_cmd
 import xarray as xr
@@ -51,6 +54,15 @@ def get_clas():
     )
 
     parser.add_argument(
+        "-v",
+        "--variables",
+        action="store",
+        type=str,
+        help="Variable",
+        required=False,
+    )
+
+    parser.add_argument(
         "-N",
         "--nodes",
         action="store",
@@ -91,6 +103,9 @@ def get_clas():
 
 
 def setup_logger(domain_name):
+
+    os.makedirs(os.path.dirname(f"logs/{domain_name}_aggregate.log"), exist_ok=True)
+
     logging.basicConfig(
         filename=f"logs/{domain_name}_aggregate.log",
         level=logging.INFO,
@@ -101,6 +116,11 @@ def setup_logger(domain_name):
 
 if __name__ == "__main__":
 
+    print(f"[pycast_s2s:aggregate] ----------------------------------")
+    print(f"[pycast_s2s:aggregate]   Pycast S2S Aggregation Toolbox  ")
+    print(f"[pycast_s2s:aggregate] ----------------------------------")
+    print(f"[pycast_s2s:aggregate]             Version 0.1           ")
+    print(f"[pycast_s2s:aggregate] ----------------------------------")
     # Read the command line arguments
     args = get_clas()
 
@@ -120,28 +140,39 @@ if __name__ == "__main__":
         variable_config = json.loads(j.read())
 
     # Set domain
-    domain_config = domain_config[args.domain]
+    try:
+        domain_config = domain_config[args.domain]
+    except:
+        logging.error(f"Init: no configuration for domain {args.domain}")
+        sys.exit()
 
-    variable_config = {
-        key: value
-        for key, value in variable_config.items()
-        if key in domain_config["variables"]
-    }
+    if args.variables is not None:
+        variable_config = {
+            key: value
+            for key, value in variable_config.items()
+            if key in args.variables
+        }
+        print(variable_config)
+    else:
+        variable_config = {
+            key: value
+            for key, value in variable_config.items()
+            if key in domain_config["variables"]
+        }
 
     reg_dir_dict, glob_dir_dict = helper_modules.set_and_make_dirs(domain_config)
 
     # get filename of grid-File
-    grid_file = f"{reg_dir_dict['static_dir']}/domain_grid.txt"
+    #grid_file = f"{reg_dir_dict['static_dir']}/domain_grid.txt"
 
-    grid_file = regional_processing_modules.create_grd_file(domain_config, grid_file)
+    # grid_file = regional_processing_modules.create_grd_file(domain_config, grid_file)
 
     process_years = helper_modules.decode_processing_years(args.Years)
 
 
     if args.Months is not None:
         process_months = helper_modules.decode_processing_months(args.Months)
-    #print(process_years)
-    #print(process_months)
+
     # Get some ressourcers
     if args.partition is not None:
         client, cluster = helper_modules.getCluster(
@@ -149,7 +180,8 @@ if __name__ == "__main__":
         )
 
         client.get_versions(check=True)
-        client.amm.start()
+
+        #client.amm.start()
 
         print(f"Dask dashboard available at {client.dashboard_link}")
 
@@ -169,15 +201,24 @@ if __name__ == "__main__":
 
     # Convert SEAS5 raw daily data to monthly data (store in seperate files)
     if args.mode == "day2mon_seas":
+
         results = []
+
         for variable in variable_config:
 
             for year in process_years:
 
                 for month in process_months:
                     results.append(
-                        helper_modules.day2mon_seas(domain_config, variable_config, reg_dir_dict, year, month,
-                                                    variable))
+                        aggregation_modules.day2mon_seas(
+                            domain_config, 
+                            variable_config, 
+                            reg_dir_dict, 
+                            year, 
+                            month,
+                            variable
+                        )
+                    )
 
         try:
             dask.compute(results)
@@ -195,7 +236,15 @@ if __name__ == "__main__":
 
             for year in process_years:
 
-                results.append(helper_modules.day2mon_ref(domain_config, variable_config, reg_dir_dict, year, variable))
+                results.append(
+                    aggregation_modules.day2mon_ref(
+                        domain_config, 
+                        variable_config, 
+                        reg_dir_dict, 
+                        year, 
+                        variable
+                    )
+                )
 
         try:
             dask.compute(results)
@@ -214,13 +263,23 @@ if __name__ == "__main__":
 
                 for month in process_months:
 
-                    results.append(helper_modules.day2mon_bcsd(domain_config,variable_config, reg_dir_dict, year, month, variable))
+                    results.append(
+                        aggregation_modules.day2mon_bcsd(
+                            domain_config,
+                            variable_config, 
+                            reg_dir_dict, 
+                            year, 
+                            month, 
+                            variable
+                        )
+                    )
 
         try:
             dask.compute(results)
             logging.info("Day to month: successful")
         except:
             logging.warning("Day to month: Something went wrong")
+
 
     # Concat BCSD-Forecast on a daily Basis for calibration period or other desired period
     elif args.mode == "concat_bcsd_daily":
